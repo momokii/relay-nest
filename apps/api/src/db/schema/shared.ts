@@ -4,6 +4,7 @@ export const accountScopeEnum = pgEnum("account_scope", ["personal", "business"]
 export const userRoleEnum = pgEnum("user_role", ["admin", "operator", "viewer"])
 export const deliveryStateEnum = pgEnum("delivery_state", [
   "scheduled",
+  "queued",
   "attempting",
   "submitted",
   "acknowledged",

@@ -29,6 +29,13 @@
       "when": 1786885500000,
       "tag": "0004_session_delete_audit_fk",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": 7,
+      "when": 1786890000000,
+      "tag": "0005_scheduler_leases",
+      "breakpoints": true
     }
   ]
 }

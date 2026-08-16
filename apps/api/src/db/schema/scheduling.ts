@@ -20,6 +20,13 @@ export const scheduledJobs = pgTable("scheduled_jobs", {
   idempotencyKey: text("idempotency_key").notNull().unique(),
   state: deliveryStateEnum("state").notNull().default("scheduled"),
   attempts: integer("attempts").notNull().default(0),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
+  leaseOwner: text("lease_owner"),
+  leaseExpiresAt: timestamp("lease_expires_at", { withTimezone: true }),
+  providerMessageId: text("provider_message_id"),
+  recoveryCode: text("recovery_code"),
+  failureCode: text("failure_code"),
+  editVersion: integer("edit_version").notNull().default(0),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 })

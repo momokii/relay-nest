@@ -33,6 +33,93 @@ describe.skipIf(!repositories)("PostgreSQL repositories", () => {
     ).resolves.toBeNull()
   })
 
+  it("preserves scheduled job create and scoped find behavior", async () => {
+    // Given a persisted Personal session and an encrypted one-time schedule
+    const connection = await repositories.wahaConnections.create({
+      name: `schedule-connection-${crypto.randomUUID()}`,
+      baseUrl: "http://waha.internal",
+      apiKeyCiphertext: "opaque-ciphertext",
+      apiKeyNonce: "opaque-nonce",
+      apiKeyAuthTag: "opaque-tag",
+    })
+    const session = await repositories.sessions.create({
+      connectionId: connection.id,
+      accountScope: personal,
+      name: `schedule-session-${crypto.randomUUID()}`,
+      wahaSessionName: `schedule-waha-${crypto.randomUUID()}`,
+      status: "WORKING",
+    })
+    const idempotencyKey = `schedule-${crypto.randomUUID()}`
+
+    // When the existing scheduling repository persists and reads the job
+    const job = await repositories.scheduledJobs.create({
+      sessionId: session.id,
+      accountScope: personal,
+      recipientPhoneCiphertext: "opaque-recipient",
+      recipientPhoneNonce: "opaque-nonce",
+      recipientPhoneAuthTag: "opaque-tag",
+      messageCiphertext: "opaque-message",
+      messageNonce: "opaque-nonce",
+      messageAuthTag: "opaque-tag",
+      scheduledFor: new Date("2030-01-01T12:00:00.000Z"),
+      timezone: "UTC",
+      idempotencyKey,
+    })
+
+    // Then the job is found only in its original account scope
+    await expect(repositories.scheduledJobs.find(job.id, personal)).resolves.toMatchObject({
+      id: job.id,
+      accountScope: personal,
+      idempotencyKey,
+      state: "scheduled",
+    })
+    await expect(repositories.scheduledJobs.find(job.id, "business")).resolves.toBeNull()
+  })
+
+  it("claims a due scheduled job atomically across concurrent workers", async () => {
+    // Given a due Personal schedule in PostgreSQL
+    const connection = await repositories.wahaConnections.create({
+      name: `claim-connection-${crypto.randomUUID()}`,
+      baseUrl: "http://waha.internal",
+      apiKeyCiphertext: "opaque-ciphertext",
+      apiKeyNonce: "opaque-nonce",
+      apiKeyAuthTag: "opaque-tag",
+    })
+    const session = await repositories.sessions.create({
+      connectionId: connection.id,
+      accountScope: personal,
+      name: `claim-session-${crypto.randomUUID()}`,
+      wahaSessionName: `claim-waha-${crypto.randomUUID()}`,
+      status: "WORKING",
+    })
+    const job = await repositories.scheduledJobs.create({
+      sessionId: session.id,
+      accountScope: personal,
+      recipientPhoneCiphertext: "opaque-recipient",
+      recipientPhoneNonce: "opaque-nonce",
+      recipientPhoneAuthTag: "opaque-tag",
+      messageCiphertext: "opaque-message",
+      messageNonce: "opaque-nonce",
+      messageAuthTag: "opaque-tag",
+      scheduledFor: new Date("2020-01-01T12:00:00.000Z"),
+      timezone: "UTC",
+      idempotencyKey: `claim-${crypto.randomUUID()}`,
+      nextAttemptAt: new Date("2020-01-01T12:00:00.000Z"),
+    })
+
+    // When two workers claim at the same instant
+    const claims = await Promise.all([
+      repositories.scheduledJobs.claimDue("worker-a", new Date("2020-01-01T12:00:01.000Z"), 30_000),
+      repositories.scheduledJobs.claimDue("worker-b", new Date("2020-01-01T12:00:01.000Z"), 30_000),
+    ])
+
+    // Then one worker owns the lease and one dispatch attempt exists
+    expect(claims.filter(Boolean)).toHaveLength(1)
+    await expect(repositories.dispatchAttempts.listForJob(job.id, personal)).resolves.toHaveLength(
+      1,
+    )
+  })
+
   it("rejects duplicate retention categories inside one scope", async () => {
     // Given a persisted Personal retention policy
     const category = `duplicate-${crypto.randomUUID()}`

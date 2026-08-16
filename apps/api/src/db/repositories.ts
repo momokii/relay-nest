@@ -1,7 +1,9 @@
 import { and, asc, eq, inArray } from "drizzle-orm"
 
 import type { PersistenceDatabase } from "./client"
+import { createDispatchAttemptRepositories } from "./repositories/dispatch-attempts"
 import { createIdentityRepositories } from "./repositories/identity"
+import { createSchedulingRepositories } from "./repositories/scheduling"
 import { createTransportRepositories } from "./repositories/transport"
 import {
   AuditImmutabilityError,
@@ -16,7 +18,6 @@ import {
   normalizedEvents,
   notifications,
   retentionPolicies,
-  scheduledJobs,
 } from "./schema"
 import type { AccountScope } from "./schema/shared"
 
@@ -44,73 +45,9 @@ type AuditInput = {
 export function createRepositories(db: PersistenceDatabase) {
   return {
     ...createIdentityRepositories(db),
+    ...createDispatchAttemptRepositories(db),
+    ...createSchedulingRepositories(db),
     ...createTransportRepositories(db),
-    scheduledJobs: {
-      create: (input: typeof scheduledJobs.$inferInsert) =>
-        withPersistenceErrors(
-          db
-            .insert(scheduledJobs)
-            .values(input)
-            .returning()
-            .then(([job]) => job),
-        ),
-      find: async (id: string, accountScope: AccountScope) => {
-        const [job] = await db
-          .select()
-          .from(scheduledJobs)
-          .where(and(eq(scheduledJobs.id, id), eq(scheduledJobs.accountScope, accountScope)))
-          .limit(1)
-        return job ?? null
-      },
-    },
-    dispatchAttempts: {
-      create: (input: typeof dispatchAttempts.$inferInsert) =>
-        withPersistenceErrors(
-          db
-            .insert(dispatchAttempts)
-            .values(input)
-            .returning()
-            .then(([attempt]) => attempt),
-        ),
-      listForJob: (jobId: string, accountScope: AccountScope) =>
-        db
-          .select()
-          .from(dispatchAttempts)
-          .where(
-            and(eq(dispatchAttempts.jobId, jobId), eq(dispatchAttempts.accountScope, accountScope)),
-          ),
-      updateState: async (
-        sessionId: string,
-        accountScope: AccountScope,
-        providerMessageId: string,
-        state: "attempting" | "submitted" | "acknowledged" | "failed",
-      ) => {
-        const rank = {
-          scheduled: 0,
-          attempting: 1,
-          submitted: 2,
-          acknowledged: 3,
-          failed: 5,
-          unknown: 0,
-          cancelled: 0,
-        } as const
-        const lowerStates = Object.entries(rank)
-          .filter(([, currentRank]) => currentRank < rank[state])
-          .map(([currentState]) => currentState as keyof typeof rank)
-        if (lowerStates.length === 0) return
-        await db
-          .update(dispatchAttempts)
-          .set({ state })
-          .where(
-            and(
-              eq(dispatchAttempts.sessionId, sessionId),
-              eq(dispatchAttempts.accountScope, accountScope),
-              eq(dispatchAttempts.providerMessageId, providerMessageId),
-              inArray(dispatchAttempts.state, lowerStates),
-            ),
-          )
-      },
-    },
     normalizedEvents: {
       create: (input: typeof normalizedEvents.$inferInsert) =>
         withPersistenceErrors(
