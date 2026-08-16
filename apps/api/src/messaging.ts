@@ -1,0 +1,258 @@
+import { randomUUID } from "node:crypto"
+
+import type {
+  ContactTarget,
+  DurableDispatch,
+  MessagingContact,
+  MessagingPrincipal,
+  MessagingServiceOptions,
+  MessagingSession,
+  SafeContact,
+  ScheduleInput,
+  SendInput,
+  SendResult,
+} from "./messaging-types"
+
+export type {
+  ContactTarget,
+  DurableDispatch,
+  MessagingContact,
+  MessagingFailureCode,
+  MessagingPrincipal,
+  MessagingScheduler,
+  MessagingServiceOptions,
+  MessagingSession,
+  MessagingWaha,
+  SafeContact,
+  SafetyDecision,
+  ScheduleInput,
+  SendInput,
+  SendResult,
+} from "./messaging-types"
+
+export class MessagingInputError extends Error {
+  readonly name = "MessagingInputError"
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unexpected durable dispatch state: ${String(value)}`)
+}
+
+export function normalizePhoneNumber(input: string): string {
+  const compact = input.trim().replace(/[\s().-]/g, "")
+  if (!/^\+[1-9]\d{7,14}$/.test(compact)) {
+    throw new MessagingInputError("international phone number is invalid")
+  }
+  return compact
+}
+
+export function createMessagingService(options: MessagingServiceOptions) {
+  const now = options.now ?? (() => new Date())
+  const completed = new Map<string, SendResult>()
+
+  function resultFromDurable(dispatch: DurableDispatch): SendResult {
+    switch (dispatch.state) {
+      case "scheduled":
+      case "queued":
+      case "attempting":
+        return { state: "scheduled", jobId: dispatch.jobId }
+      case "submitted":
+      case "acknowledged":
+        return dispatch.providerMessageId
+          ? { state: dispatch.state, providerMessageId: dispatch.providerMessageId }
+          : { state: "unknown", recoveryCode: "provider_message_id_missing" }
+      case "failed":
+      case "unknown":
+        return { state: dispatch.state, recoveryCode: dispatch.recoveryCode ?? "provider_unknown" }
+      case "cancelled":
+        return { state: "unknown", recoveryCode: "cancelled" }
+      default:
+        return assertNever(dispatch.state)
+    }
+  }
+
+  function timezoneFor(input: SendInput): string {
+    if ("timezone" in input && typeof input.timezone === "string") return input.timezone
+    return "UTC"
+  }
+
+  async function authorized(
+    principal: MessagingPrincipal,
+    sessionId: string,
+    accountScope: MessagingSession["accountScope"],
+  ): Promise<MessagingSession | null> {
+    const decision = await options.authorize(principal, sessionId, accountScope)
+    if (!decision.allowed) return null
+    return options.sessions.find(sessionId, accountScope)
+  }
+
+  async function resolveInternal(
+    principal: MessagingPrincipal,
+    sessionId: string,
+    accountScope: MessagingSession["accountScope"],
+    target: ContactTarget,
+  ): Promise<MessagingContact | null> {
+    const session = await authorized(principal, sessionId, accountScope)
+    if (!session) return null
+    const client = await options.wahaForSession(session)
+    if ("phoneNumber" in target) {
+      const phone = normalizePhoneNumber(target.phoneNumber)
+      const existing = await options.contacts.find(accountScope, phone)
+      const checked = await client.checkExists(session.wahaSessionName, phone)
+      if (!checked.numberExists || !checked.chatId || !checked.chatId.endsWith("@c.us")) return null
+      const providerContact = await client.contact(session.wahaSessionName, checked.chatId)
+      return options.contacts.save({
+        id: existing?.id ?? randomUUID(),
+        accountScope,
+        sessionId,
+        phone,
+        displayName:
+          existing?.displayName ?? providerContact.name ?? providerContact.pushname ?? null,
+        providerChatId: checked.chatId,
+        consentGranted: existing?.consentGranted ?? false,
+        optedOut: existing?.optedOut ?? false,
+      })
+    }
+    const existing = options.contacts.findById
+      ? await options.contacts.findById(accountScope, target.contactId)
+      : null
+    if (!existing || !existing.providerChatId.endsWith("@c.us")) return null
+    return existing
+  }
+
+  async function prepare(
+    principal: MessagingPrincipal,
+    input: SendInput,
+  ): Promise<
+    { readonly session: MessagingSession; readonly contact: MessagingContact } | SendResult
+  > {
+    const deny = async (recoveryCode: string): Promise<SendResult> => {
+      await options.audit({
+        actorUserId: principal.userId,
+        action: "message.send_denied",
+        subjectType: "dispatch_decision",
+        subjectId: input.idempotencyKey,
+        accountScope: input.accountScope,
+        sessionId: input.sessionId,
+      })
+      return { state: "failed", recoveryCode }
+    }
+    const session = await authorized(principal, input.sessionId, input.accountScope)
+    if (!session) return deny("unauthorized")
+    let contact: MessagingContact | null
+    try {
+      contact = await resolveInternal(principal, input.sessionId, input.accountScope, input)
+    } catch (error) {
+      if (error instanceof MessagingInputError) return deny("invalid_phone")
+      throw error
+    }
+    if (!contact) return deny("contact_not_found")
+    if (!contact.consentGranted || contact.optedOut) return deny("consent_required")
+    const safety = await options.safety.evaluate({
+      session,
+      contact,
+      message: input.message,
+      now: now(),
+      timezone: timezoneFor(input),
+    })
+    if (!safety.allowed) return deny(safety.recoveryCode)
+    return { session, contact }
+  }
+
+  return {
+    async resolveContact(
+      principal: MessagingPrincipal,
+      sessionId: string,
+      accountScope: MessagingSession["accountScope"],
+      target: ContactTarget,
+    ): Promise<SafeContact> {
+      const contact = await resolveInternal(principal, sessionId, accountScope, target)
+      if (!contact) throw new MessagingInputError("contact was not found")
+      return { id: contact.id, phone: contact.phone, displayName: contact.displayName }
+    },
+    async scheduleText(principal: MessagingPrincipal, input: ScheduleInput): Promise<SendResult> {
+      const prepared = await prepare(principal, input)
+      if ("state" in prepared) return prepared
+      const scheduled = await options.scheduler.schedule({
+        sessionId: input.sessionId,
+        accountScope: input.accountScope,
+        recipientPhone: prepared.contact.phone,
+        message: input.message,
+        scheduledFor: input.scheduledFor,
+        timezone: input.timezone,
+        idempotencyKey: input.idempotencyKey,
+      })
+      await options.audit({
+        actorUserId: principal.userId,
+        action: scheduled.duplicate ? "message.schedule_duplicate" : "message.scheduled",
+        subjectType: "scheduled_job",
+        subjectId: scheduled.jobId,
+        accountScope: input.accountScope,
+        sessionId: input.sessionId,
+      })
+      return { state: "scheduled", jobId: scheduled.jobId }
+    },
+    async sendImmediate(principal: MessagingPrincipal, input: SendInput): Promise<SendResult> {
+      const prior = completed.get(input.idempotencyKey)
+      if (prior) return prior
+      const durable = options.scheduler.findByIdempotencyKey
+        ? await options.scheduler.findByIdempotencyKey(input.idempotencyKey)
+        : null
+      if (durable) return resultFromDurable(durable)
+      const prepared = await prepare(principal, input)
+      if ("state" in prepared) return prepared
+      const scheduled = await options.scheduler.schedule({
+        sessionId: input.sessionId,
+        accountScope: input.accountScope,
+        recipientPhone: prepared.contact.phone,
+        message: input.message,
+        scheduledFor: now(),
+        timezone: "UTC",
+        idempotencyKey: input.idempotencyKey,
+      })
+      if (scheduled.duplicate) return { state: "unknown", recoveryCode: "duplicate_command" }
+      const outcome = await options.scheduler.dispatch(scheduled.jobId)
+      const result: SendResult =
+        outcome.state === "submitted" || outcome.state === "acknowledged"
+          ? { state: outcome.state, providerMessageId: outcome.providerMessageId ?? "unknown" }
+          : { state: outcome.state, recoveryCode: outcome.recoveryCode ?? "provider_error" }
+      completed.set(input.idempotencyKey, result)
+      await options.audit({
+        actorUserId: principal.userId,
+        action: `message.immediate_${result.state}`,
+        subjectType: "scheduled_job",
+        subjectId: scheduled.jobId,
+        accountScope: input.accountScope,
+        sessionId: input.sessionId,
+      })
+      return result
+    },
+    async setConsent(
+      principal: MessagingPrincipal,
+      sessionId: string,
+      accountScope: MessagingSession["accountScope"],
+      contactId: string,
+      consentGranted: boolean,
+      optedOut: boolean,
+    ): Promise<{ readonly updated: boolean }> {
+      const session = await authorized(principal, sessionId, accountScope)
+      if (!session || !options.contacts.updateConsent) return { updated: false }
+      const contact = await options.contacts.updateConsent(
+        accountScope,
+        contactId,
+        consentGranted,
+        optedOut,
+      )
+      if (!contact) return { updated: false }
+      await options.audit({
+        actorUserId: principal.userId,
+        action: optedOut ? "contact.opted_out" : "contact.consent_updated",
+        subjectType: "contact",
+        subjectId: contactId,
+        accountScope,
+        sessionId,
+      })
+      return { updated: true }
+    },
+  }
+}
