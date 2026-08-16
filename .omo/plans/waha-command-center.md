@@ -190,13 +190,13 @@ this plan and must be copied into the durable project decision document by Todo 
   QA scenarios (name the exact tool + invocation): happy: `pnpm test -- messaging`; failure: invalid number, ungranted session, capped session, and WAHA timeout each produce safe user-visible state without leaked payloads. Evidence `.omo/evidence/task-10-waha-command-center.md`.
   Commit: pending semantic commits
 
-- [ ] 11. Implement SMTP/Telegram notifications and delivery preferences
+- [x] 11. Implement SMTP/Telegram notifications and delivery preferences
   What to do / Must NOT do: Add independently enabled notification channels, encrypted Admin-only settings, category preferences, masked secret handling, test sends, retry/backoff, and in-app failure history. Support SMTP configuration and Telegram bot token/chat ID(s). Must not use WhatsApp as the only failure channel or log provider credentials.
   Parallelization: Wave 3 | Blocked by: 4, 5, 9, 10 | Blocks: 14, 16
   References (executor has NO interview context - be exhaustive): `## Locked product decisions` in this plan; `.claude/SECURITY_STANDARDS.md`; `.claude/ENVIRONMENT_GUIDE.md`
   Acceptance criteria (agent-executable): Admin can enable/configure/test each channel; non-Admin cannot read secrets; disabled channels produce no outbound attempt; transient provider failures retry within bounds and audit redacted results.
   QA scenarios (name the exact tool + invocation): happy: `pnpm test -- notifications`; failure: provider timeout and malformed Telegram response produce retry/failure state without secret output. Evidence `.omo/evidence/task-11-waha-command-center.md`.
-  Commit: N | no commit until explicitly requested
+  Commit: pending semantic commits
 
 - [ ] 12. Implement retention policies, confirmation-gated purge, audit logging, and encrypted backups
   What to do / Must NOT do: Add per-category retention settings, preview/count-before-delete, explicit confirmation, immediate purge jobs, immutable minimal deletion audit records, audit coverage for sends/session/config/user changes, encrypted backup/restore of DB and key metadata, and operational key-rotation runbook. Must not silently delete audit accountability or promise instant removal from existing backups.
