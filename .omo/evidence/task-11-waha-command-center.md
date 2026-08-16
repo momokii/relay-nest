@@ -54,7 +54,7 @@ Passing:
   - Sequential execution is required because existing auth integration files share and truncate one database; parallel execution can deadlock or contaminate sessions. No production code change was made for that out-of-scope fixture issue.
 - `bunx biome check .`
 - `bunx tsc -b --pretty false`
-- Direct API esbuild passed. The package `build` script delegates to `pnpm -r build`, but `pnpm` and the workspace Vite binary are unavailable in this environment; the web build could not be executed.
+- Direct API esbuild passed. The final independent verifier also ran the web build successfully. The package `build` script still delegates to `pnpm -r build`, but `pnpm` is unavailable in this environment; equivalent direct binaries were used.
 
 Audit limitation:
 
