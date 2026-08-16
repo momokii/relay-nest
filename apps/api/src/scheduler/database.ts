@@ -1,6 +1,11 @@
-import { createEnvelopeCipher, type EncryptedEnvelope } from "@waha-command-center/config"
+import {
+  createBlindIndex,
+  createEnvelopeCipher,
+  type EncryptedEnvelope,
+} from "@waha-command-center/config"
 
 import type { createSchedulingRepositories } from "../db/repositories/scheduling"
+import { DuplicateRecordError } from "../db/repository-support"
 import type { AccountScope } from "../db/schema/shared"
 import type { SchedulerJob, SchedulerRepository } from "./types"
 import { type OneTimeSchedule, validateOneTimeSchedule } from "./validation"
@@ -20,6 +25,15 @@ export function createEncryptedSchedulerRepository(
   masterKey: Buffer | undefined,
 ): SchedulerRepository & {
   readonly schedule: (input: EncryptedScheduleInput) => Promise<SchedulerJob>
+  readonly scheduleWithIdempotency: (
+    input: EncryptedScheduleInput,
+  ) => Promise<{ readonly job: SchedulerJob; readonly duplicate: boolean }>
+  readonly findByIdempotencyKey: (idempotencyKey: string) => Promise<{
+    readonly jobId: string
+    readonly state: SchedulerJob["state"]
+    readonly providerMessageId?: string
+    readonly recoveryCode?: string
+  } | null>
 } {
   const cipher = createEnvelopeCipher(masterKey)
   const envelope = (value: string, accountScope: AccountScope): EncryptedEnvelope =>
@@ -65,28 +79,43 @@ export function createEncryptedSchedulerRepository(
       failureCode: job.failureCode,
     }
   }
-  const create = async (input: EncryptedScheduleInput): Promise<SchedulerJob> => {
+  const createWithIdempotency = async (
+    input: EncryptedScheduleInput,
+  ): Promise<{ readonly job: SchedulerJob; readonly duplicate: boolean }> => {
     const schedule = validateOneTimeSchedule(input)
     const recipient = envelope(input.recipientPhone, input.accountScope)
     const message = envelope(input.message, input.accountScope)
-    const job = await repository.create({
-      sessionId: input.sessionId,
-      accountScope: input.accountScope,
-      recipientPhoneCiphertext: recipient.ciphertext,
-      recipientPhoneNonce: recipient.nonce,
-      recipientPhoneAuthTag: recipient.authTag,
-      messageCiphertext: message.ciphertext,
-      messageNonce: message.nonce,
-      messageAuthTag: message.authTag,
-      scheduledFor: schedule.scheduledFor,
-      timezone: schedule.timezone,
-      idempotencyKey: input.idempotencyKey,
-      nextAttemptAt: schedule.scheduledFor,
-    })
+    let job: Awaited<ReturnType<RawRepository["create"]>>
+    try {
+      job = await repository.create({
+        sessionId: input.sessionId,
+        accountScope: input.accountScope,
+        recipientPhoneCiphertext: recipient.ciphertext,
+        recipientPhoneNonce: recipient.nonce,
+        recipientPhoneAuthTag: recipient.authTag,
+        messageCiphertext: message.ciphertext,
+        messageNonce: message.nonce,
+        messageAuthTag: message.authTag,
+        messageBlindIndex: createBlindIndex(masterKey, input.message),
+        scheduledFor: schedule.scheduledFor,
+        timezone: schedule.timezone,
+        idempotencyKey: input.idempotencyKey,
+        nextAttemptAt: schedule.scheduledFor,
+      })
+    } catch (error) {
+      if (!(error instanceof DuplicateRecordError)) throw error
+      const existing = await repository.findByIdempotencyKey(input.idempotencyKey)
+      if (!existing) throw error
+      const existingDecoded = decode(existing)
+      if (!existingDecoded) throw error
+      return { job: existingDecoded, duplicate: true }
+    }
     const decoded = decode(job)
     if (!decoded) throw new Error("scheduler repository returned no job")
-    return decoded
+    return { job: decoded, duplicate: false }
   }
+  const create = async (input: EncryptedScheduleInput): Promise<SchedulerJob> =>
+    (await createWithIdempotency(input)).job
   return {
     create: async (input) => {
       const schedule = validateOneTimeSchedule(input)
@@ -101,6 +130,7 @@ export function createEncryptedSchedulerRepository(
         messageCiphertext: message.ciphertext,
         messageNonce: message.nonce,
         messageAuthTag: message.authTag,
+        messageBlindIndex: createBlindIndex(masterKey, input.message),
         scheduledFor: schedule.scheduledFor,
         timezone: schedule.timezone,
         idempotencyKey: input.idempotencyKey,
@@ -113,6 +143,19 @@ export function createEncryptedSchedulerRepository(
       return decoded
     },
     schedule: create,
+    scheduleWithIdempotency: createWithIdempotency,
+    findByIdempotencyKey: async (idempotencyKey: string) => {
+      const job = await repository.findByIdempotencyKey(idempotencyKey)
+      const decoded = decode(job)
+      return decoded
+        ? {
+            jobId: decoded.id,
+            state: decoded.state,
+            ...(decoded.providerMessageId ? { providerMessageId: decoded.providerMessageId } : {}),
+            ...(decoded.recoveryCode ? { recoveryCode: decoded.recoveryCode } : {}),
+          }
+        : null
+    },
     find: async (id, scope) => decode(await repository.find(id, scope)),
     claimDue: async (owner, now, leaseMs) => decode(await repository.claimDue(owner, now, leaseMs)),
     complete: async (id, owner, result) => decode(await repository.complete(id, owner, result)),

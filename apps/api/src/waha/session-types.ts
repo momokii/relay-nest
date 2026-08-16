@@ -79,6 +79,26 @@ export type WahaSessionClient = {
   readonly me: (name: string) => Promise<WahaMetadata>
   readonly timelock: (name: string) => Promise<WahaTimelock>
   readonly capping: (name: string) => Promise<WahaCapping>
+  readonly checkExists: (
+    name: string,
+    phoneNumber: string,
+  ) => Promise<{
+    readonly numberExists: boolean
+    readonly chatId?: string | undefined
+  }>
+  readonly contact: (
+    name: string,
+    contactId: string,
+  ) => Promise<{
+    readonly id: string
+    readonly name?: string | undefined
+    readonly pushname?: string | undefined
+  }>
+  readonly sendText: (
+    name: string,
+    chatId: string,
+    text: string,
+  ) => Promise<{ readonly id: string }>
 }
 
 export const SESSION_LIFECYCLE_ACTIONS = ["start", "stop", "restart", "logout", "delete"] as const

@@ -8,6 +8,9 @@ import { registerAuthRoutes } from "./auth/http"
 import { AuthService } from "./auth/service"
 import type { DatabaseHandle } from "./db/client"
 import { createRepositories } from "./db/repositories"
+import type { createMessagingService } from "./messaging"
+import { registerMessagingRoutes } from "./messaging-http"
+import { createConfiguredMessagingService } from "./messaging-runtime"
 import { createWahaClient } from "./waha/adapter"
 import { registerSessionRoutes } from "./waha/session-http"
 import type { SessionStatusHistoryEntry } from "./waha/session-types"
@@ -24,7 +27,10 @@ import {
 
 export function createApiApp(
   database: DatabaseHandle,
-  options: { readonly sessionService?: ReturnType<typeof createScopedSessionService> } = {},
+  options: {
+    readonly sessionService?: ReturnType<typeof createScopedSessionService>
+    readonly messagingService?: ReturnType<typeof createMessagingService>
+  } = {},
 ): FastifyInstance {
   const app = Fastify({ logger: true })
   const repositories = createRepositories(database.db)
@@ -45,6 +51,15 @@ export function createApiApp(
       ENCRYPTION_MASTER_KEY: z.string().base64().optional(),
     })
     .parse(process.env)
+  const configuredMessagingService =
+    options.messagingService ??
+    createConfiguredMessagingService(
+      database,
+      repositories,
+      webhookEnvironment.ENCRYPTION_MASTER_KEY
+        ? Buffer.from(webhookEnvironment.ENCRYPTION_MASTER_KEY, "base64")
+        : undefined,
+    )
   registerWahaWebhookRoutes(app, {
     secret: webhookEnvironment.WAHA_WEBHOOK_SECRET,
     encryptionMasterKey: webhookEnvironment.ENCRYPTION_MASTER_KEY
@@ -110,6 +125,7 @@ export function createApiApp(
     includeScopedSessionCompatibility: !sessionService,
   })
   if (sessionService) registerSessionRoutes(app, auth, sessionService)
+  if (configuredMessagingService) registerMessagingRoutes(app, auth, configuredMessagingService)
   return app
 }
 

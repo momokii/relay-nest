@@ -68,6 +68,17 @@ export const wahaCappingSchema = z.object({
 })
 export const wahaPasskeyChallengeSchema = z.object({ challenge: z.string() })
 export const wahaPasskeyConfirmationSchema = z.object({ code: z.string() })
+export const wahaContactExistsSchema = z.object({
+  numberExists: z.boolean(),
+  chatId: z.string().min(1).optional(),
+})
+export const wahaContactSchema = z
+  .object({ id: z.string().min(1), name: z.string().optional(), pushname: z.string().optional() })
+  .passthrough()
+export const wahaSendTextResponseSchema = z
+  .object({ id: z.union([z.string().min(1), z.object({ id: z.string().min(1) })]) })
+  .passthrough()
+  .transform((value) => ({ id: typeof value.id === "string" ? value.id : value.id.id }))
 
 export type WahaPing = z.infer<typeof wahaPingSchema>
 export type WahaHealth = z.infer<typeof wahaHealthSchema>
@@ -80,6 +91,9 @@ export type WahaTimelock = z.infer<typeof wahaTimelockSchema>
 export type WahaCapping = z.infer<typeof wahaCappingSchema>
 export type WahaPasskeyChallenge = z.infer<typeof wahaPasskeyChallengeSchema>
 export type WahaPasskeyConfirmation = z.infer<typeof wahaPasskeyConfirmationSchema>
+export type WahaContactExists = z.infer<typeof wahaContactExistsSchema>
+export type WahaContact = z.infer<typeof wahaContactSchema>
+export type WahaSendTextResponse = z.infer<typeof wahaSendTextResponseSchema>
 
 export const WAHA_IMAGE = "devlikeapro/waha:2026.8.1" as const
 export const WAHA_CONTRACT_VERSION = "2026.8.1" as const

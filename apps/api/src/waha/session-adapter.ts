@@ -1,15 +1,20 @@
 import {
   type WahaCapping,
+  type WahaContact,
+  type WahaContactExists,
   type WahaMetadata,
   type WahaPasskeyChallenge,
   type WahaPasskeyConfirmation,
   type WahaQrResponse,
   type WahaTimelock,
   wahaCappingSchema,
+  wahaContactExistsSchema,
+  wahaContactSchema,
   wahaMetadataSchema,
   wahaPasskeyChallengeSchema,
   wahaPasskeyConfirmationSchema,
   wahaQrResponseSchema,
+  wahaSendTextResponseSchema,
   wahaSessionActionResponseSchema,
   wahaTimelockSchema,
 } from "@waha-command-center/waha-contracts"
@@ -115,5 +120,27 @@ export function createWahaSessionOperations(request: WahaRequest) {
       request(`/api/sessions/${encodeURIComponent(name)}/timelock`, wahaTimelockSchema, signal),
     capping: (name: string, signal?: AbortSignal): Promise<WahaCapping> =>
       request(`/api/sessions/${encodeURIComponent(name)}/capping`, wahaCappingSchema, signal),
+    checkExists: (
+      name: string,
+      phoneNumber: string,
+      signal?: AbortSignal,
+    ): Promise<WahaContactExists> =>
+      request(
+        `/api/contacts/check-exists?phone=${encodeURIComponent(phoneNumber)}&session=${encodeURIComponent(name)}`,
+        wahaContactExistsSchema,
+        signal,
+      ),
+    contact: (name: string, contactId: string, signal?: AbortSignal): Promise<WahaContact> =>
+      request(
+        `/api/${encodeURIComponent(name)}/contacts/${encodeURIComponent(contactId)}`,
+        wahaContactSchema,
+        signal,
+      ),
+    sendText: (name: string, chatId: string, text: string, signal?: AbortSignal) =>
+      request(`/api/sendText`, wahaSendTextResponseSchema, {
+        method: "POST",
+        body: JSON.stringify({ session: name, chatId, text }),
+        signal,
+      }),
   }
 }

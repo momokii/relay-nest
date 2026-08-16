@@ -3,10 +3,10 @@ import type { DispatchResult } from "./types"
 
 export function classifyWahaDispatchError(error: unknown): DispatchResult {
   if (error instanceof WahaHttpError && error.status === 463) {
-    return { state: "failed", failureCode: "waha_463", recoveryCode: "session_capped" }
+    return { state: "failed", failureCode: "waha_463", recoveryCode: "timelock_active" }
   }
   if (error instanceof WahaHttpError && error.status === 475) {
-    return { state: "failed", failureCode: "waha_475", recoveryCode: "timelock_active" }
+    return { state: "failed", failureCode: "waha_475", recoveryCode: "session_capped" }
   }
   if (error instanceof WahaRequestTimeoutError || error instanceof WahaNetworkError) {
     return {
