@@ -252,6 +252,42 @@ describe("WAHA adapter contract", () => {
     await expect(cancelled).rejects.toBeInstanceOf(WahaRequestCancelledError)
   })
 
+  it("resolves contacts and sends one text through the documented server-only paths", async () => {
+    // Given a WAHA-shaped service with contact and text capabilities
+    const server = await startServer((request, response) => {
+      if (request.url?.startsWith("/api/contacts/check-exists")) {
+        json(response, 200, { numberExists: true, chatId: "628123456789@c.us" })
+        return
+      }
+      if (request.url === "/api/personal/contacts/628123456789%40c.us") {
+        json(response, 200, { id: "628123456789@c.us", name: "Example" })
+        return
+      }
+      if (request.url === "/api/sendText") {
+        json(response, 200, { id: { id: "provider-message-1" }, _data: { secret: "redact" } })
+        return
+      }
+      json(response, 404, { error: "not found" })
+    })
+    const client = createClient(server.url)
+
+    // When the server-only adapter resolves and submits one individual message
+    const exists = await client.checkExists("personal", "+628123456789")
+    const contact = await client.contact("personal", exists.chatId ?? "")
+    const sent = await client.sendText("personal", contact.id, "hello")
+
+    // Then only the safe provider identifiers cross the adapter seam
+    expect(exists).toEqual({ numberExists: true, chatId: "628123456789@c.us" })
+    expect(contact).toMatchObject({ id: "628123456789@c.us", name: "Example" })
+    expect(sent).toEqual({ id: "provider-message-1" })
+    expect(server.records.map((record) => record.path)).toEqual([
+      "/api/contacts/check-exists?phone=%2B628123456789&session=personal",
+      "/api/personal/contacts/628123456789%40c.us",
+      "/api/sendText",
+    ])
+    expect(JSON.stringify(sent)).not.toContain("redact")
+  })
+
   it("rejects unsafe URLs while allowing the bundled service reference", () => {
     // Given untrusted runtime URL candidates
     const blockedAddresses = [

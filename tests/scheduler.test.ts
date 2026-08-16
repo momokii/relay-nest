@@ -264,9 +264,17 @@ describe("durable one-time scheduler", () => {
     const cap = classifyWahaDispatchError(new WahaHttpError(463, "/api/send", "capping"))
     const lock = classifyWahaDispatchError(new WahaHttpError(475, "/api/send", "timelock"))
 
-    // Then malformed schedules fail closed and 463/475 never become retries
-    expect(cap).toMatchObject({ state: "failed", recoveryCode: "session_capped" })
-    expect(lock).toMatchObject({ state: "failed", recoveryCode: "timelock_active" })
+    // Then malformed schedules fail closed and 463/475 preserve the official recovery meanings
+    expect(cap).toMatchObject({
+      state: "failed",
+      failureCode: "waha_463",
+      recoveryCode: "timelock_active",
+    })
+    expect(lock).toMatchObject({
+      state: "failed",
+      failureCode: "waha_475",
+      recoveryCode: "session_capped",
+    })
     expect(
       evaluateSafetyGates({
         consentGranted: false,
