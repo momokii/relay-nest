@@ -182,13 +182,13 @@ this plan and must be copied into the durable project decision document by Todo 
   QA scenarios (name the exact tool + invocation): happy: `pnpm test -- scheduler`; failure: kill worker after claim and restart it; assert lease recovery and at-most-once dispatch key behavior. Evidence `.omo/evidence/task-9-waha-command-center.md`.
   Commit: 9a73d0b, d41368e
 
-- [ ] 10. Implement contact resolution and immediate/scheduled text sending
+- [x] 10. Implement contact resolution and immediate/scheduled text sending
   What to do / Must NOT do: Add WAHA contact lookup/search, manual phone-number normalization/validation, existing-chat selection, immediate send, scheduled send integration, per-session rate budgets, consent/opt-out metadata, and safe acknowledgment display. Must not support groups/broadcasts/new-contact campaigns in the MVP.
   Parallelization: Wave 3 | Blocked by: 5, 6, 9 | Blocks: 11, 13, 14
   References (executor has NO interview context - be exhaustive): `docs/waha-capability-matrix.md`; https://waha.devlike.pro/docs/how-to/contacts/; https://waha.devlike.pro/docs/how-to/send-messages/; https://waha.devlike.pro/docs/how-to/chats/
   Acceptance criteria (agent-executable): Valid manual number and WAHA contact both resolve to scoped targets; invalid numbers fail before WAHA; immediate and scheduled sends create audit/attempt records; duplicate command/idempotency tests do not send twice.
   QA scenarios (name the exact tool + invocation): happy: `pnpm test -- messaging`; failure: invalid number, ungranted session, capped session, and WAHA timeout each produce safe user-visible state without leaked payloads. Evidence `.omo/evidence/task-10-waha-command-center.md`.
-  Commit: N | no commit until explicitly requested
+  Commit: pending semantic commits
 
 - [ ] 11. Implement SMTP/Telegram notifications and delivery preferences
   What to do / Must NOT do: Add independently enabled notification channels, encrypted Admin-only settings, category preferences, masked secret handling, test sends, retry/backoff, and in-app failure history. Support SMTP configuration and Telegram bot token/chat ID(s). Must not use WhatsApp as the only failure channel or log provider credentials.

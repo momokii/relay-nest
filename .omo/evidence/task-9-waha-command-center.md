@@ -73,7 +73,7 @@ The same full suite passed against the isolated URL above.
 - Retryable failures use bounded exponential backoff; retry exhaustion is
   terminal `failed`.
 - Timeout/network failures are `unknown/provider_unavailable`; 463 is
-  `failed/session_capped`; 475 is `failed/timelock_active`.
+`failed/timelock_active`; 475 is `failed/session_capped`.
 - Consent, disconnected-session, timelock, capping, and newly-linked cooldown
   gates return precise recovery codes without invoking transport.
 - HTTP submission remains `submitted`; webhook acknowledgment advances it to
