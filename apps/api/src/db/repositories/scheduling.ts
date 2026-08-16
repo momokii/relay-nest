@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm"
+import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm"
 
 import type { PersistenceDatabase } from "../client"
 import { withPersistenceErrors } from "../repository-support"
@@ -25,6 +25,55 @@ export function createSchedulingRepositories(db: PersistenceDatabase) {
           .where(and(eq(scheduledJobs.id, id), eq(scheduledJobs.accountScope, accountScope)))
           .limit(1)
         return job ?? null
+      },
+      findByIdempotencyKey: async (idempotencyKey: string) => {
+        const [job] = await db
+          .select()
+          .from(scheduledJobs)
+          .where(eq(scheduledJobs.idempotencyKey, idempotencyKey))
+          .limit(1)
+        return job ?? null
+      },
+      safetyStats: async (
+        sessionId: string,
+        accountScope: AccountScope,
+        messageBlindIndex: string,
+        now: Date,
+      ) => {
+        const dailyStart = new Date(now.getTime() - 86_400_000)
+        const burstStart = new Date(now.getTime() - 300_000)
+        const daily = await db
+          .select({ id: scheduledJobs.id, updatedAt: scheduledJobs.updatedAt })
+          .from(scheduledJobs)
+          .where(
+            and(
+              eq(scheduledJobs.sessionId, sessionId),
+              eq(scheduledJobs.accountScope, accountScope),
+              inArray(scheduledJobs.state, ["submitted", "acknowledged"]),
+              gte(scheduledJobs.updatedAt, dailyStart),
+            ),
+          )
+          .orderBy(desc(scheduledJobs.updatedAt))
+        const burst = daily.filter((job) => job.updatedAt >= burstStart)
+        const [duplicate] = await db
+          .select({ id: scheduledJobs.id })
+          .from(scheduledJobs)
+          .where(
+            and(
+              eq(scheduledJobs.sessionId, sessionId),
+              eq(scheduledJobs.accountScope, accountScope),
+              eq(scheduledJobs.messageBlindIndex, messageBlindIndex),
+              inArray(scheduledJobs.state, ["submitted", "acknowledged"]),
+              gte(scheduledJobs.updatedAt, dailyStart),
+            ),
+          )
+          .limit(1)
+        return {
+          dailyCount: daily.length,
+          burstCount: burst.length,
+          lastSentAt: daily[0]?.updatedAt ?? null,
+          duplicateContent: Boolean(duplicate),
+        }
       },
       claimDue: async (owner: string, now: Date, leaseMs: number) =>
         db.transaction(async (tx) => {

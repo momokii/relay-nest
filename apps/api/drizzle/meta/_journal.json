@@ -36,6 +36,13 @@
       "when": 1786890000000,
       "tag": "0005_scheduler_leases",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": 7,
+      "when": 1786900000000,
+      "tag": "0006_messaging_safety",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,6 @@
 export * from "./auth"
 export * from "./identity"
+export * from "./messaging"
 export * from "./operations"
 export * from "./scheduling"
 export * from "./shared"

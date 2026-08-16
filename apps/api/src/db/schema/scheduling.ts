@@ -15,6 +15,7 @@ export const scheduledJobs = pgTable("scheduled_jobs", {
   messageCiphertext: text("message_ciphertext").notNull(),
   messageNonce: text("message_nonce").notNull(),
   messageAuthTag: text("message_auth_tag").notNull(),
+  messageBlindIndex: text("message_blind_index"),
   scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
   timezone: text("timezone").notNull(),
   idempotencyKey: text("idempotency_key").notNull().unique(),

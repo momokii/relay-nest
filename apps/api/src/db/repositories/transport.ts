@@ -183,6 +183,22 @@ export function createTransportRepositories(db: PersistenceDatabase) {
           .limit(1)
         return contact ?? null
       },
+      messagingSafety: {
+        find: async (sessionId: string, accountScope: AccountScope) => {
+          const { sessionMessagingSafety } = await import("../schema/messaging")
+          const [safety] = await db
+            .select()
+            .from(sessionMessagingSafety)
+            .where(
+              and(
+                eq(sessionMessagingSafety.sessionId, sessionId),
+                eq(sessionMessagingSafety.accountScope, accountScope),
+              ),
+            )
+            .limit(1)
+          return safety ?? null
+        },
+      },
     },
   }
 }
