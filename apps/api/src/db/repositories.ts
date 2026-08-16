@@ -3,6 +3,7 @@ import { and, asc, eq, inArray } from "drizzle-orm"
 import type { PersistenceDatabase } from "./client"
 import { createDispatchAttemptRepositories } from "./repositories/dispatch-attempts"
 import { createIdentityRepositories } from "./repositories/identity"
+import { createNotificationRepositories } from "./repositories/notifications"
 import { createSchedulingRepositories } from "./repositories/scheduling"
 import { createTransportRepositories } from "./repositories/transport"
 import {
@@ -12,13 +13,7 @@ import {
   requireSessionScope,
   withPersistenceErrors,
 } from "./repository-support"
-import {
-  auditEntries,
-  dispatchAttempts,
-  normalizedEvents,
-  notifications,
-  retentionPolicies,
-} from "./schema"
+import { auditEntries, dispatchAttempts, normalizedEvents, retentionPolicies } from "./schema"
 import type { AccountScope } from "./schema/shared"
 
 export {
@@ -48,6 +43,7 @@ export function createRepositories(db: PersistenceDatabase) {
     ...createDispatchAttemptRepositories(db),
     ...createSchedulingRepositories(db),
     ...createTransportRepositories(db),
+    ...createNotificationRepositories(db),
     normalizedEvents: {
       create: (input: typeof normalizedEvents.$inferInsert) =>
         withPersistenceErrors(
@@ -165,14 +161,6 @@ export function createRepositories(db: PersistenceDatabase) {
           throw error
         }
       },
-    },
-    notifications: {
-      enqueue: (input: typeof notifications.$inferInsert) =>
-        db
-          .insert(notifications)
-          .values(input)
-          .returning()
-          .then(([notification]) => notification),
     },
     retentionPolicies: {
       insert: (input: RetentionInput) =>

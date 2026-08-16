@@ -1,4 +1,4 @@
-import { integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core"
+import { boolean, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core"
 import { users } from "./identity"
 import {
   accountScopeEnum,
@@ -56,6 +56,7 @@ export const notifications = pgTable("notifications", {
     .references(() => users.id),
   accountScope: accountScopeEnum("account_scope").notNull(),
   channel: notificationChannelEnum("channel").notNull(),
+  category: text("category").notNull().default("operations"),
   destinationCiphertext: text("destination_ciphertext").notNull(),
   destinationNonce: text("destination_nonce").notNull(),
   destinationAuthTag: text("destination_auth_tag").notNull(),
@@ -63,9 +64,48 @@ export const notifications = pgTable("notifications", {
   bodyNonce: text("body_nonce").notNull(),
   bodyAuthTag: text("body_auth_tag").notNull(),
   state: notificationStateEnum("state").notNull().default("queued"),
+  attempts: integer("attempts").notNull().default(0),
   failureCode: text("failure_code"),
+  failureDetail: text("failure_detail"),
+  nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
+  lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
   createdAt: createdAt(),
 })
+
+export const notificationProviderSettings = pgTable(
+  "notification_provider_settings",
+  {
+    id: id(),
+    accountScope: accountScopeEnum("account_scope").notNull(),
+    channel: notificationChannelEnum("channel").notNull(),
+    enabled: boolean("enabled").notNull().default(false),
+    configCiphertext: text("config_ciphertext").notNull(),
+    configNonce: text("config_nonce").notNull(),
+    configAuthTag: text("config_auth_tag").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    unique("notification_provider_settings_scope_channel_unique").on(
+      table.accountScope,
+      table.channel,
+    ),
+  ],
+)
+
+export const notificationPreferences = pgTable(
+  "notification_preferences",
+  {
+    id: id(),
+    accountScope: accountScopeEnum("account_scope").notNull(),
+    category: text("category").notNull(),
+    emailEnabled: boolean("email_enabled").notNull().default(false),
+    telegramEnabled: boolean("telegram_enabled").notNull().default(false),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    unique("notification_preferences_scope_category_unique").on(table.accountScope, table.category),
+  ],
+)
 
 export const retentionPolicies = pgTable(
   "retention_policies",
