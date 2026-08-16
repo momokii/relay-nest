@@ -174,13 +174,13 @@ this plan and must be copied into the durable project decision document by Todo 
   QA scenarios (name the exact tool + invocation): happy: `pnpm test -- webhooks`; failure: replay a signed event and assert one state transition/audit effect. Evidence `.omo/evidence/task-8-waha-command-center.md`.
   Commit: 50dd999
 
-- [ ] 9. Implement durable one-time scheduler and dispatch state machine
+- [x] 9. Implement durable one-time scheduler and dispatch state machine
   What to do / Must NOT do: Add PostgreSQL-backed jobs using transactional claiming/leases, explicit timezone, queued/attempting/submitted/acknowledged/failed/unknown/cancelled states, bounded exponential retry, cancellation/edit locks, idempotency keys, restart recovery, and timelock/capping/session/consent gates. Must not add recurring jobs, infinite retries, or duplicate-prone restarts.
   Parallelization: Wave 3 | Blocked by: 4, 6 | Blocks: 10, 11, 13, 14
   References (executor has NO interview context - be exhaustive): `## Locked product decisions` in this plan; `docs/threat-model.md`; https://waha.devlike.pro/docs/overview/how-to-avoid-blocking/
   Acceptance criteria (agent-executable): Unit tests cover timezone/DST, restart-before-send, missed schedule, cancellation race, WAHA unavailable, disconnected session, 463/475 gate, retry exhaustion, idempotent duplicate worker claim, and no duplicate send after retry.
   QA scenarios (name the exact tool + invocation): happy: `pnpm test -- scheduler`; failure: kill worker after claim and restart it; assert lease recovery and at-most-once dispatch key behavior. Evidence `.omo/evidence/task-9-waha-command-center.md`.
-  Commit: N | no commit until explicitly requested
+  Commit: 9a73d0b, d41368e
 
 - [ ] 10. Implement contact resolution and immediate/scheduled text sending
   What to do / Must NOT do: Add WAHA contact lookup/search, manual phone-number normalization/validation, existing-chat selection, immediate send, scheduled send integration, per-session rate budgets, consent/opt-out metadata, and safe acknowledgment display. Must not support groups/broadcasts/new-contact campaigns in the MVP.
