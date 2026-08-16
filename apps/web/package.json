@@ -1,0 +1,23 @@
+{
+  "name": "@waha-command-center/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite",
+    "start": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "@waha-command-center/domain": "workspace:*",
+    "@waha-command-center/waha-contracts": "workspace:*",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@types/react": "19.1.2",
+    "@types/react-dom": "19.1.2",
+    "@vitejs/plugin-react": "4.4.1",
+    "vite": "6.4.3"
+  }
+}
