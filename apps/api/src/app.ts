@@ -11,6 +11,8 @@ import { createRepositories } from "./db/repositories"
 import type { createMessagingService } from "./messaging"
 import { registerMessagingRoutes } from "./messaging-http"
 import { createConfiguredMessagingService } from "./messaging-runtime"
+import { registerNotificationRoutes } from "./notifications/http"
+import { createNotificationService } from "./notifications/service"
 import { createWahaClient } from "./waha/adapter"
 import { registerSessionRoutes } from "./waha/session-http"
 import type { SessionStatusHistoryEntry } from "./waha/session-types"
@@ -30,6 +32,7 @@ export function createApiApp(
   options: {
     readonly sessionService?: ReturnType<typeof createScopedSessionService>
     readonly messagingService?: ReturnType<typeof createMessagingService>
+    readonly notificationService?: ReturnType<typeof createNotificationService>
   } = {},
 ): FastifyInstance {
   const app = Fastify({ logger: true })
@@ -60,6 +63,17 @@ export function createApiApp(
         ? Buffer.from(webhookEnvironment.ENCRYPTION_MASTER_KEY, "base64")
         : undefined,
     )
+  const configuredNotificationService =
+    options.notificationService ??
+    (webhookEnvironment.ENCRYPTION_MASTER_KEY
+      ? createNotificationService({
+          repository: repositories,
+          cipher: createEnvelopeCipher(
+            Buffer.from(webhookEnvironment.ENCRYPTION_MASTER_KEY, "base64"),
+          ),
+          audit,
+        })
+      : undefined)
   registerWahaWebhookRoutes(app, {
     secret: webhookEnvironment.WAHA_WEBHOOK_SECRET,
     encryptionMasterKey: webhookEnvironment.ENCRYPTION_MASTER_KEY
@@ -126,6 +140,8 @@ export function createApiApp(
   })
   if (sessionService) registerSessionRoutes(app, auth, sessionService)
   if (configuredMessagingService) registerMessagingRoutes(app, auth, configuredMessagingService)
+  if (configuredNotificationService)
+    registerNotificationRoutes(app, auth, admin, configuredNotificationService)
   return app
 }
 
