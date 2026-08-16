@@ -1,0 +1,4 @@
+services:
+  api:
+    environment:
+      WAHA_BASE_URL: ${WAHA_BASE_URL:?Set WAHA_BASE_URL for the external-WAHA deployment}

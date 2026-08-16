@@ -1,0 +1,4 @@
+services:
+  api:
+    environment:
+      WAHA_BASE_URL: http://waha:3000
