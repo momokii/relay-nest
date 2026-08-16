@@ -1,0 +1,14 @@
+{
+  "schema_version": 2,
+  "active_work_id": "waha-command-center",
+  "works": {
+    "waha-command-center": {
+      "work_id": "waha-command-center",
+      "active_plan": ".omo/plans/waha-command-center.md",
+      "plan_name": "waha-command-center",
+      "session_ids": ["codex:ses_ffb65b3fcffe6Gex6TwD6ZwWr6"],
+      "status": "active",
+      "worktree_path": null
+    }
+  }
+}
