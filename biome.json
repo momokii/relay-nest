@@ -1,0 +1,45 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.0.6/schema.json",
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": { "noExplicitAny": "error", "noConfusingVoidType": "error" },
+      "style": {
+        "noDefaultExport": "error",
+        "useImportType": "error",
+        "noNonNullAssertion": "error"
+      },
+      "correctness": { "noUnusedVariables": "error", "noUnusedImports": "error" }
+    }
+  },
+  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
+  "javascript": { "formatter": { "quoteStyle": "double", "semicolons": "asNeeded" } },
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules/**",
+      "!**/dist/**",
+      "!**/coverage/**",
+      "!**/build/**",
+      "!**/test-results/**",
+      "!**/playwright-report/**",
+      "!.omo/**",
+      "!.codegraph/**",
+      "!.claude/**",
+      "!scripts/**",
+      "!docs/**"
+    ]
+  },
+  "overrides": [
+    {
+      "includes": [
+        "vitest.config.ts",
+        "playwright.config.ts",
+        "**/vite.config.ts",
+        "**/drizzle.config.ts"
+      ],
+      "linter": { "rules": { "style": { "noDefaultExport": "off" } } }
+    }
+  ]
+}

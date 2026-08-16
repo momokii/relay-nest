@@ -1,0 +1,28 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/domain" },
+    { "path": "packages/config" },
+    { "path": "packages/waha-contracts" },
+    { "path": "apps/api" },
+    { "path": "apps/web" }
+  ],
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "noEmit": true
+  }
+}

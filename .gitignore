@@ -1,0 +1,32 @@
+# Local secrets and environment-specific configuration
+.env
+.env.*
+!.env.example
+.secrets/
+
+# Common local tooling and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Common generated output; keep or narrow these entries when the project stack is known
+coverage/
+test-results/
+playwright-report/
+**/dist/
+build/
+target/
+**/*.tsbuildinfo
+node_modules/
+__pycache__/
+.pytest_cache/
+
+# Local logs and temporary files
+*.log
+.tmp/
+tmp/
+
+# Local CodeGraph index and daemon state
+.codegraph/
