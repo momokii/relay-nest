@@ -358,4 +358,94 @@ describe("WAHA adapter contract", () => {
     expect(saved[0]?.apiKeyCiphertext).toBeTypeOf("string")
     expect(JSON.stringify(saved)).not.toContain("master-secret-key")
   })
+
+  it("audits a created runtime connection without configuration content", async () => {
+    // Given an in-memory repository and an audit sink for an Admin actor
+    const events: {
+      readonly actorUserId: string
+      readonly action: string
+      readonly subjectType: string
+      readonly subjectId: string
+      readonly accountScope: "personal" | "business"
+    }[] = []
+    const repository: WahaConnectionRepository = {
+      create: async (input) => ({ id: "opaque-created-connection", ...input }),
+      update: async (_id, input) => ({ id: "opaque-updated-connection", ...input }),
+    }
+    const service = createWahaRuntimeSettingsService(repository, Buffer.alloc(32, 7), {
+      actorUserId: "admin-user-1",
+      audit: async (event) => {
+        events.push(event)
+      },
+    })
+
+    // When an Admin creates the runtime connection
+    await service.save("admin", {
+      name: "bundled-name",
+      baseUrl: "http://waha:3000",
+      apiKey: "master-secret-key",
+      active: true,
+    })
+
+    // Then the audit event is opaque, scoped, and content-free
+    expect(events).toEqual([
+      {
+        actorUserId: "admin-user-1",
+        action: "waha.connection_created",
+        subjectType: "waha_connection",
+        subjectId: "opaque-created-connection",
+        accountScope: "personal",
+      },
+    ])
+    expect(JSON.stringify(events)).not.toContain("bundled-name")
+    expect(JSON.stringify(events)).not.toContain("http://waha:3000")
+    expect(JSON.stringify(events)).not.toContain("master-secret-key")
+  })
+
+  it("audits an updated runtime connection without configuration content", async () => {
+    // Given an existing opaque connection and an audit sink for an Admin actor
+    const events: {
+      readonly actorUserId: string
+      readonly action: string
+      readonly subjectType: string
+      readonly subjectId: string
+      readonly accountScope: "personal" | "business"
+    }[] = []
+    const repository: WahaConnectionRepository = {
+      create: async (input) => ({ id: "opaque-created-connection", ...input }),
+      update: async (id, input) => ({ id, ...input }),
+    }
+    const service = createWahaRuntimeSettingsService(repository, Buffer.alloc(32, 7), {
+      actorUserId: "admin-user-1",
+      audit: async (event) => {
+        events.push(event)
+      },
+    })
+
+    // When an Admin updates the runtime connection
+    await service.save(
+      "admin",
+      {
+        name: "updated-name",
+        baseUrl: "http://updated-waha:3000",
+        apiKey: "updated-master-secret-key",
+        active: false,
+      },
+      "opaque-existing-connection",
+    )
+
+    // Then the audit event identifies only the opaque connection and scope
+    expect(events).toEqual([
+      {
+        actorUserId: "admin-user-1",
+        action: "waha.connection_updated",
+        subjectType: "waha_connection",
+        subjectId: "opaque-existing-connection",
+        accountScope: "personal",
+      },
+    ])
+    expect(JSON.stringify(events)).not.toContain("updated-name")
+    expect(JSON.stringify(events)).not.toContain("http://updated-waha:3000")
+    expect(JSON.stringify(events)).not.toContain("updated-master-secret-key")
+  })
 })

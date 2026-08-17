@@ -1,5 +1,6 @@
 import { createEnvelopeCipher, type EncryptedEnvelope } from "@waha-command-center/config"
 
+import type { AccountScope } from "../db/schema/shared"
 import type { WahaConnectionUrlError } from "./url-policy"
 import { validateWahaBaseUrl } from "./url-policy"
 
@@ -85,9 +86,23 @@ function envelopeColumns(envelope: EncryptedEnvelope): {
   }
 }
 
+export type WahaRuntimeSettingsAudit = (input: {
+  readonly actorUserId: string
+  readonly action: "waha.connection_created" | "waha.connection_updated"
+  readonly subjectType: "waha_connection"
+  readonly subjectId: string
+  readonly accountScope: AccountScope
+}) => Promise<void>
+
+export type WahaRuntimeSettingsServiceOptions = {
+  readonly audit?: WahaRuntimeSettingsAudit
+  readonly actorUserId?: string
+}
+
 export function createWahaRuntimeSettingsService(
   repository: WahaConnectionRepository,
   masterKey: Buffer | undefined,
+  options: WahaRuntimeSettingsServiceOptions = {},
 ) {
   const cipher = createEnvelopeCipher(masterKey)
   return {
@@ -105,7 +120,17 @@ export function createWahaRuntimeSettingsService(
         active: config.active,
         ...envelopeColumns(envelope),
       }
-      return id ? repository.update(id, stored) : repository.create(stored)
+      const result = id ? await repository.update(id, stored) : await repository.create(stored)
+      if (options.audit && options.actorUserId) {
+        await options.audit({
+          actorUserId: options.actorUserId,
+          action: id ? "waha.connection_updated" : "waha.connection_created",
+          subjectType: "waha_connection",
+          subjectId: result.id,
+          accountScope: "personal",
+        })
+      }
+      return result
     },
     publicConfig(config: WahaConnectionConfig): WahaPublicConnectionConfig {
       return { name: config.name, baseUrl: config.baseUrl, active: config.active }
