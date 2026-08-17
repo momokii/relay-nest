@@ -387,3 +387,26 @@ existence rather than a pre-existing role for global user references. The final
 fresh run passed all `32 files / 134 tests`. The hardening commits are
 `a8a4eb8`, `6cf4944`, `8e0294f`, and `a48b403`; state/evidence reconciliation is
 the subsequent documentation commit.
+
+## Final export page-termination revalidation
+
+The export implementation now terminates a keyset page from the number of
+metadata rows actually selected, rather than from the byte-budget prefix size.
+This preserves correct page advancement when a page is shortened by the 8 MiB
+budget while retaining the oversized-first-row fail-closed behavior. Commit
+`1e32da0` contains the source and integration-test correction.
+
+Fresh PostgreSQL 17.6 databases were migrated before the final matrices:
+
+```text
+Focused Todo 12/WAHA matrix: 7 files, 38 passed.
+Full repository suite: 32 files, 136 passed.
+Typecheck: exit 0.
+Changed-file Biome check: passed.
+GIT_MASTER=1 git diff --check: passed.
+```
+
+The focused matrix covered the new repeatable-read snapshot and oversized-row
+export cases. The disposable `wa-scheduler-focused-pg` and
+`wa-scheduler-final-pg` containers were removed by their cleanup traps, and no
+protected planning records were changed.
