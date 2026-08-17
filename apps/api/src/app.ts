@@ -8,7 +8,7 @@ import { AdminService } from "./auth/admin"
 import { registerAuthRoutes } from "./auth/http"
 import { AuthService } from "./auth/service"
 import { BackupFormatError } from "./backup/format"
-import { createBackupRepository } from "./backup/repository"
+import { BackupRepositoryError, createBackupRepository } from "./backup/repository"
 import type { DatabaseHandle } from "./db/client"
 import { createRepositories } from "./db/repositories"
 import { RetentionPreviewMismatchError } from "./db/repositories/retention"
@@ -140,7 +140,8 @@ export function createApiApp(
       return reply.code(413).send({ error: "webhook body too large" })
     }
     if (error instanceof z.ZodError) return reply.code(400).send({ error: "invalid request" })
-    if (error instanceof BackupFormatError) return reply.code(400).send({ error: "invalid backup" })
+    if (error instanceof BackupFormatError || error instanceof BackupRepositoryError)
+      return reply.code(400).send({ error: "invalid backup" })
     if (error instanceof PurgeConfirmationRequiredError)
       return reply.code(409).send({ error: "confirmation_required" })
     if (error instanceof RetentionPolicyMissingError)
