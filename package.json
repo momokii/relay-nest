@@ -6,7 +6,7 @@
     "node": ">=22.23.1 <23"
   },
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm --filter @waha-command-center/config build && pnpm --filter @waha-command-center/domain build && pnpm --filter @waha-command-center/waha-contracts build && pnpm --filter @waha-command-center/api build && pnpm --filter @waha-command-center/web build",
     "db:generate": "pnpm --filter @waha-command-center/api db:generate",
     "db:migrate": "pnpm --filter @waha-command-center/api db:migrate",
     "dev": "pnpm --parallel --filter @waha-command-center/api --filter @waha-command-center/web dev",
