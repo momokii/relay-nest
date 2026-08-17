@@ -147,6 +147,12 @@ correct when a page is shortened by the 8 MiB limit while preserving the
 fail-closed oversized-first-row check. The correction is committed as `1e32da0`
 and verified against fresh PostgreSQL 17.6 databases.
 
+The final review also required the users descriptor to include users referenced
+only by `session_grants`; otherwise a valid scoped grant could export without its
+parent user and fail restore validation in an empty database. Regression coverage
+now verifies both export-page continuation and grant-only user restore. The
+implementation and regression file are committed as `a69c248`.
+
 ## Existing binding decisions
 
 - RelayNest is one self-hosted tenant with Admin/Operator/Viewer users and

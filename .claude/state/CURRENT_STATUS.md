@@ -3,8 +3,8 @@
 ## Repository truth
 
 - Branch: `main`, tracking `momokii/relay-nest` `origin/main`.
-- Todo 12 implementation and documentation are committed locally in eleven
-  semantic commits; the final push is pending branch verification.
+- Todo 12 implementation and documentation are committed locally in semantic
+  commits through `a69c248`; the final push is pending branch verification.
 - `.omo/plans/waha-command-center.md` and `.omo/start-work/ledger.jsonl` were
   updated with the verified Todo 12 completion record.
 
@@ -26,8 +26,8 @@ executable QA, and F4 scope/documentation gates.
 - Fresh PostgreSQL 17.6 repository/messaging matrix: `10/10`, run twice.
 - Historical pre-hardening standard matrix: `31 files, 120 passed`, three
   consecutive runs against fresh isolated PostgreSQL databases.
-- Current hardening matrix: `32 files, 136 passed` against fresh PostgreSQL
-  17.6; focused Todo 12/WAHA matrix: `7 files, 38 passed`.
+- Current hardening matrix: `33 files, 138 passed` against fresh PostgreSQL
+  17.6; focused Todo 12/WAHA matrix: `8 files, 40 passed`.
 - Todo 12 evidence: `.omo/evidence/task-12-waha-command-center.md`.
 - Lint, typecheck, ordered workspace/API/web builds, high-severity dependency
   audit, three Compose configurations with placeholders, Playwright smoke, and
@@ -128,5 +128,17 @@ Last updated: 2026-08-17
 - The final export fix uses the actual metadata-row count for keyset page
   termination after byte-budget prefixing. Typecheck, changed-file Biome, and
   `GIT_MASTER=1 git diff --check` passed.
-- The source/test fix is committed locally as `1e32da0`. Final review and
-  clean-tree/remote verification remain before any push.
+- The snapshot source/test fix is committed locally as `1e32da0`; the final
+  review-fix source/test pair is `a69c248`. Final review and clean-tree/remote
+  verification remain before any push.
+
+## Session update: final review fixes
+
+- Added the missing `session_grants` user reference to scoped backup exports and
+  continued keyset paging when byte-budget prefixing selects fewer rows than
+  metadata returned.
+- Fresh PostgreSQL 17.6 verification passed the focused matrix at `8 files, 40
+  tests` and the stable fork-pool full suite at `33 files, 138 tests`.
+- The default Vitest pool intermittently reproduced an existing scheduler
+  duplicate-dispatch failure; the isolated concurrency matrix passed `10/10` and
+  no scheduler production code was changed.

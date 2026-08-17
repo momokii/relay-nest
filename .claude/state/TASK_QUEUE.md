@@ -36,12 +36,11 @@ is included in the allowlisted backup tables.
 
 The export follow-up is also implemented and verified: all descriptor/page queries
 share a repeatable-read, read-only PostgreSQL snapshot; metadata byte selection
-accounts for JSON array delimiters before payload fetch; and oversized first rows
-fail before payload JSON transfer. Focused backup/retention verification passed
-19/19, with two additional backup integration repetitions at 7/7 each. The
-final page-termination correction is committed as `1e32da0`; post-fix focused
-verification passed `7 files, 38 tests`, and the fresh full suite passed `32
-files, 136 tests`.
+accounts for JSON array delimiters before payload fetch; oversized first rows
+fail before payload JSON transfer; and users referenced only by session grants
+are included. The final review-fix source/test changes are committed as
+`a69c248`; post-fix focused verification passed `8 files, 40 tests`, and the
+stable fork-pool full suite passed `33 files, 138 tests`.
 
 ## Remaining queue
 
