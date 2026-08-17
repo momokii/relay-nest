@@ -2,12 +2,11 @@
 
 RelayNest is an in-progress self-hosted WAHA WhatsApp command center for one
 tenant, multiple users, multiple sessions, and hard-separated Personal and
-Business scopes. Todos 1-11 are implemented in the current worktree. Todo 12
+Business scopes. Todos 1-12 are implemented in local history. Todo 12
 retention, scoped purge, immutable content-free audit accountability, encrypted
 backup/restore, and key-rotation guidance are also implemented and focused-
-verified, including its scheduler concurrency regression fix. The source,
-tests, evidence, and documentation remain uncommitted; final plan gates remain
-open.
+verified, including its scheduler concurrency regression fix. Its implementation
+and evidence are committed locally; final plan gates remain open.
 
 ## Required sequence
 

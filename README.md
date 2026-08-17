@@ -12,12 +12,14 @@ grants, server-side WAHA integration, session lifecycle, one-time durable text
 scheduling, contact resolution, webhook ingestion, delivery evidence, and
 SMTP/Telegram notifications.
 
-Todo 12 is committed locally in four semantic commits: scoped retention metadata,
+Todo 12 is committed locally in eight implementation/state commits: scoped retention metadata,
 preview- and confirmation-gated purge, immutable content-free purge
 accountability, authenticated AES-256-GCM backup/restore, and offline
-key-rotation guidance. Its focused verification and concurrency regression fix
-are recorded in `.omo/evidence/task-12-waha-command-center.md`; the whole-plan
-final gates are still pending.
+key-rotation guidance, authenticated envelope metadata, bounded relational
+backup transfer, scope-aware restore validation, session safety backup coverage,
+and WAHA configuration audit events. Its focused verification and concurrency
+regression fix are recorded in `.omo/evidence/task-12-waha-command-center.md`;
+the whole-plan final gates are still pending.
 
 The MVP excludes multi-tenant SaaS, public registration, media, recurring
 schedules, campaigns, broadcasts, full inbox parity, autonomous AI sending,

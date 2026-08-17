@@ -88,8 +88,8 @@ Copy this template for each significant decision and fill every field:
 ## Todo 12: scoped retention and authenticated backups
 
 **Date:** 2026-08-17
-**Status:** Implemented and focused-verified in the worktree; final matrix and
-commit remain pending.
+**Status:** Implemented, independently verified, and committed locally; final
+plan gates and remote synchronization remain pending.
 
 Retention policy changes are metadata-only. Purge requires a scope-bound,
 bounded preview, an expiring server-issued token, matching cutoff/count/category
@@ -103,6 +103,31 @@ Key rotation is an offline re-encryption migration followed by isolated restore
 verification; it is not a casual dashboard action. Admin authorization,
 server-side scope checks, CSRF/same-origin validation, and redaction remain
 mandatory. Evidence: `.omo/evidence/task-12-waha-command-center.md`.
+
+### Todo 12: authenticate all backup envelope metadata
+
+**Date:** 2026-08-17
+
+The backup ciphertext now contains a typed copy of the outer format, version,
+account scope, and key metadata, and restore compares that authenticated record
+with the outer JSON before returning payload rows. The existing AES-256-GCM
+envelope API remains the cryptographic seam; the HTTP JSON field shape is
+unchanged. The outer backup format version is now `2` because version-1
+backups contain no authenticated copy of all required metadata and therefore
+must fail closed rather than receive a compatibility exception.
+
+### Todo 12: bounded relational backup transfer
+
+**Date:** 2026-08-17
+
+Backup table selection is an explicit descriptor allowlist. Export uses UUID
+keyset pages and restore uses 250-row chunks within one transaction. Both paths
+enforce a 10,000-row and 8 MiB transfer ceiling. Restore validates every
+scope-bearing row and relational reference—including global connections,
+scoped users/sessions/jobs, messaging safety, notifications, and audit
+references—before any insert; conflict-tolerant replay is retained only after
+that validation. Unknown table keys fail closed, and errors contain no row
+contents or secrets.
 
 ## Existing binding decisions
 
@@ -150,3 +175,15 @@ lease logic. Repository and retention fixtures now transition opaque jobs to
 `2000-01-01` synthetic clock before unrelated opaque fixtures. Production
 `claimDue()` and AES-256-GCM fail-closed behavior remain unchanged. Three fresh
 PostgreSQL 17.6 full-suite runs passed after this test-isolation correction.
+
+## WAHA runtime configuration audit seam
+
+**Date:** 2026-08-17
+
+Runtime connection create/update emits `waha.connection_created` or
+`waha.connection_updated` through an optional typed callback with the actor user
+ID, `waha_connection` subject type, persisted opaque connection ID, and Personal
+scope only. The callback has no details field, so API key, base URL, and name
+cannot enter these events. `createApiApp` currently does not compose this
+settings service, so central app wiring is intentionally deferred until a real
+runtime route uses the seam.

@@ -101,9 +101,11 @@ the exact commands used for security verification.
 - Purge previews and confirmations use the same cutoff, scope, category, and
   bounded batch selection. Policy updates never invoke purge. Audit rows remain
   immutable and content-free.
-- Backup envelopes use the existing AES-256-GCM envelope semantics with scope
-  authenticated as associated data. Missing, wrong, malformed, or tampered keys
-  return a generic failure and never expose plaintext.
+- Backup envelopes use AES-256-GCM with scope as associated data and a duplicate
+  authenticated metadata record inside the ciphertext. Outer format, version,
+  scope, and key metadata must match that authenticated record. Missing, wrong,
+  malformed, or tampered keys return a generic failure and never expose
+  plaintext.
 - Verification commands are `pnpm lint`, `pnpm typecheck`, `pnpm test`,
   `pnpm audit --audit-level=high`, and the isolated PostgreSQL migration,
   repository, retention, backup, and Fastify boundary tests recorded in the

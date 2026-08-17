@@ -33,13 +33,16 @@ POST /admin/backups/{scope}/restore
 
 The backup contains scope-limited PostgreSQL rows, including encrypted records,
 jobs, sessions, retention metadata, users/roles needed by the scope, and
-content-free audit rows. The complete payload is authenticated and encrypted
-with AES-256-GCM using `ENCRYPTION_MASTER_KEY`; the response contains only the
-encrypted envelope and non-secret key version/fingerprint metadata. It never
-returns the master key or plaintext rows.
+content-free audit rows and session messaging safety settings. The format-2
+payload metadata and rows are authenticated and encrypted with AES-256-GCM using
+`ENCRYPTION_MASTER_KEY`; the response contains only the encrypted envelope and
+non-secret key version/fingerprint metadata. It never returns the master key or
+plaintext rows. Export is capped at 10,000 rows/8 MiB and restore uses 250-row
+chunks after validating all relational scope references.
 
-Restore fails closed on a missing/wrong/tampered key, malformed envelope, or
-scope mismatch. Backup artifacts outside PostgreSQL have their own expiry and
+Restore fails closed on a missing/wrong/tampered key, malformed envelope,
+unsupported table, invalid parent reference, or scope mismatch. Backup artifacts
+outside PostgreSQL have their own expiry and
 must be removed through their storage lifecycle; purging live data does not
 claim immediate removal from expired external copies, snapshots, or archives.
 

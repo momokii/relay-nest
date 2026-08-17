@@ -355,3 +355,35 @@ audit, all three Compose configs, and local Markdown-link validation passed.
 Manual scope purge/backup/restore/wrong-key QA remains valid from the fresh
 API/PostgreSQL lifecycle above because this source-only fixture correction does
 not change production routes, encryption, or scheduler behavior.
+
+## Review hardening revalidation
+
+The independent review found and the implementation corrected four Todo 12
+gaps: dispatch-attempt purge predicates now include account scope; backup outer
+metadata is authenticated inside the AES-GCM ciphertext (format version 2);
+backup export/restore uses an explicit allowlist, UUID keyset pages, 10,000-row
+and 8 MiB transfer ceilings, 250-row restore chunks, and fail-closed relational
+scope validation; and WAHA runtime connection create/update emits content-free
+audit events through an optional typed callback. `session_messaging_safety` is
+included in the backup allowlist. Invalid relational backup errors map to the
+generic HTTP `400 invalid backup` boundary.
+
+Fresh PostgreSQL 17.6 verification after the hardening fixes:
+
+```text
+Focused Todo 12/WAHA matrix: 5 files, 33 passed.
+Full repository suite: 32 files, 134 passed.
+Lint: 126 files checked, no fixes/errors.
+Typecheck: exit 0.
+Ordered workspace/API/web build: exit 0.
+High-severity dependency audit: no known vulnerabilities found.
+Compose base/external/bundled configurations: valid with non-secret placeholders.
+Playwright smoke: 1 passed.
+```
+
+The full suite initially exposed two valid-fixture restore cases; the validator
+was corrected to include audit-referenced users in exports and to require user
+existence rather than a pre-existing role for global user references. The final
+fresh run passed all `32 files / 134 tests`. The hardening commits are
+`a8a4eb8`, `6cf4944`, `8e0294f`, and `a48b403`; state/evidence reconciliation is
+the subsequent documentation commit.

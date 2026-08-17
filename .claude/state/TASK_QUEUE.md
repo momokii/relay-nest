@@ -22,6 +22,18 @@ after their assertions. Three fresh PostgreSQL 17.6 standard runs passed (`31
 files, 120 passed` each), along with the focused, concurrency, auth, migration,
 manual API, build, security, Compose, capability, and local documentation checks.
 
+## Todo 12 backup hardening follow-up
+
+Outer format/version/scope/key metadata and malformed authentication-tag
+tampering are covered by focused unit tests. The authenticated metadata contract
+uses outer format version `2`; old version-1 envelopes fail closed because they
+cannot authenticate all metadata.
+
+The remaining Todo 12 backup security blockers are now implemented and focused-
+verified. Relational references fail closed before restore writes, transfer
+limits are explicit, restore uses bounded chunks, and session messaging safety
+is included in the allowlisted backup tables.
+
 ## Remaining queue
 
 | Item | Status | Dependency |
@@ -34,6 +46,13 @@ manual API, build, security, Compose, capability, and local documentation checks
 | F2 security and quality | TODO | Todo 16 |
 | F3 executable end-to-end QA | TODO | Todo 16 |
 | F4 scope/documentation review | TODO | Todo 16 |
+
+## Session follow-up
+
+WAHA runtime connection create/update audit events are implemented and focused-
+verified. No application wiring task was added because `createApiApp` does not
+compose the runtime-settings service; future route composition must pass the
+central audit callback and actor identity through the existing typed seam.
 
 ## Required closeout
 
