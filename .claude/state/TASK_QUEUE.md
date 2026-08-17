@@ -69,3 +69,11 @@ Required checks include lint, typecheck, full tests, E2E, high-severity audit,
 both Compose configurations, secret/docs/scope checks where available, and
 explicit review of no unresolved security blockers. Push only after independent
 verification and a clean-tree/remote check.
+
+## Final review blockers
+
+The implementation/test defects found by review are fixed in `a69c248` and
+verified by the stable `33 files, 138 tests` suite. Delivery remains blocked by
+the unassessed security lane, the earlier protected plan/ledger mutations, and
+the uncomposed WAHA runtime-settings audit seam; these require an explicit
+authorization/product decision rather than silent code changes.

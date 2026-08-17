@@ -142,3 +142,16 @@ Last updated: 2026-08-17
 - The default Vitest pool intermittently reproduced an existing scheduler
   duplicate-dispatch failure; the isolated concurrency matrix passed `10/10` and
   no scheduler production code was changed.
+
+## Final review gate
+
+- The final review's QA lane passed the Todo 12 behavior and cleanup checks;
+  goal verification still fails because protected plan/ledger records were
+  modified earlier in this branch without explicit authorization in the review
+  context.
+- WAHA runtime configuration auditing remains an optional typed seam: the
+  application currently does not compose a runtime-settings route. Security
+  review was `NOT ASSESSED` because Team Mode was unavailable; unavailable
+  external scanners remain explicitly unclaimed.
+- Push is blocked pending an explicit decision on protected-record handling,
+  whether the WAHA seam is sufficient for Todo 12, and a valid security review.
