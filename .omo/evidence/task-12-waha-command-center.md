@@ -283,7 +283,7 @@ POST /admin/retention/personal/purge with matching preview
 Business jobs remained 1, and audit accountability remained present.
 
 POST /admin/backups/personal {}
-200 {"format":"waha-command-center-backup","version":1,"accountScope":"personal","encrypted":true}
+200 {"format":"waha-command-center-backup","version":2,"accountScope":"personal","encrypted":true}
 before=1; direct delete; after_delete=0
 POST /admin/backups/personal/restore
 200 {"restored":true,"accountScope":"personal"}; after_restore=1
@@ -410,3 +410,30 @@ The focused matrix covered the new repeatable-read snapshot and oversized-row
 export cases. The disposable `wa-scheduler-focused-pg` and
 `wa-scheduler-final-pg` containers were removed by their cleanup traps, and no
 protected planning records were changed.
+
+## Final review-fix revalidation
+
+The final review identified and corrected two backup defects: byte-budget
+prefixing could terminate a descriptor before all metadata rows were paged, and
+users referenced only by `session_grants` were absent from exports. The source
+fix is committed as `a69c248` in `apps/api/src/backup/repository.ts`; the
+regressions are isolated in
+`tests/task-12-backup-export.integration.test.ts`.
+
+Fresh PostgreSQL 17.6 verification after those fixes:
+
+```text
+Backup integration plus export regression files: 2 files, 9 passed.
+Focused Todo 12/WAHA matrix: 8 files, 40 passed.
+Stable full suite (`--no-file-parallelism --pool=forks`): 33 files, 138 passed.
+Repository/messaging concurrency matrix: 2 files, 10 passed.
+Typecheck: exit 0.
+Changed-file Biome check: passed.
+GIT_MASTER=1 git diff --check: passed.
+```
+
+Two default-pool full-suite attempts reproduced an intermittent duplicate
+`dispatch_attempts_job_attempt_unique` failure in the pre-existing scheduler
+repository test, while the isolated concurrency matrix and the explicit fork
+pool full suite passed. No scheduler production code was changed; the test-pool
+behavior remains a documented follow-up rather than a Todo 12 backup fix.
