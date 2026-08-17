@@ -10,9 +10,11 @@ import {
 const databaseUrl = process.env.DATABASE_URL
 const testDatabase = databaseUrl ? createDatabase(databaseUrl) : undefined
 const repositories = testDatabase ? createRepositories(testDatabase.db) : undefined
+const workerDatabase = databaseUrl ? createDatabase(databaseUrl) : undefined
+const workerRepositories = workerDatabase ? createRepositories(workerDatabase.db) : undefined
 const personal = "personal" as const
 
-describe.skipIf(!repositories)("PostgreSQL repositories", () => {
+describe.skipIf(!repositories || !workerRepositories)("PostgreSQL repositories", () => {
   it("persists retention metadata in its account scope", async () => {
     // Given a real PostgreSQL repository boundary
     const category = `retention-${crypto.randomUUID()}`
@@ -74,6 +76,7 @@ describe.skipIf(!repositories)("PostgreSQL repositories", () => {
       state: "scheduled",
     })
     await expect(repositories.scheduledJobs.find(job.id, "business")).resolves.toBeNull()
+    await repositories.scheduledJobs.cancel(job.id, personal)
   })
 
   it("claims a due scheduled job atomically across concurrent workers", async () => {
@@ -110,11 +113,21 @@ describe.skipIf(!repositories)("PostgreSQL repositories", () => {
     // When two workers claim at the same instant
     const claims = await Promise.all([
       repositories.scheduledJobs.claimDue("worker-a", new Date("2020-01-01T12:00:01.000Z"), 30_000),
-      repositories.scheduledJobs.claimDue("worker-b", new Date("2020-01-01T12:00:01.000Z"), 30_000),
+      workerRepositories.scheduledJobs.claimDue(
+        "worker-b",
+        new Date("2020-01-01T12:00:01.000Z"),
+        30_000,
+      ),
     ])
 
     // Then one worker owns the lease and one dispatch attempt exists
+    const [claim] = claims.filter(Boolean)
     expect(claims.filter(Boolean)).toHaveLength(1)
+    expect(claim).toMatchObject({
+      state: "attempting",
+      attempts: 1,
+      leaseOwner: expect.stringMatching(/^worker-[ab]$/),
+    })
     await expect(repositories.dispatchAttempts.listForJob(job.id, personal)).resolves.toHaveLength(
       1,
     )
@@ -374,5 +387,8 @@ describe.skipIf(!repositories)("PostgreSQL repositories", () => {
 })
 
 if (testDatabase) {
-  afterAll(async () => testDatabase.close())
+  afterAll(async () => {
+    await testDatabase?.close()
+    await workerDatabase?.close()
+  })
 }

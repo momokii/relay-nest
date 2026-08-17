@@ -4,11 +4,72 @@ import { createApiApp } from "../apps/api/src/app"
 import { PostgresLoginRateLimiter } from "../apps/api/src/auth/postgres-rate-limit"
 import { createDatabase } from "../apps/api/src/db/client"
 import { createRepositories } from "../apps/api/src/db/repositories"
+import type { StoredSession, WahaSessionClient } from "../apps/api/src/waha/session-types"
+import { WahaConnectionUnavailableError } from "../apps/api/src/waha/session-types"
+import { createScopedSessionService } from "../apps/api/src/waha/sessions"
 
 const databaseUrl = process.env.TASK5_AUTH_DATABASE_URL
 const database = databaseUrl ? createDatabase(databaseUrl) : undefined
-const app = database ? createApiApp(database) : undefined
 const repositories = database ? createRepositories(database.db) : undefined
+
+function createSessionService(
+  clientFor: (session: StoredSession) => WahaSessionClient | Promise<WahaSessionClient>,
+) {
+  if (!repositories) return undefined
+  return createScopedSessionService({
+    repository: {
+      list: (scope) => repositories.sessions.list(scope),
+      find: (id, scope) => repositories.sessions.find(id, scope),
+      hasGrant: async (userId, sessionId, scope) =>
+        Boolean(await repositories.sessionGrants.find(userId, sessionId, scope)),
+      saveStatus: (id, scope, status, observedAt = new Date()) =>
+        repositories.sessions.updateStatus(id, scope, status, observedAt),
+    },
+    clientFor,
+  })
+}
+
+function createWahaFixtureClient(): WahaSessionClient {
+  const session = {
+    name: "personal",
+    presence: {},
+    timestamps: { activity: null },
+    status: "WORKING",
+  } as const
+  return {
+    sessions: async () => [session],
+    session: async () => session,
+    createSession: async () => session,
+    updateSession: async () => session,
+    remove: async () => undefined,
+    start: async () => session,
+    stop: async () => session,
+    restart: async () => session,
+    logout: async () => session,
+    qr: async () => ({ value: "fixture-qr" }),
+    requestPairingCode: async () => undefined,
+    passkeyChallenge: async () => ({ challenge: "fixture-challenge" }),
+    passkeyAssertion: async () => undefined,
+    passkeyConfirmation: async () => ({ code: "fixture-code" }),
+    confirmPasskey: async () => undefined,
+    me: async () => ({ id: "fixture-id", pushname: "Fixture" }),
+    timelock: async () => ({ locked: false }),
+    capping: async () => ({ remaining: 100 }),
+    checkExists: async () => ({ numberExists: false }),
+    contact: async () => ({ id: "fixture-contact" }),
+    sendText: async () => ({ id: "fixture-message" }),
+  }
+}
+
+const sessionService = createSessionService(() => createWahaFixtureClient())
+const unavailableSessionService = createSessionService(async () => {
+  throw new WahaConnectionUnavailableError()
+})
+const app = database && sessionService ? createApiApp(database, { sessionService }) : undefined
+const unavailableApp =
+  database && unavailableSessionService
+    ? createApiApp(database, { sessionService: unavailableSessionService })
+    : undefined
 
 describe.skipIf(!app || !repositories)("authentication HTTP boundary", () => {
   beforeEach(async () => {
@@ -217,11 +278,17 @@ describe.skipIf(!app || !repositories)("authentication HTTP boundary", () => {
       url: `/scoped/sessions/${business.id}?scope=business`,
       headers: { cookie: viewerSession },
     })
+    const unavailable = await unavailableApp.inject({
+      method: "GET",
+      url: `/scoped/sessions/${personal.id}?scope=personal`,
+      headers: { cookie: viewerSession },
+    })
 
     // Then only the granted read is allowed
     expect(read.statusCode).toBe(200)
     expect(command.statusCode).toBe(403)
     expect(crossScope.statusCode).toBe(403)
+    expect(unavailable.statusCode).toBe(502)
 
     // When the Admin disables the Viewer
     const disable = await app.inject({
