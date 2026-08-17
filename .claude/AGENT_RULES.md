@@ -14,6 +14,9 @@ stop and follow the rule.
 - Read `SECURITY_STANDARDS.md` and internalize its requirements before writing code.
 - Identify the active environment before running any command; consult `ENVIRONMENT_GUIDE.md` when uncertain.
 - Confirm that the working environment and existing verification commands are functional before writing code.
+- Refresh state before implementation: compare `CURRENT_STATUS.md` and
+  `TASK_QUEUE.md` with verified source, tests, evidence, and worktree status;
+  record any discrepancy instead of silently trusting stale wording.
 
 ## During Implementation
 
@@ -52,6 +55,8 @@ stop and follow the rule.
 - Update `ENVIRONMENT_GUIDE.md` when environment configuration or commands change.
 - Update `README.md` when project-level context or orientation changes.
 - Record verification results, including any pre-existing failures that were not caused by the session.
+- Confirm the state refresh is reflected in `CURRENT_STATUS.md`, including
+  exact remaining blockers, uncommitted changes, and cleanup status.
 
 ## Self-Maintenance Directive
 

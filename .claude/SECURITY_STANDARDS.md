@@ -92,3 +92,19 @@ When the stack is confirmed, extend this document with its concrete guidance: OR
 injection prevention, framework auth configuration, CSRF and CORS settings, rate
 limiting middleware, security headers, serialization rules, container hardening, and
 the exact commands used for security verification.
+
+## Todo 12 Concrete Controls
+
+- Retention mutations use Fastify/Zod boundary schemas, server-side Admin role
+  checks, Personal/Business scope checks, same-origin validation, and the
+  existing double-submit CSRF token.
+- Purge previews and confirmations use the same cutoff, scope, category, and
+  bounded batch selection. Policy updates never invoke purge. Audit rows remain
+  immutable and content-free.
+- Backup envelopes use the existing AES-256-GCM envelope semantics with scope
+  authenticated as associated data. Missing, wrong, malformed, or tampered keys
+  return a generic failure and never expose plaintext.
+- Verification commands are `pnpm lint`, `pnpm typecheck`, `pnpm test`,
+  `pnpm audit --audit-level=high`, and the isolated PostgreSQL migration,
+  repository, retention, backup, and Fastify boundary tests recorded in the
+  Todo 12 evidence artifact.

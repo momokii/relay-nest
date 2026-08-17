@@ -188,7 +188,7 @@ this plan and must be copied into the durable project decision document by Todo 
   References (executor has NO interview context - be exhaustive): `docs/waha-capability-matrix.md`; https://waha.devlike.pro/docs/how-to/contacts/; https://waha.devlike.pro/docs/how-to/send-messages/; https://waha.devlike.pro/docs/how-to/chats/
   Acceptance criteria (agent-executable): Valid manual number and WAHA contact both resolve to scoped targets; invalid numbers fail before WAHA; immediate and scheduled sends create audit/attempt records; duplicate command/idempotency tests do not send twice.
   QA scenarios (name the exact tool + invocation): happy: `pnpm test -- messaging`; failure: invalid number, ungranted session, capped session, and WAHA timeout each produce safe user-visible state without leaked payloads. Evidence `.omo/evidence/task-10-waha-command-center.md`.
-  Commit: pending semantic commits
+  Commit: 0043f62, dea87d3, f94ca0f, ad08848
 
 - [x] 11. Implement SMTP/Telegram notifications and delivery preferences
   What to do / Must NOT do: Add independently enabled notification channels, encrypted Admin-only settings, category preferences, masked secret handling, test sends, retry/backoff, and in-app failure history. Support SMTP configuration and Telegram bot token/chat ID(s). Must not use WhatsApp as the only failure channel or log provider credentials.
@@ -198,13 +198,13 @@ this plan and must be copied into the durable project decision document by Todo 
   QA scenarios (name the exact tool + invocation): happy: `pnpm test -- notifications`; failure: provider timeout and malformed Telegram response produce retry/failure state without secret output. Evidence `.omo/evidence/task-11-waha-command-center.md`.
   Commit: pending semantic commits
 
-- [ ] 12. Implement retention policies, confirmation-gated purge, audit logging, and encrypted backups
+- [x] 12. Implement retention policies, confirmation-gated purge, audit logging, and encrypted backups
   What to do / Must NOT do: Add per-category retention settings, preview/count-before-delete, explicit confirmation, immediate purge jobs, immutable minimal deletion audit records, audit coverage for sends/session/config/user changes, encrypted backup/restore of DB and key metadata, and operational key-rotation runbook. Must not silently delete audit accountability or promise instant removal from existing backups.
   Parallelization: Wave 3 | Blocked by: 4, 5 | Blocks: 14, 16
   References (executor has NO interview context - be exhaustive): `## Locked product decisions` in this plan; `.claude/SECURITY_STANDARDS.md`; `docs/threat-model.md`
   Acceptance criteria (agent-executable): Policy change alone never deletes; confirmed purge deletes only selected scope/category; audit record remains content-free; backup restore recovers jobs and encrypted records; wrong/missing key fails closed.
   QA scenarios (name the exact tool + invocation): happy: `pnpm test -- retention`; failure: cancel purge confirmation and assert zero deletion, then restore a test backup and verify scope boundaries. Evidence `.omo/evidence/task-12-waha-command-center.md`.
-  Commit: N | no commit until explicitly requested
+  Commit: pending semantic commits
 
 - [ ] 13. Build aggregate and per-session analytics projections
   What to do / Must NOT do: Derive scoped message volume, direction, acknowledgment breakdown, failure/retry rates, session uptime/status history, timelock/capping indicators, contact activity, and scheduled-job outcomes from normalized events and local records. Make Personal/Business filters mandatory. Must not infer recipient delivery from missing events or expose cross-scope aggregates.

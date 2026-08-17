@@ -23,12 +23,20 @@ Read `.claude/state/CURRENT_STATUS.md`.
 Identify what is complete, what is in progress, what is blocked, open questions,
 known security notes, and the latest session summary.
 
+Refresh this reading against verified source, tests, evidence, and worktree
+status. If state wording conflicts with those facts, treat verified facts as
+authoritative and record the discrepancy in the state files.
+
 ## Step 4: Read the Task Queue
 
 Read `.claude/state/TASK_QUEUE.md`.
 
 Select the next unblocked task, confirm its dependencies, and check its acceptance
 criteria before making changes.
+
+After selecting it, refresh the queue if completed work or new blockers are
+visible in verified source/evidence; do not mark the protected plan or execution
+ledger complete as a substitute.
 
 ## Step 5: Read Agent Rules
 
@@ -71,11 +79,14 @@ once the project has one.
 
 ## Step 11: Confirm No Regressions
 
-Run the existing test suite before writing new code. The command is not known yet;
-replace this instruction with the real verified test command once the stack exists.
+Run the existing test suite before writing new code. For this workspace use
+`pnpm test` or the narrowest relevant Vitest command, and record the exact
+result in the live state/evidence.
 
 ## Step 12: Execute and Close the Session
 
 Implement the task, run focused and full verification, perform the applicable
 security review, report results, and update all relevant `.claude/` state and
-standards files before closing the session.
+standards files before closing the session. The closeout refresh must include
+worktree truth, exact verification, remaining blockers, and cleanup of ports,
+containers, temporary files, and build/debug artifacts.

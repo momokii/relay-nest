@@ -104,3 +104,9 @@ Once the project stack, startup command, health check, test command, Docker setu
 deployment mechanism, and environment variable conventions are known, replace the
 generic guidance and illustrative commands with real, verified instructions. Record
 environment changes in `state/DECISIONS_LOG.md` when they affect architecture or risk.
+
+Todo 12 operational verification uses a disposable PostgreSQL container, the
+API health endpoint, authenticated Admin retention endpoints, and the
+Admin-only backup/restore endpoints. The exact command/output transcript is
+stored in `.omo/evidence/task-12-waha-command-center.md`; no production or
+pre-existing development container is used for destructive tests.

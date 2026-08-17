@@ -1,59 +1,41 @@
 # Agent Orientation
 
-## Repository Purpose
+RelayNest is an in-progress self-hosted WAHA WhatsApp command center for one
+tenant, multiple users, multiple sessions, and hard-separated Personal and
+Business scopes. Todos 1-11 are implemented in the current worktree. Todo 12
+retention, scoped purge, immutable content-free audit accountability, encrypted
+backup/restore, and key-rotation guidance are also implemented and focused-
+verified, including its scheduler concurrency regression fix. The source,
+tests, evidence, and documentation remain uncommitted; final plan gates remain
+open.
 
-This repository is the planned foundation for a self-hosted WAHA-based WhatsApp
-Command Center. It will manage separate Personal and Business WhatsApp sessions,
-provide authenticated multi-user access, and add durable text-message scheduling,
-analytics, notifications, retention controls, and safety guardrails around WAHA.
-Product implementation has not started; the decision-complete plan is in
-`.omo/plans/waha-command-center.md` and is awaiting an explicit implementation
-start command.
+## Required sequence
 
-## Required Orientation Sequence
+Read `HOW_TO_RESUME.md`, `state/CURRENT_STATUS.md`, `state/TASK_QUEUE.md`,
+`AGENT_RULES.md`, `CODING_STANDARDS.md`, `SECURITY_STANDARDS.md`, and
+`ENVIRONMENT_GUIDE.md` before editing. Then read task-specific product,
+architecture, API, operations, and threat-model docs. Verify environment and
+relevant checks before and after changes.
 
-The first file any agent reads is this README. Then follow `HOW_TO_RESUME.md`,
-which repeats this entry point as Step 1 and defines the complete ordered protocol:
+## State and source of truth
 
-1. Read this `README.md` to orient yourself.
-2. Read `HOW_TO_RESUME.md` for the session protocol.
-3. Read `state/CURRENT_STATUS.md` for the exact current state.
-4. Read `state/TASK_QUEUE.md` and identify the next unblocked task.
-5. Read `AGENT_RULES.md` and apply its behavioral guardrails.
-6. Read `CODING_STANDARDS.md` before inspecting or writing implementation code.
-7. Read `SECURITY_STANDARDS.md` before handling input, identity, communication, or storage.
-8. Identify the active environment using `ENVIRONMENT_GUIDE.md`.
-9. Read task-specific product, architecture, API, or operational documentation.
-10. Verify that the environment and existing checks are functional before editing.
+`state/CURRENT_STATUS.md` records live progress and worktree truth;
+`TASK_QUEUE.md` records dependency order; `DECISIONS_LOG.md` records durable
+decisions; `.omo/evidence/` records verification. Verified source/tests/evidence
+take precedence over stale progress text. `CONTEXT.md` defines domain terms.
 
-Do not skip earlier steps because a task appears small. The state files and rules
-are the source of truth for what may safely happen next.
+`.omo/plans/waha-command-center.md` is the protected approved-scope plan and
+`.omo/start-work/ledger.jsonl` is the protected execution ledger. Do not rewrite
+either to make progress appear complete; report discrepancies instead.
 
-## Where Project State Lives
+## Security baseline
 
-- `state/CURRENT_STATUS.md` records completed work, active work, blockers, open questions, and the latest session summary.
-- `state/TASK_QUEUE.md` is the ordered backlog. Add measurable acceptance criteria before starting a task.
-- `state/DECISIONS_LOG.md` records significant technical, product, security, and architectural decisions with their rationale.
+Keep WAHA credentials server-side and bundled WAHA internal. Enforce
+deny-by-default, server-side authorization and scope checks; validate boundaries;
+redact secrets/content; preserve CSRF/same-origin, encryption, immutable audit,
+and backup fail-closed behavior. WAHA `WORKING` and HTTP acceptance are not
+recipient-delivery proof, and unofficial-client ban risk cannot be eliminated.
 
-## Standards and Environment References
-
-- `AGENT_RULES.md` contains mandatory behavior for every session.
-- `CODING_STANDARDS.md` contains the current coding conventions and verification expectations.
-- `SECURITY_STANDARDS.md` contains mandatory security requirements.
-- `ENVIRONMENT_GUIDE.md` defines development, staging, and production behavior.
-- `templates/` contains checklists for common work types.
-- `.omo/plans/waha-command-center.md` contains the approved-scope candidate plan, WAHA capability evidence, dependencies, and executable acceptance checks.
-- `.omo/drafts/waha-command-center.md` contains the durable planning decisions and approval gate.
-
-## Self-Update Directive
-
-At the end of every working session, update the relevant `.claude/` files before
-closing. Replace general statements with verified project-specific facts as the
-stack, patterns, architecture, environments, and decisions become known. In
-particular, update this README whenever the repository purpose, structure, entry
-points, or orientation sequence changes. Never preserve stale guidance merely
-because it was part of the initial scaffold.
-
-The standards began general and now include the confirmed product boundary where
-appropriate. They remain living documentation, not a one-time setup artifact;
-keeping them accurate is part of implementation.
+At session end update only relevant state files with verified facts, exact test
+results, unresolved gates, and cleanup status. Never expose secrets or claim
+commit/push without evidence.

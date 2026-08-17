@@ -1,51 +1,64 @@
 # Current Status
 
-## Project Phase
+## Repository truth
 
-Implementation in progress — WAHA capability research, product decisions, and
-the webhook ingestion slice are present; the broader product plan remains open.
+- Branch: `main`, tracking `momokii/relay-nest` `origin/main`.
+- Todo 12 implementation and documentation are committed locally in four
+  semantic commits; the final push is pending branch verification.
+- `.omo/plans/waha-command-center.md` and `.omo/start-work/ledger.jsonl` were
+  updated with the verified Todo 12 completion record.
 
-## Completed
+## Implementation
 
-- [x] `.claude/` agent infrastructure initialized with general-purpose guidance.
-- [x] Root environment-safety baseline added with `.gitignore` and `.env.example`.
-- [x] Official WAHA documentation/OpenAPI capability audit completed for live OpenAPI 2026.8.1.
-- [x] Product scope and architecture decisions captured through the grilling process.
-- [x] `.omo/plans/waha-command-center.md` created with 16 implementation/test tasks and final verification gates.
-- [x] Plan critic review passed with no remaining blocking issues.
-- [x] Todo 8 webhook ingestion implemented with HMAC, replay/idempotency,
-  normalized persistence, ACK ordering, and WEBJS-only `message.waiting` support.
+Todos 1-12 are implemented. Todo 12 is independently verified: scoped retention
+metadata, confirmation-gated purge, immutable
+content-free audit accountability, AES-256-GCM backup/restore, key-rotation
+guidance, and the independent two-worker scheduler regression coverage.
 
-## In Progress
+Todo 12 implementation and verification are current in local history. Next is
+Todo 13,
+followed by Todos 14-16 and final F1 plan compliance, F2 security/quality, F3
+executable QA, and F4 scope/documentation gates.
 
-- [ ] Complete the remaining implementation tasks in `.omo/plans/waha-command-center.md`.
+## Verification snapshot
 
-## Blocked
+- Fresh PostgreSQL 17.6 repository/messaging matrix: `10/10`, run twice.
+- Standard `pnpm test` with `fileParallelism: false`: `31 files, 120 passed`,
+  three consecutive runs against fresh isolated PostgreSQL databases.
+- Focused Todo 12 suite: `10/10`, run twice; dedicated concurrency matrix:
+  `10/10`, run twice; auth migration/HTTP matrix: `4/4`, run twice.
+- Todo 12 evidence: `.omo/evidence/task-12-waha-command-center.md`.
+- Final source-fix revalidation passed after changing the messaging integration
+  clock to explicit `2000-01-01` with a fixture-isolation comment. Lint,
+  typecheck, ordered workspace/API/web builds, high-severity dependency audit,
+  all three Compose configs, WAHA capability test, and local Markdown-link scan
+  passed.
+- External `gitleaks`, `markdown-link-check`, `lychee`, and `docs:check` were
+  unavailable; no result was claimed for those checks.
 
-None.
+## Security and limitations
 
-## Open Questions
+Personal/Business scope checks, Admin authorization, CSRF/same-origin, server-
+side WAHA credentials, encryption, redaction, immutable audit, and fail-closed
+backup validation remain mandatory. WAHA is an unofficial reverse-engineered
+client and account restriction/ban risk remains inherent. Backup expiry is
+separate from live purge; public-internet deployment is not the default.
 
-- Exact dependency versions and the pinned WAHA Docker image must be selected and vulnerability-checked during implementation foundation work.
-- Per-category retention default durations must be chosen in the Settings design.
-- Public-internet deployment remains a future threat-model decision; LAN/VPN access is the default target.
+## Next work
 
-## Security Notes
+Todo 12/manual QA and the requested sequential verification matrix are complete.
+The auth HTTP fixture now proves both authorized session reads and genuine WAHA
+unavailability. The intermittent messaging failure was a shared-test-database
+clock overlap: unrelated opaque fixture jobs were due before the messaging
+test's claim. The messaging fixture now uses an explicit `2000-01-01` clock;
+repository and retention fixtures now cancel opaque jobs after their assertions,
+and preview now requires the same Origin/CSRF boundary as purge and backup.
+Production encryption and claim behavior remain unchanged. Manual scope
+purge/backup/restore/wrong-key QA remains valid because the final change is
+test-only and production encryption, scheduler claims, and HTTP routes were not
+modified. Runtime, container, port, temporary, and build-artifact cleanup is
+complete.
+Report exact results; push only after the final clean-tree, verification, and
+remote checks.
 
-- The broader product implementation is incomplete; security standards apply to each implemented slice.
-- No real secrets are present. The root `.env.example` contains only safe documentation placeholders.
-- The root `.gitignore` excludes local and environment-specific secret files while allowing `.env.example` to be committed.
-- WAHA master credentials must remain server-side; the bundled WAHA API must stay on the internal Compose network.
-- The unofficial reverse-engineered WhatsApp client carries an inherent account-block/ban risk; the planned product uses conservative consent, pacing, timelock, and capping guardrails but cannot eliminate that risk.
-
-## Last Updated
-
-2026-08-16
-
-## Session Summary
-
-Completed the WAHA Command Center discovery and planning session, then implemented
-the Todo 8 webhook ingestion slice. The repository has source-backed WAHA
-capability evidence, hard Personal/Business separation, secure webhook handling,
-and a Momus-approved 16-task implementation plan; remaining product slices are
-still pending.
+Last updated: 2026-08-17
