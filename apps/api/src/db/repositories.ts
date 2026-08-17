@@ -4,6 +4,7 @@ import type { PersistenceDatabase } from "./client"
 import { createDispatchAttemptRepositories } from "./repositories/dispatch-attempts"
 import { createIdentityRepositories } from "./repositories/identity"
 import { createNotificationRepositories } from "./repositories/notifications"
+import { createRetentionRepositories } from "./repositories/retention"
 import { createSchedulingRepositories } from "./repositories/scheduling"
 import { createTransportRepositories } from "./repositories/transport"
 import {
@@ -13,7 +14,7 @@ import {
   requireSessionScope,
   withPersistenceErrors,
 } from "./repository-support"
-import { auditEntries, dispatchAttempts, normalizedEvents, retentionPolicies } from "./schema"
+import { auditEntries, dispatchAttempts, normalizedEvents } from "./schema"
 import type { AccountScope } from "./schema/shared"
 
 export {
@@ -21,12 +22,6 @@ export {
   DuplicateRecordError,
   RepositoryScopeError,
 } from "./repository-support"
-
-export type RetentionInput = {
-  readonly accountScope: AccountScope
-  readonly category: string
-  readonly retentionDays: number
-}
 
 type AuditInput = {
   readonly accountScope: AccountScope
@@ -44,6 +39,7 @@ export function createRepositories(db: PersistenceDatabase) {
     ...createSchedulingRepositories(db),
     ...createTransportRepositories(db),
     ...createNotificationRepositories(db),
+    ...createRetentionRepositories(db),
     normalizedEvents: {
       create: (input: typeof normalizedEvents.$inferInsert) =>
         withPersistenceErrors(
@@ -160,39 +156,6 @@ export function createRepositories(db: PersistenceDatabase) {
             throw new AuditImmutabilityError("audit entries are immutable")
           throw error
         }
-      },
-    },
-    retentionPolicies: {
-      insert: (input: RetentionInput) =>
-        withPersistenceErrors(
-          db
-            .insert(retentionPolicies)
-            .values(input)
-            .returning()
-            .then(([policy]) => policy),
-        ),
-      upsert: (input: RetentionInput) =>
-        db
-          .insert(retentionPolicies)
-          .values(input)
-          .onConflictDoUpdate({
-            target: [retentionPolicies.accountScope, retentionPolicies.category],
-            set: { retentionDays: input.retentionDays },
-          })
-          .returning()
-          .then(([policy]) => policy),
-      find: async (input: Pick<RetentionInput, "accountScope" | "category">) => {
-        const [policy] = await db
-          .select()
-          .from(retentionPolicies)
-          .where(
-            and(
-              eq(retentionPolicies.accountScope, input.accountScope),
-              eq(retentionPolicies.category, input.category),
-            ),
-          )
-          .limit(1)
-        return policy ?? null
       },
     },
   }
