@@ -39,9 +39,12 @@ export async function countCandidates(
       .select({ id: dispatchAttempts.id })
       .from(dispatchAttempts)
       .where(
-        inArray(
-          dispatchAttempts.jobId,
-          jobs.map(({ id }) => id),
+        and(
+          inArray(
+            dispatchAttempts.jobId,
+            jobs.map(({ id }) => id),
+          ),
+          eq(dispatchAttempts.accountScope, accountScope),
         ),
       )
     return jobs.length + attempts.length
@@ -112,7 +115,12 @@ export async function deleteCandidates(
     const jobIds = jobs.map(({ id }) => id)
     const attempts = await db
       .delete(dispatchAttempts)
-      .where(inArray(dispatchAttempts.jobId, jobIds))
+      .where(
+        and(
+          inArray(dispatchAttempts.jobId, jobIds),
+          eq(dispatchAttempts.accountScope, selection.accountScope),
+        ),
+      )
       .returning({ id: dispatchAttempts.id })
     const deletedJobs = await db
       .delete(scheduledJobs)

@@ -95,6 +95,46 @@ describe.skipIf(!repositories)("Todo 12 PostgreSQL retention and backup", () => 
     expect(repeated.count).toBe(0)
   })
 
+  it("isolates dispatch attempts by account scope during message retention", async () => {
+    // Given a Personal scheduled job with a mismatched Business dispatch attempt
+    const session = await createSession("personal")
+    const businessSession = await createSession("business")
+    const createdAt = new Date("2019-01-01T00:00:00.000Z")
+    const job = await createJob(session.id, "personal", createdAt)
+    await repositories.dispatchAttempts.create({
+      jobId: job.id,
+      sessionId: businessSession.id,
+      accountScope: "business",
+      attemptNumber: 1,
+      state: "failed",
+      attemptedAt: createdAt,
+    })
+
+    // When Personal message retention previews and purges the old job
+    const selection = {
+      accountScope: "personal" as const,
+      category: "messages" as const,
+      cutoff: new Date("2020-02-01T00:00:00.000Z"),
+    }
+    const preview = await repositories.retentionPolicies.preview(selection)
+
+    // Then the Business attempt is neither counted nor deleted by Personal retention
+    expect(preview.count).toBe(1)
+    await expect(
+      repositories.retentionPolicies.purge({
+        ...selection,
+        previewCount: preview.count,
+        actorUserId: crypto.randomUUID(),
+      }),
+    ).rejects.toThrow()
+    await expect(repositories.scheduledJobs.find(job.id, "personal")).resolves.toMatchObject({
+      id: job.id,
+    })
+    await expect(
+      repositories.dispatchAttempts.listForJob(job.id, "business"),
+    ).resolves.toHaveLength(1)
+  })
+
   it("treats audit retention as non-destructive accountability", async () => {
     // Given an existing immutable audit row and an audit retention policy
     const actor = await repositories.users.create({
