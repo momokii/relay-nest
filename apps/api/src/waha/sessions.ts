@@ -54,6 +54,13 @@ export function createScopedSessionService(options: {
   readonly clientForConnection?: (
     connectionId: string,
   ) => WahaSessionClient | Promise<WahaSessionClient>
+  readonly audit?: (input: {
+    readonly actorUserId: string
+    readonly action: string
+    readonly subjectType: string
+    readonly subjectId: string
+    readonly accountScope: AccountScope
+  }) => Promise<void>
 }) {
   const authorized = async (
     principal: AuthPrincipal,
@@ -87,6 +94,13 @@ export function createScopedSessionService(options: {
         accountScope: scope,
         status: upstream.status,
       })
+      await options.audit?.({
+        actorUserId: principal.userId,
+        action: "session.created",
+        subjectType: "session",
+        subjectId: stored.id,
+        accountScope: scope,
+      })
       return view(stored, upstream.status)
     },
     async update(
@@ -105,6 +119,13 @@ export function createScopedSessionService(options: {
         status: upstream.status,
       })
       await options.repository.saveStatus(session.id, scope, upstream.status, new Date())
+      await options.audit?.({
+        actorUserId: principal.userId,
+        action: "session.updated",
+        subjectType: "session",
+        subjectId: session.id,
+        accountScope: scope,
+      })
       return view(stored ?? session, upstream.status)
     },
     async list(principal: AuthPrincipal, scope: AccountScope): Promise<readonly SessionView[]> {
@@ -153,10 +174,24 @@ export function createScopedSessionService(options: {
       if (action === "delete") {
         await client.remove(session.wahaSessionName)
         await options.repository.remove?.(session.id, scope)
+        await options.audit?.({
+          actorUserId: principal.userId,
+          action: "session.deleted",
+          subjectType: "session",
+          subjectId: session.id,
+          accountScope: scope,
+        })
         return null
       }
       const upstream = await client[action](session.wahaSessionName)
       await options.repository.saveStatus(session.id, scope, upstream.status)
+      await options.audit?.({
+        actorUserId: principal.userId,
+        action: `session.${action}`,
+        subjectType: "session",
+        subjectId: session.id,
+        accountScope: scope,
+      })
       return view(session, upstream.status)
     },
     async metadata(
