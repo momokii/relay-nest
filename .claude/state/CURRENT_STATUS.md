@@ -3,7 +3,7 @@
 ## Repository truth
 
 - Branch: `main`, tracking `momokii/relay-nest` `origin/main`.
-- Todo 12 implementation and documentation are committed locally in nine
+- Todo 12 implementation and documentation are committed locally in eleven
   semantic commits; the final push is pending branch verification.
 - `.omo/plans/waha-command-center.md` and `.omo/start-work/ledger.jsonl` were
   updated with the verified Todo 12 completion record.
@@ -26,8 +26,8 @@ executable QA, and F4 scope/documentation gates.
 - Fresh PostgreSQL 17.6 repository/messaging matrix: `10/10`, run twice.
 - Historical pre-hardening standard matrix: `31 files, 120 passed`, three
   consecutive runs against fresh isolated PostgreSQL databases.
-- Current hardening matrix: `32 files, 134 passed` against fresh PostgreSQL
-  17.6; focused Todo 12/WAHA matrix: `5 files, 33 passed`.
+- Current hardening matrix: `32 files, 136 passed` against fresh PostgreSQL
+  17.6; focused Todo 12/WAHA matrix: `7 files, 38 passed`.
 - Todo 12 evidence: `.omo/evidence/task-12-waha-command-center.md`.
 - Lint, typecheck, ordered workspace/API/web builds, high-severity dependency
   audit, three Compose configurations with placeholders, Playwright smoke, and
@@ -94,6 +94,23 @@ Last updated: 2026-08-17
 - The no-excuse TypeScript script remains unavailable and is not claimed as
   passed.
 
+## Session update: snapshot-consistent backup export hardening
+
+- Added real PostgreSQL integration coverage for repeatable-read export snapshots
+  and oversized first-page rows. The tests use postgres.js debug observation and
+  no mocks or sleeps; the oversized fixture cleans up in a finally block.
+- Changed `exportScope` to use one `ISOLATION LEVEL REPEATABLE READ READ ONLY`
+  transaction for every descriptor/page query. Each page first fetches at most
+  100 IDs and `octet_length(row_to_json(rows)::text)` values, then fetches only
+  the prefix that fits within the 8 MiB page budget including JSON brackets and
+  commas. Existing 10,000-row/8 MiB post-fetch checks and keyset/restore behavior
+  remain intact; no `json_agg` was introduced.
+- Disposable PostgreSQL 17.6 verification passed: focused backup/retention/unit
+  matrix `3 files, 19 passed`; two additional backup integration runs `7/7`.
+  Typecheck, API build, changed-file Biome, and `git diff --check` passed.
+- The disposable `backup-export-postgres` container was removed at closeout; the
+  snapshot source and test changes are committed as `1e32da0`, with no push.
+
 ## Session update: WAHA runtime audit events
 
 - Added test-first create/update audit coverage in `tests/waha-adapter.test.ts`.
@@ -103,3 +120,13 @@ Last updated: 2026-08-17
 - No `app.ts` wiring was needed: the application currently does not compose this
   runtime-settings service. Focused Vitest passed `14/14`; typecheck and Biome
   passed. Full Vitest passed against isolated PostgreSQL.
+
+## Session update: final export page-termination revalidation
+
+- Fresh PostgreSQL 17.6 focused Todo 12/WAHA verification passed `7 files, 38
+  tests`; the fresh full repository suite passed `32 files, 136 tests`.
+- The final export fix uses the actual metadata-row count for keyset page
+  termination after byte-budget prefixing. Typecheck, changed-file Biome, and
+  `GIT_MASTER=1 git diff --check` passed.
+- The source/test fix is committed locally as `1e32da0`. Final review and
+  clean-tree/remote verification remain before any push.

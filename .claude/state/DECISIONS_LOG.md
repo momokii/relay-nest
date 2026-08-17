@@ -129,6 +129,24 @@ references—before any insert; conflict-tolerant replay is retained only after
 that validation. Unknown table keys fail closed, and errors contain no row
 contents or secrets.
 
+### Todo 12: snapshot-consistent, page-bounded backup export
+
+**Date:** 2026-08-17
+
+Export descriptors and keyset pages execute inside one PostgreSQL repeatable-read,
+read-only transaction. Each page first selects at most 100 IDs and server-computed
+JSON byte lengths, accounting for array brackets and commas before fetching the
+selected row JSON. An oversized first candidate fails before payload transfer;
+the existing 10,000-row and 8 MiB total checks remain after payload parsing.
+Real PostgreSQL integration tests cover a committed later-table row remaining
+outside the snapshot and verify that an oversized row produces no payload query.
+
+Page termination uses the number of metadata rows actually returned, not the
+number of rows that fit the byte-budget prefix. This keeps keyset pagination
+correct when a page is shortened by the 8 MiB limit while preserving the
+fail-closed oversized-first-row check. The correction is committed as `1e32da0`
+and verified against fresh PostgreSQL 17.6 databases.
+
 ## Existing binding decisions
 
 - RelayNest is one self-hosted tenant with Admin/Operator/Viewer users and
