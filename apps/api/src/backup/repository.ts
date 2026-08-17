@@ -12,6 +12,10 @@ type TableDescriptor = {
   readonly destination: string
   readonly query: string
 }
+type ExportPageMetadata = {
+  readonly row_id: unknown
+  readonly json_bytes: unknown
+}
 
 export const BACKUP_TRANSFER_LIMITS = {
   exportPageRows: 100,
@@ -103,38 +107,47 @@ const TABLE_NAMES = new Set<string>(TABLE_DESCRIPTORS.map((descriptor) => descri
 export function createBackupRepository(sql: SqlClient) {
   return {
     exportScope: async (accountScope: AccountScope): Promise<BackupPayload> => {
-      const tables: Record<string, readonly BackupRow[]> = {}
-      let totalRows = 0
-      let totalBytes = 0
-      for (const descriptor of TABLE_DESCRIPTORS) {
-        const rows: BackupRow[] = []
-        let cursor = "00000000-0000-0000-0000-000000000000"
-        while (true) {
-          const result = await sql.unsafe<{ row: unknown }[]>(
-            `SELECT row_to_json(rows) AS row FROM (${descriptor.query}) rows LIMIT $3`,
-            [accountScope, cursor, BACKUP_TRANSFER_LIMITS.exportPageRows],
-          )
-          const page = result.map((item) => parseRow(item.row))
-          if (page.length === 0) break
-          for (const row of page) {
-            totalRows += 1
-            totalBytes += Buffer.byteLength(JSON.stringify(row), "utf8")
-            if (
-              totalRows > BACKUP_TRANSFER_LIMITS.maxRows ||
-              totalBytes > BACKUP_TRANSFER_LIMITS.maxBytes
-            ) {
-              throw new BackupRepositoryError("backup transfer exceeds its fixed limit")
+      return sql.begin("ISOLATION LEVEL REPEATABLE READ READ ONLY", async (transaction) => {
+        const tables: Record<string, readonly BackupRow[]> = {}
+        let totalRows = 0
+        let totalBytes = 0
+        for (const descriptor of TABLE_DESCRIPTORS) {
+          const rows: BackupRow[] = []
+          let cursor = "00000000-0000-0000-0000-000000000000"
+          while (true) {
+            const metadata = await transaction.unsafe<ExportPageMetadata[]>(
+              `SELECT rows.id AS row_id, octet_length(row_to_json(rows)::text) AS json_bytes FROM (${descriptor.query}) rows LIMIT $3`,
+              [accountScope, cursor, BACKUP_TRANSFER_LIMITS.exportPageRows],
+            )
+            const pageRowCount = selectPageRowCount(metadata)
+            if (pageRowCount === 0) break
+
+            const result = await transaction.unsafe<{ row: unknown }[]>(
+              `SELECT row_to_json(rows) AS row FROM (${descriptor.query}) rows LIMIT $3`,
+              [accountScope, cursor, pageRowCount],
+            )
+            const page = result.map((item) => parseRow(item.row))
+            if (page.length === 0) throw new BackupRepositoryError("backup rows are malformed")
+            for (const row of page) {
+              totalRows += 1
+              totalBytes += Buffer.byteLength(JSON.stringify(row), "utf8")
+              if (
+                totalRows > BACKUP_TRANSFER_LIMITS.maxRows ||
+                totalBytes > BACKUP_TRANSFER_LIMITS.maxBytes
+              ) {
+                throw new BackupRepositoryError("backup transfer exceeds its fixed limit")
+              }
+              rows.push(row)
             }
-            rows.push(row)
+            const lastRow = page.at(-1)
+            if (!lastRow) throw new BackupRepositoryError("backup rows are malformed")
+            cursor = requiredRowId(lastRow)
+            if (metadata.length < BACKUP_TRANSFER_LIMITS.exportPageRows) break
           }
-          const lastRow = page.at(-1)
-          if (!lastRow) throw new BackupRepositoryError("backup rows are malformed")
-          cursor = requiredRowId(lastRow)
-          if (page.length < BACKUP_TRANSFER_LIMITS.exportPageRows) break
+          tables[descriptor.name] = rows
         }
-        tables[descriptor.name] = rows
-      }
-      return parseBackupPayload({ accountScope, tables })
+        return parseBackupPayload({ accountScope, tables })
+      })
     },
     restoreScope: async (input: BackupPayload): Promise<void> => {
       const payload = parseBackupPayload(input)
@@ -164,6 +177,30 @@ export function createBackupRepository(sql: SqlClient) {
 
 function descriptor(name: string, destination: string, query: string): TableDescriptor {
   return { name, destination, query }
+}
+
+function selectPageRowCount(metadata: readonly ExportPageMetadata[]): number {
+  let pageBytes = 2
+  let rowCount = 0
+  for (const item of metadata) {
+    const jsonBytes = parseJsonBytes(item.json_bytes)
+    const candidateBytes = pageBytes + jsonBytes + (rowCount === 0 ? 0 : 1)
+    if (candidateBytes > BACKUP_TRANSFER_LIMITS.maxBytes) {
+      if (rowCount === 0) throw new BackupRepositoryError("backup page exceeds its fixed limit")
+      break
+    }
+    pageBytes = candidateBytes
+    rowCount += 1
+  }
+  return rowCount
+}
+
+function parseJsonBytes(value: unknown): number {
+  const parsed = typeof value === "number" || typeof value === "string" ? Number(value) : Number.NaN
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new BackupRepositoryError("backup page metadata is malformed")
+  }
+  return parsed
 }
 
 function validateTableKeys(payload: BackupPayload): void {

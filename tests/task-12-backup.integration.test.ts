@@ -1,6 +1,7 @@
 import { afterAll, describe, expect, it } from "vitest"
+import postgres from "../apps/api/node_modules/postgres"
 
-import { createBackupRepository } from "../apps/api/src/backup/repository"
+import { BACKUP_TRANSFER_LIMITS, createBackupRepository } from "../apps/api/src/backup/repository"
 import { createDatabase } from "../apps/api/src/db/client"
 import { createRepositories } from "../apps/api/src/db/repositories"
 
@@ -8,6 +9,15 @@ const databaseUrl = process.env.DATABASE_URL
 const database =
   process.env.RUN_POSTGRES_TESTS === "1" && databaseUrl ? createDatabase(databaseUrl) : undefined
 const repositories = database ? createRepositories(database.db) : undefined
+const observedQueries: string[] = []
+const observedSql =
+  process.env.RUN_POSTGRES_TESTS === "1" && databaseUrl
+    ? postgres(databaseUrl, {
+        debug: (_connection, query) => {
+          observedQueries.push(query)
+        },
+      })
+    : undefined
 
 describe.skipIf(!repositories)("Todo 12 backup relational transfer", () => {
   it("rejects a Personal payload that references a Business session before writing", async () => {
@@ -140,6 +150,69 @@ describe.skipIf(!repositories)("Todo 12 backup relational transfer", () => {
     await expect(restore).rejects.toThrow("backup transfer exceeds its fixed limit")
   })
 
+  it("uses one repeatable-read snapshot for every exported table", async () => {
+    // Given a real PostgreSQL client whose first users descriptor query is observable
+    const session = await createSession("personal")
+    const exportRepository = createBackupRepository(observedSql)
+    observedQueries.length = 0
+    const exportPromise = exportRepository.exportScope("personal")
+    await waitForUsersDescriptorQuery()
+
+    // When a later-table row is committed after the export transaction has started
+    const insertedJobId = crypto.randomUUID()
+    await database.sql`
+      INSERT INTO scheduled_jobs
+        (id, session_id, account_scope, recipient_phone_ciphertext, recipient_phone_nonce,
+         recipient_phone_auth_tag, message_ciphertext, message_nonce, message_auth_tag,
+         scheduled_for, timezone, idempotency_key)
+      VALUES
+        (${insertedJobId}, ${session.id}, 'personal', 'opaque-phone', 'opaque-nonce',
+         'opaque-tag', 'opaque-message', 'opaque-nonce', 'opaque-tag',
+         '2030-01-01T00:00:00Z', 'UTC', ${`snapshot-${insertedJobId}`})
+    `
+    try {
+      const payload = await exportPromise
+
+      // Then the committed row is absent because all descriptors share the initial snapshot
+      expect(payload.tables.scheduledJobs.some((row) => row.id === insertedJobId)).toBe(false)
+    } finally {
+      await database.sql`DELETE FROM scheduled_jobs WHERE id = ${insertedJobId}`
+    }
+  })
+
+  it("rejects an oversized first row before fetching its JSON payload", async () => {
+    // Given a real PostgreSQL row whose JSON representation exceeds one page
+    const session = await createSession("personal")
+    const oversizedJobId = "00000000-0000-0000-0000-000000000001"
+    await database.sql`
+      INSERT INTO scheduled_jobs
+        (id, session_id, account_scope, recipient_phone_ciphertext, recipient_phone_nonce,
+         recipient_phone_auth_tag, message_ciphertext, message_nonce, message_auth_tag,
+         scheduled_for, timezone, idempotency_key)
+      VALUES
+        (${oversizedJobId}, ${session.id}, 'personal', 'opaque-phone', 'opaque-nonce',
+         'opaque-tag', ${"x".repeat(BACKUP_TRANSFER_LIMITS.maxBytes)}, 'opaque-nonce',
+         'opaque-tag', '2030-01-01T00:00:00Z', 'UTC', ${`oversized-${oversizedJobId}`})
+    `
+    observedQueries.length = 0
+
+    // When the scope is exported
+    const exportRepository = createBackupRepository(observedSql)
+    const exportPromise = exportRepository.exportScope("personal")
+
+    try {
+      // Then the page is rejected before the row payload query runs
+      await expect(exportPromise).rejects.toThrow("backup page exceeds its fixed limit")
+      expect(
+        observedQueries.some(
+          (query) => query.includes("row_to_json(rows) AS row") && query.includes("scheduled_jobs"),
+        ),
+      ).toBe(false)
+    } finally {
+      await database.sql`DELETE FROM scheduled_jobs WHERE id = ${oversizedJobId}`
+    }
+  })
+
   async function createSession(accountScope: "personal" | "business") {
     const connection = await repositories.wahaConnections.create({
       name: `todo12-backup-connection-${crypto.randomUUID()}`,
@@ -156,8 +229,15 @@ describe.skipIf(!repositories)("Todo 12 backup relational transfer", () => {
       status: "linked",
     })
   }
+
+  async function waitForUsersDescriptorQuery(): Promise<void> {
+    while (!observedQueries.some((query) => query.includes("SELECT DISTINCT u.* FROM users"))) {
+      await new Promise<void>((resolve) => setImmediate(resolve))
+    }
+  }
 })
 
 afterAll(async () => {
+  await observedSql?.end()
   await database?.close()
 })
