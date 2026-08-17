@@ -12,7 +12,7 @@ grants, server-side WAHA integration, session lifecycle, one-time durable text
 scheduling, contact resolution, webhook ingestion, delivery evidence, and
 SMTP/Telegram notifications.
 
-Todo 12 is committed locally in eight implementation/state commits: scoped retention metadata,
+Todo 12 is committed locally in semantic commits: scoped retention metadata,
 preview- and confirmation-gated purge, immutable content-free purge
 accountability, authenticated AES-256-GCM backup/restore, and offline
 key-rotation guidance, authenticated envelope metadata, bounded relational
