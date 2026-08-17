@@ -28,7 +28,7 @@ const TABLE_DESCRIPTORS = [
   descriptor(
     "users",
     "users",
-    "SELECT DISTINCT u.* FROM users u WHERE (EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id = u.id AND r.account_scope = $1) OR EXISTS (SELECT 1 FROM audit_entries a WHERE a.actor_user_id = u.id AND a.account_scope = $1) OR EXISTS (SELECT 1 FROM notifications n WHERE n.user_id = u.id AND n.account_scope = $1)) AND u.id > $2::uuid ORDER BY u.id",
+    "SELECT DISTINCT u.* FROM users u WHERE (EXISTS (SELECT 1 FROM user_roles r WHERE r.user_id = u.id AND r.account_scope = $1) OR EXISTS (SELECT 1 FROM session_grants g WHERE g.user_id = u.id AND g.account_scope = $1) OR EXISTS (SELECT 1 FROM audit_entries a WHERE a.actor_user_id = u.id AND a.account_scope = $1) OR EXISTS (SELECT 1 FROM notifications n WHERE n.user_id = u.id AND n.account_scope = $1)) AND u.id > $2::uuid ORDER BY u.id",
   ),
   descriptor(
     "userRoles",
@@ -142,7 +142,11 @@ export function createBackupRepository(sql: SqlClient) {
             const lastRow = page.at(-1)
             if (!lastRow) throw new BackupRepositoryError("backup rows are malformed")
             cursor = requiredRowId(lastRow)
-            if (metadata.length < BACKUP_TRANSFER_LIMITS.exportPageRows) break
+            if (
+              pageRowCount === metadata.length &&
+              metadata.length < BACKUP_TRANSFER_LIMITS.exportPageRows
+            )
+              break
           }
           tables[descriptor.name] = rows
         }
