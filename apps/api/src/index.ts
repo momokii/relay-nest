@@ -1,4 +1,5 @@
 import { workspaceConfig } from "@waha-command-center/config"
+import { migrate } from "drizzle-orm/postgres-js/migrator"
 import { z } from "zod"
 
 import { createApiApp } from "./app"
@@ -9,6 +10,9 @@ const port =
     .PORT ?? 3000
 async function main(): Promise<void> {
   const database = createDatabase(workspaceConfig.databaseUrl)
+  // biome-ignore lint/complexity/useLiteralKeys: required by strict ProcessEnv access.
+  const migrationsFolder = process.env["MIGRATIONS_FOLDER"] ?? "drizzle"
+  await migrate(database.db, { migrationsFolder })
   const allowLoopbackWaha =
     workspaceConfig.appEnv === "test" && process.argv.includes("--allow-loopback-for-tests")
   const app = createApiApp(database, { allowLoopbackWaha })
