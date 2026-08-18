@@ -1,0 +1,13 @@
+- main [ref=f1e3] [box=0,0,375,900]:
+  - paragraph [ref=f1e4] [box=32,224,69,17]: RelayNest
+  - heading "Sign in to RelayNest" [level=1] [ref=f1e5] [box=32,256,311,70]
+  - paragraph [ref=f1e6] [box=32,342,290,24]: The server denied this scoped request.
+  - generic [ref=f1e7] [box=32,382,245,231]:
+    - generic [ref=f1e8] [box=32,382,245,76]:
+      - generic [ref=f1e9] [box=32,382,245,21]: Email
+      - textbox "Email" [ref=f1e10] [box=32,411,245,47]
+    - generic [ref=f1e11] [box=32,474,245,76]:
+      - generic [ref=f1e12] [box=32,474,245,21]: Password
+      - textbox "Password" [ref=f1e13] [box=32,503,245,47]
+    - button "Sign in" [ref=f1e14] [cursor=pointer] [box=32,566,245,47]
+  - button "First run? Create Admin" [ref=f1e15] [cursor=pointer] [box=32,629,200,47]

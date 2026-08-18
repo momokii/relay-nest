@@ -1,0 +1,32 @@
+{
+  "viewport": {
+    "width": 375,
+    "height": 900
+  },
+  "document": {
+    "scrollWidth": 375,
+    "clientWidth": 375,
+    "scrollHeight": 900
+  },
+  "body": {
+    "scrollWidth": 375,
+    "clientWidth": 375
+  },
+  "focus": {
+    "tag": "BODY",
+    "label": null,
+    "outline": "rgb(240, 244, 242) none 3px",
+    "boxShadow": "none"
+  },
+  "links": [],
+  "buttons": [
+    {
+      "text": "Sign in",
+      "disabled": false
+    },
+    {
+      "text": "First run? Create Admin",
+      "disabled": false
+    }
+  ]
+}
