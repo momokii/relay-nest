@@ -2,7 +2,13 @@ import cors from "@fastify/cors"
 import { createEnvelopeCipher } from "@waha-command-center/config"
 import Fastify, { type FastifyInstance } from "fastify"
 import { z } from "zod"
-
+import { registerAiApprovalRoutes } from "./ai/http"
+import { createAiApprovalService } from "./ai/service"
+import type { AiApprovalService } from "./ai/types"
+import { registerAnalyticsRoutes } from "./analytics/http"
+import { createAnalyticsSource } from "./analytics/runtime"
+import type { AnalyticsService } from "./analytics/service"
+import { createAnalyticsService } from "./analytics/service"
 import { createConfiguredSessionService } from "./app-session-service"
 import { AdminService } from "./auth/admin"
 import { registerAuthRoutes } from "./auth/http"
@@ -24,6 +30,7 @@ import {
   PurgePreviewTokenError,
   RetentionPolicyMissingError,
 } from "./retention/service"
+import { registerScheduledRoutes } from "./scheduled-http"
 import { registerSessionRoutes } from "./waha/session-http"
 import type { createScopedSessionService } from "./waha/sessions"
 import {
@@ -40,12 +47,35 @@ type AuditCallback = (input: {
   readonly accountScope: "personal" | "business"
 }) => Promise<void>
 
+type RuntimeEnvironment = Readonly<{
+  APP_ENV?: string | undefined
+  NODE_ENV?: string | undefined
+}>
+
+export function resolveLoopbackWahaOption(
+  requested: boolean | undefined,
+  environment: RuntimeEnvironment = {
+    // biome-ignore lint/complexity/useLiteralKeys: required by exactOptionalPropertyTypes for ProcessEnv.
+    APP_ENV: process.env["APP_ENV"],
+    // biome-ignore lint/complexity/useLiteralKeys: required by exactOptionalPropertyTypes for ProcessEnv.
+    NODE_ENV: process.env["NODE_ENV"],
+  },
+): Readonly<{ allowLoopbackWaha?: true }> {
+  if (requested !== true || environment.APP_ENV !== "test" || environment.NODE_ENV !== "test") {
+    return {}
+  }
+  return { allowLoopbackWaha: true }
+}
+
 export function createApiApp(
   database: DatabaseHandle,
   options: {
     readonly sessionService?: ReturnType<typeof createScopedSessionService>
     readonly messagingService?: ReturnType<typeof createMessagingService>
     readonly notificationService?: ReturnType<typeof createNotificationService>
+    readonly analyticsService?: AnalyticsService
+    readonly aiApprovalService?: AiApprovalService
+    readonly allowLoopbackWaha?: boolean
   } = {},
 ): FastifyInstance {
   const app = Fastify({ logger: true })
@@ -55,6 +85,7 @@ export function createApiApp(
   }
   const auth = new AuthService({ db: database.db, audit })
   const admin = new AdminService(database.db, audit)
+  const loopbackOptions = resolveLoopbackWahaOption(options.allowLoopbackWaha)
   const webhookEnvironment = z
     .object({
       WAHA_WEBHOOK_SECRET: z.string().optional(),
@@ -69,6 +100,7 @@ export function createApiApp(
       webhookEnvironment.ENCRYPTION_MASTER_KEY
         ? Buffer.from(webhookEnvironment.ENCRYPTION_MASTER_KEY, "base64")
         : undefined,
+      loopbackOptions,
     )
   const configuredNotificationService =
     options.notificationService ??
@@ -81,6 +113,19 @@ export function createApiApp(
           audit,
         })
       : undefined)
+  const configuredAnalyticsService =
+    options.analyticsService ??
+    (webhookEnvironment.ENCRYPTION_MASTER_KEY
+      ? createAnalyticsService({
+          source: createAnalyticsSource(
+            database,
+            Buffer.from(webhookEnvironment.ENCRYPTION_MASTER_KEY, "base64"),
+          ),
+          authorize: (principal, sessionId, scope) =>
+            auth.authorize(principal, sessionId, scope, "read"),
+        })
+      : undefined)
+  const aiApprovalService = options.aiApprovalService ?? createAiApprovalService()
   const retention = createRetentionService({ repository: repositories.retentionPolicies, audit })
   const backupRepository = createBackupRepository(database.sql)
   registerWahaWebhookRoutes(app, {
@@ -154,12 +199,15 @@ export function createApiApp(
   })
   app.get("/health", async () => ({ status: "ok" }))
   const sessionService =
-    options.sessionService ?? createConfiguredSessionService(repositories, audit)
+    options.sessionService ?? createConfiguredSessionService(repositories, audit, loopbackOptions)
   registerAuthRoutes(app, auth, admin, {
     includeScopedSessionCompatibility: !sessionService,
   })
+  registerAiApprovalRoutes(app, auth, aiApprovalService)
   if (sessionService) registerSessionRoutes(app, auth, sessionService)
   if (configuredMessagingService) registerMessagingRoutes(app, auth, configuredMessagingService)
+  registerScheduledRoutes(app, auth, repositories.scheduledJobs)
+  if (configuredAnalyticsService) registerAnalyticsRoutes(app, auth, configuredAnalyticsService)
   if (configuredNotificationService)
     registerNotificationRoutes(app, auth, admin, configuredNotificationService)
   registerRetentionRoutes(
