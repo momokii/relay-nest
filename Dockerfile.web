@@ -19,6 +19,7 @@ COPY --from=build --chown=node:node /workspace/node_modules ./node_modules
 COPY --from=build --chown=node:node /workspace/apps/web/node_modules ./apps/web/node_modules
 COPY --from=build --chown=node:node /workspace/apps/web/dist ./apps/web/dist
 COPY --from=build --chown=node:node /workspace/apps/web/package.json ./apps/web/package.json
+COPY --from=build --chown=node:node /workspace/apps/web/vite.config.ts ./apps/web/vite.config.ts
 WORKDIR /app/apps/web
 USER node
 EXPOSE 4173
