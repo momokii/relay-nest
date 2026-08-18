@@ -211,3 +211,19 @@ scope only. The callback has no details field, so API key, base URL, and name
 cannot enter these events. `createApiApp` currently does not compose this
 settings service, so central app wiring is intentionally deferred until a real
 runtime route uses the seam.
+
+## Protected-record closeout authorization
+
+**Date:** 2026-08-19
+
+The user explicitly authorized committing and pushing the remaining protected
+plan/ledger updates and all verified evidence artifacts. The plan checkbox and
+execution-ledger Todo 13 completion event were therefore preserved as focused
+documentation commits rather than left as local-only changes. No protected
+record was rewritten beyond the verified Todo 13 completion update.
+
+Security-sensitive evidence was retained only in redacted or placeholder form;
+the final credential-pattern scan found no credential-bearing database URLs or
+private-key blocks in the committed state, plan, ledger, or evidence files. The
+remaining verification blockers stay open and are not converted into completion
+claims.
