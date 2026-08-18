@@ -206,7 +206,7 @@ this plan and must be copied into the durable project decision document by Todo 
   QA scenarios (name the exact tool + invocation): happy: `pnpm test -- retention`; failure: cancel purge confirmation and assert zero deletion, then restore a test backup and verify scope boundaries. Evidence `.omo/evidence/task-12-waha-command-center.md`.
   Commit: 0043f62, dea87d3, f94ca0f, ad08848, a8a4eb8, 6cf4944, 8e0294f, a48b403
 
-- [ ] 13. Build aggregate and per-session analytics projections
+- [x] 13. Build aggregate and per-session analytics projections
   What to do / Must NOT do: Derive scoped message volume, direction, acknowledgment breakdown, failure/retry rates, session uptime/status history, timelock/capping indicators, contact activity, and scheduled-job outcomes from normalized events and local records. Make Personal/Business filters mandatory. Must not infer recipient delivery from missing events or expose cross-scope aggregates.
   Parallelization: Wave 4 | Blocked by: 8, 9, 10 | Blocks: 14, 16
   References (executor has NO interview context - be exhaustive): `docs/waha-capability-matrix.md`; https://waha.devlike.pro/docs/how-to/events/; https://waha.devlike.pro/swagger/openapi.json
