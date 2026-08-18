@@ -1,0 +1,62 @@
+- link "Skip to main content":
+  - /url: "#main-content"
+- banner:
+  - strong: RelayNest
+  - text: WAHA command center
+  - combobox "Account scope":
+    - option "Personal" [selected]
+    - option "Business"
+  - button "Menu"
+  - button "Sign out"
+- main:
+  - paragraph: Durable jobs · personal
+  - heading "One-time scheduling" [level=1]
+  - paragraph: Record one future dispatch with an explicit timezone and no recurrence.
+  - text: e2e-61251ca5-db92-451d-bb03-97c0ddda6e36@example.invalid
+  - strong: admin access
+  - region "Schedule one text":
+    - paragraph: Durable one-time job
+    - heading "Schedule one text" [level=2]
+    - paragraph: This surface is intentionally text-only, consent-first, and scoped to one authorized session.
+    - text: Authorized session
+    - combobox "Authorized session":
+      - option "Select a session"
+      - option "e2e-personal-session-d75f768a-ceff-446a-93d8-764bc7f2155e" [selected]
+    - text: Recipient phone number
+    - textbox "Recipient phone number Country code required. The server performs final contact and consent checks."
+    - text: Country code required. The server performs final contact and consent checks. Text message
+    - textbox "Text message 0 / 4096 characters · no media or broadcast targets"
+    - text: 0 / 4096 characters · no media or broadcast targets One-time dispatch time
+    - textbox "One-time dispatch time"
+    - text: Timezone
+    - textbox "Timezone Schedules are one-time only; recurrence is not available.": UTC
+    - text: Schedules are one-time only; recurrence is not available.
+    - checkbox "I have a valid consent basis for this individual recipient."
+    - text: I have a valid consent basis for this individual recipient.
+    - strong: Safety checkpoint
+    - text: Transport acceptance is not proof of recipient delivery. Pacing, quiet hours, consent, and WAHA state are checked server-side.
+    - button "Create one-time schedule"
+    - text: Each submission receives a fresh idempotency key.
+  - region "Review before use":
+    - paragraph: Human-approved AI seam
+    - heading "Review before use" [level=2]
+    - paragraph: Summaries, classifications, and drafts are suggestions only. No AI action can send a message.
+    - text: Unavailable
+    - strong: AI suggestions unavailable
+    - text: No server-backed suggestion is available for this scope. Nothing is shown or approved locally.
+  - region "Schedules":
+    - paragraph: Durable jobs
+    - heading "Schedules" [level=2]
+    - paragraph: List, inspect, edit, or cancel one-time jobs in this scope.
+    - text: Schedule session
+    - combobox "Schedule session":
+      - option "e2e-personal-session-d75f768a-ceff-446a-93d8-764bc7f2155e" [selected]
+    - text: Schedule
+    - combobox "Schedule":
+      - option "scheduled · 1/1/2099, 12:00:00 PM" [selected]
+    - text: State · scheduled Scheduled for
+    - textbox "Scheduled for": 2099-01-01T05:00:00.000Z
+    - text: Timezone
+    - textbox "Timezone": UTC
+    - button "Save schedule"
+    - button "Cancel schedule"
