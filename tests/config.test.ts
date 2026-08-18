@@ -4,9 +4,18 @@ import { join } from "node:path"
 
 import { describe, expect, it } from "vitest"
 
-import { resolveDatabaseUrl } from "../packages/config/src/index"
+import { parseWorkspaceEnvironment, resolveDatabaseUrl } from "../packages/config/src/index"
 
 describe("database configuration", () => {
+  it("rejects test mode unless the runtime is also test mode", () => {
+    // Given a process that claims production while requesting test-only behavior
+    const environment = { APP_ENV: "test", NODE_ENV: "production" }
+
+    // When the shared environment boundary is parsed
+    // Then test-only runtime permissions cannot enter production
+    expect(() => parseWorkspaceEnvironment(environment)).toThrowError(/test mode/i)
+  })
+
   it("resolves Compose variables to the postgres service", () => {
     // Given the variables supplied by the Compose API service
     const environment = {

@@ -18,8 +18,13 @@ type AuditCallback = (input: {
 }) => Promise<void>
 
 type Repositories = ReturnType<typeof import("./db/repositories").createRepositories>
+type ConfiguredSessionServiceOptions = Readonly<{ allowLoopbackWaha?: boolean }>
 
-export function createConfiguredSessionService(repositories: Repositories, audit: AuditCallback) {
+export function createConfiguredSessionService(
+  repositories: Repositories,
+  audit: AuditCallback,
+  options: ConfiguredSessionServiceOptions = {},
+) {
   // biome-ignore lint/complexity/useLiteralKeys: required by noPropertyAccessFromIndexSignature
   const encodedKey = process.env["ENCRYPTION_MASTER_KEY"]
   const masterKey = encodedKey ? Buffer.from(encodedKey, "base64") : undefined
@@ -38,7 +43,11 @@ export function createConfiguredSessionService(repositories: Repositories, audit
       },
       { accountScope: "personal" },
     )
-    return createWahaClient({ baseUrl: connection.baseUrl, apiKey })
+    return createWahaClient({
+      baseUrl: connection.baseUrl,
+      apiKey,
+      allowLoopback: options.allowLoopbackWaha ?? false,
+    })
   }
   const clientFor = (session: StoredSession) => clientForConnection(session.connectionId)
   const statusHistory = async (

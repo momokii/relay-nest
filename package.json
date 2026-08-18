@@ -14,7 +14,8 @@
     "lint": "biome check .",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "typecheck": "tsc -b --pretty false"
+    "typecheck": "tsc -b --pretty false",
+    "doctor": "npx react-doctor@latest"
   },
   "pnpm": {
     "overrides": {

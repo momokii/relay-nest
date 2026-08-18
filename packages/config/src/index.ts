@@ -13,21 +13,37 @@ const databaseUrlSchema = z
     const protocol = new URL(value).protocol
     return protocol === "postgresql:" || protocol === "postgres:"
   }, "database URL must use PostgreSQL")
-const environmentSchema = z.object({
-  APP_ENV: appEnvSchema.optional(),
-  NODE_ENV: z.enum(["development", "test", "production"]).optional(),
-  WAHA_BASE_URL: z.string().url().default("http://waha.internal"),
-  DATABASE_URL: z.string().optional(),
-  DATABASE_HOST: z.string().optional(),
-  DATABASE_PORT: z.string().optional(),
-  DATABASE_NAME: z.string().optional(),
-  DATABASE_USER: z.string().optional(),
-  DATABASE_PASSWORD: z.string().optional(),
-  DATABASE_PASSWORD_FILE: z.string().optional(),
-  ENCRYPTION_MASTER_KEY: z.string().base64().optional(),
-})
+const environmentSchema = z
+  .object({
+    APP_ENV: appEnvSchema.optional(),
+    NODE_ENV: z.enum(["development", "test", "production"]).optional(),
+    WAHA_BASE_URL: z.string().url().default("http://waha.internal"),
+    DATABASE_URL: z.string().optional(),
+    DATABASE_HOST: z.string().optional(),
+    DATABASE_PORT: z.string().optional(),
+    DATABASE_NAME: z.string().optional(),
+    DATABASE_USER: z.string().optional(),
+    DATABASE_PASSWORD: z.string().optional(),
+    DATABASE_PASSWORD_FILE: z.string().optional(),
+    ENCRYPTION_MASTER_KEY: z.string().base64().optional(),
+  })
+  .superRefine((environment, context) => {
+    if (environment.APP_ENV === "test" && environment.NODE_ENV !== "test") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["APP_ENV"],
+        message: "test mode requires NODE_ENV=test",
+      })
+    }
+  })
 
-const parsedEnvironment = environmentSchema.parse(process.env)
+export function parseWorkspaceEnvironment(
+  environment: Readonly<Record<string, string | undefined>>,
+): z.infer<typeof environmentSchema> {
+  return environmentSchema.parse(environment)
+}
+
+const parsedEnvironment = parseWorkspaceEnvironment(process.env)
 
 export class EnvironmentConfigError extends Error {
   readonly name = "EnvironmentConfigError"

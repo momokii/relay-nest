@@ -9,7 +9,9 @@ const port =
     .PORT ?? 3000
 async function main(): Promise<void> {
   const database = createDatabase(workspaceConfig.databaseUrl)
-  const app = createApiApp(database)
+  const allowLoopbackWaha =
+    workspaceConfig.appEnv === "test" && process.argv.includes("--allow-loopback-for-tests")
+  const app = createApiApp(database, { allowLoopbackWaha })
   await app.listen({ host: "0.0.0.0", port })
   console.info(`API listening in ${workspaceConfig.appEnv}`)
 }
