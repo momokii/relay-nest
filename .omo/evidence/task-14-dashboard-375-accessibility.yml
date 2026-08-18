@@ -1,0 +1,44 @@
+- generic [ref=f2e3] [box=0,0,360,2041]:
+  - link "Skip to main content" [ref=f2e4] [cursor=pointer] [box=12,-52,179,40]:
+    - /url: "#main-content"
+  - banner [ref=f2e5] [box=0,0,360,92]:
+    - generic [ref=f2e6] [box=16,12,148,67]:
+      - generic [ref=f2e7] [box=16,30,26,32]: RN
+      - generic [ref=f2e8] [box=54,12,110,67]:
+        - strong [ref=f2e9] [box=54,12,110,27]: RelayNest
+        - generic [ref=f2e10] [box=54,43,110,36]: WAHA command center
+    - generic [ref=f2e11] [box=164,25,180,42]:
+      - combobox [ref=f2e13] [cursor=pointer] [box=164,27,99,37]:
+        - option "Personal" [selected] [box=0,0,0,0]
+        - option "Business" [box=0,0,0,0]
+      - button "Menu" [ref=f2e14] [cursor=pointer] [box=275,25,69,42]
+  - generic [ref=f2e15] [box=0,92,360,1949]:
+    - navigation "Primary navigation" [box=-288,72,288,828]:
+      - generic [box=-272,88,255,114]:
+        - generic [box=-256,104,223,17]: Current boundary
+        - strong [box=-256,125,223,24]: Personal
+        - generic [box=-256,153,223,34]: All requests and evidence stay inside this scope.
+      - generic [box=-272,226,255,756]:
+        - button "Overview Command center" [box=-272,226,255,72]
+        - button "Sessions Transport" [box=-272,302,255,72]
+        - button "Contacts Recipients" [box=-272,378,255,72]
+        - button "Send Individual text" [box=-272,454,255,72]
+        - button "Schedule One-time jobs" [box=-272,530,255,72]
+        - button "Analytics Scoped evidence" [box=-272,606,255,72]
+        - button "Notifications Failure paths" [box=-272,682,255,72]
+        - button "Retention Admin controls" [box=-272,758,255,72]
+        - button "Users Access grants" [box=-272,834,255,72]
+        - button "Settings Workspace policy" [box=-272,910,255,72]
+      - generic [box=-272,1006,255,18]: Demo data boundary
+    - main [ref=f2e16] [box=0,92,360,1949]:
+      - generic [ref=f2e17] [box=16,124,328,166]:
+        - generic [ref=f2e18] [box=16,124,328,110]
+        - generic [ref=f2e22] [box=16,250,148,40]
+      - status [ref=f2e25] [box=16,314,328,112]:
+        - strong [ref=f2e26] [box=36,326,292,21]: Demo data boundary
+        - generic [ref=f2e27] [box=36,351,292,63]: Live API evidence is unavailable for at least one surface. Nothing here claims a production send, delivery, or aggregate.
+      - generic [ref=f2e28] [box=16,450,328,1543]:
+        - generic [ref=f2e29] [box=16,450,328,639]
+        - generic [ref=f2e52] [box=16,1112,328,324]
+        - generic [ref=f2e67] [box=16,1460,328,243]
+        - generic [ref=f2e76] [box=16,1726,328,267]
