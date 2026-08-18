@@ -103,3 +103,74 @@ authentication failures, and full lint retains the known analytics fixture
 diagnostics. Todo 14 and F1-F4 remain open until isolated full verification,
 security review, evidence reconciliation, and protected-record handling are
 resolved.
+
+## Todo 14 Admin acceptance follow-up
+
+The Admin acceptance test now verifies the authenticated `/auth/me` role shape
+for a newly created Personal-scope Operator, in addition to Personal command
+authorization and Business denial. Focused E2E passed `1/1`, the full
+Playwright suite passed `12/12`, and typecheck, changed-file Biome, and
+`git diff --check` passed. Disposable E2E artifacts and containers were
+cleaned; the external QA Compose services remain intentionally running.
+
+## Session follow-up: default Compose Admin bootstrap
+
+The default Compose bootstrap regression is fixed and evidenced in
+`.omo/evidence/compose-default-admin-bootstrap-2026-08-18.md`. The API image now
+ships and applies migrations before accepting requests. Real Playwright Chromium
+verified first Admin bootstrap (`201`) and authenticated dashboard login; a
+repeat bootstrap returned `409` without creating another Admin. Focused test,
+Biome, typecheck, workspace build, and default Compose rebuild passed. The full
+workspace test command remains blocked by the known local PostgreSQL
+authentication boundary; Todo 14 and F1-F4 remain open.
+
+## Dashboard accessibility and responsive polish follow-up
+
+The Todo 14 dashboard polish pass is implementation-complete in the current
+uncommitted WIP: typed live-region semantics, async busy/disabled controls,
+schedule Save/Cancel mutual exclusion, corrected responsive schedule filters,
+and regression coverage are present. Focused contract tests passed `12/12`, the
+full Playwright suite passed `12/12`, and responsive visual capture passed
+`1/1` with `100/100` image diffs at 375/768/1280.
+
+Closeout remains open. Full Vitest is blocked by twelve local PostgreSQL
+`28P01` authentication failures; full Biome retains the two existing analytics
+fixture diagnostics. The default and external QA Compose stacks must be
+stopped, review lanes must report, and the protected plan/ledger modifications
+must remain explicitly unresolved rather than being silently normalized.
+
+## Review-fix and cleanup follow-up
+
+The schedule detail race found by code review is fixed with a request-generation
+guard in `apps/web/src/schedule-controller.ts`. A deterministic deferred-response
+E2E regression passes, and the full Playwright suite passes `13/13`. The
+dedicated regression covers rapid job selection; deterministic deferred scope
+switch coverage remains a follow-up because the dashboard cancels the proxied
+request during that transition.
+
+The Compose API exposure finding is fixed: `api` is internal-only via
+`expose: "3000"`, while only `web` publishes a host port. Compose boundary and
+startup tests pass `3/3`, configuration validation passes, and the post-fix
+security review has no remaining blockers.
+
+Current final gates: workspace build, typecheck, targeted Biome, visual capture,
+full Playwright, and `git diff --check` pass. Full Vitest remains blocked by
+`12` PostgreSQL `28P01` failures; full Biome retains the two existing analytics
+fixture diagnostics. Both RelayNest Compose QA projects and their containers
+were stopped without volume deletion; `test-results` and `.tmp/playwright` are
+absent. Protected plan/ledger mutations remain unresolved, so Todo 14 and F1-F4
+must stay open until authorized/reconciled.
+
+## Final scope-generation review
+
+The schedule controller now invalidates detail generations at effect start,
+synchronously on session selection, and for every detail request. Final Oracle
+review returned PASS with no code-level blocker. The deterministic race E2E
+continues to cover rapid job selection; a deferred scope-switch browser test
+was not retained because the proxied request is canceled by the browser during
+that transition. Existing full E2E scope/authorization coverage remains green.
+
+The implementation slice is verified. Repository closeout remains open for the
+protected plan/ledger authorization issue, PostgreSQL `28P01` full-test
+boundary, two full-lint analytics-fixture diagnostics, unavailable bundled WAHA,
+and incomplete Todo 14/F1-F4 acceptance gates.

@@ -206,3 +206,118 @@ Last updated: 2026-08-17
   being represented as final plan completion.
 
 Last updated: 2026-08-18
+
+## Session update: final scope-generation review
+
+- Added schedule-detail generation invalidation at schedule-effect start, while
+  retaining synchronous invalidation in `selectSession` and per-request
+  generation checks. Final Oracle review returned **PASS** with no code-level
+  blocker for rapid job selection, session changes, or scope/effect reruns.
+- The deterministic race E2E remains intentionally focused on rapid job
+  selection because the browser cancels the proxied request during a deferred
+  scope-switch harness; a flaky scope-switch test was not retained. Existing
+  full E2E scope/authorization coverage remains green, and the final Oracle
+  verified the controller guard directly.
+- Latest relevant verification remains: full Playwright `13/13`, race test
+  `1/1`, typecheck, workspace build, targeted Biome, and `git diff --check`
+  passed. `test-results` and `.tmp/playwright` were removed after the latest
+  run. No commit or push was performed.
+
+Last updated: 2026-08-18
+
+## Session update: review fixes and closeout cleanup
+
+- Fixed the reviewed schedule-detail race in `apps/web/src/schedule-controller.ts`
+  with a typed request-generation guard. A deterministic deferred-response E2E
+  regression now proves an older detail response cannot replace a newer job;
+  the full Playwright suite passed `13/13` after the fix. The dedicated test
+  covers rapid job selection; a separate deterministic scope-switch deferred
+  test was not retained because the dashboard tears down the proxied request
+  during the transition, and remains follow-up coverage.
+- Fixed the reviewed Compose security issue by removing the API host `ports`
+  mapping; the API retains internal `expose: "3000"` and the web proxy remains
+  same-origin/internal. Compose boundary/startup tests passed `3/3`, Compose
+  config validation passed, and the post-fix security review returned PASS with
+  no remaining security blockers.
+- Regenerated current dashboard screenshots and accessibility snapshots,
+  including the Schedule-specific 375px artifact. The final artifacts now
+  contain current schedule-controls copy rather than the stale “routes are not
+  exposed” text. Visual capture passed `1/1`; all required widths remain covered.
+- Final verification: workspace build passed; typecheck passed; targeted
+  Biome passed; `git diff --check` passed. Full lint still reports only the two
+  pre-existing diagnostics in `tests/task-13-analytics-db-fixture.ts`. Full
+  Vitest reports `34` files passed, `4` failed, `14` skipped (`151` passed,
+  `12` failed, `38` skipped), with all failures caused by PostgreSQL `28P01`
+  authentication for user `kelanach`.
+- Cleanup completed: both `relaynest-dev` and
+  `relaynest-compose-external-qa` Compose projects were stopped and removed
+  without deleting volumes; `test-results` and `.tmp/playwright` are absent.
+  No RelayNest containers remain. The remaining host port `3000` listener is an
+  unrelated Grafana container.
+- The worktree remains uncommitted at local `e55ee30`; no commit or push was
+  performed. Protected plan/ledger edits remain unresolved and were not
+  rewritten. Todo 14/F1-F4 are not being represented as complete.
+
+Last updated: 2026-08-18
+
+## Session update: Admin acceptance role-shape coverage
+
+- Added `tests/e2e/task-14-admin-access.spec.ts` coverage that verifies a newly
+  created Personal-scope Operator receives the expected authenticated
+  `/auth/me` identity shape before exercising Personal authorization and
+  Business denial.
+- Focused Admin acceptance E2E passed `1/1`; the full Playwright suite passed
+  `12/12`. Typecheck, changed-file Biome, and `git diff --check` passed.
+- Cleanup verified: `test-results/` and `.tmp/playwright/` are absent and no
+  disposable E2E container remains. The external QA Compose API and web
+  services remain running as required.
+- The task-owned test is uncommitted and the protected plan/ledger retain their
+  pre-existing modifications. No production code, dependencies, or secrets
+  were changed; Todo 14 and final F1-F4 gates remain open.
+
+## Session update: default Compose Admin bootstrap
+
+- Reproduced the default web flow in real Playwright Chromium. Before the fix,
+  `/auth/bootstrap` returned HTTP 500 with `{"error":"internal error"}` and
+  Postgres logged `relation "users" does not exist`; the retained database had
+  no application tables or Admin.
+- Root cause was confirmed as missing migration assets/startup migration in the
+  API image. `Dockerfile.api` now copies `apps/api/drizzle` and
+  `apps/api/src/index.ts` runs Drizzle migrations before listening.
+- Failing-first `tests/compose-startup.test.ts` passed red before the fix and
+  green after it. Typecheck, changed-file Biome, workspace build, and plain
+  `docker compose up --build -d` passed.
+- Post-fix browser bootstrap returned API status 201 and created exactly one
+  generated Admin (`users=1`, `admin_roles=2`); fresh browser login rendered the
+  authenticated dashboard. A repeated bootstrap returned 409 and did not add a
+  user. Evidence: `.omo/evidence/compose-default-admin-bootstrap-2026-08-18.md`.
+- Full workspace Vitest remains blocked by the pre-existing local PostgreSQL
+  authentication boundary (`34 files/150 tests passed; 12 failed; 14 skipped`).
+  The default stack remains running; no volume reset or isolated-service change
+   occurred. Todo 14 and final F1-F4 gates remain open.
+
+## Session update: dashboard accessibility and responsive polish closeout
+
+- The current WIP revision is `main` at local commit `e55ee30`; `git status`
+  confirms the dashboard/startup changes and evidence remain uncommitted. No
+  commit or push was performed in this session. The protected plan and
+  execution ledger retain earlier modifications and were not rewritten.
+- Dashboard focused contract tests passed `12/12`. The full Playwright suite
+  passed `12/12`, including authenticated Admin/Operator scope behavior,
+  schedule mutation exclusion, async live feedback, and responsive checks at
+  375/768/1280. Responsive visual capture passed `1/1`; the three current image
+  diffs report `100/100` similarity, zero hotspots, and intact alpha.
+- `npx --yes pnpm@10.12.4 lint` remains blocked by the pre-existing two Biome
+  diagnostics in `tests/task-13-analytics-db-fixture.ts`. The full Vitest run
+  reports `34` files passed, `4` failed, and `14` skipped (`150` passed, `12`
+  failed, `38` skipped); every failure is the local PostgreSQL `28P01`
+  authentication boundary for user `kelanach`.
+- `GIT_MASTER=1 git diff --check` passed and `.debug-journal.md` is absent.
+  Both the default and external QA Compose stacks were still running during
+  verification; they are disposable and must be stopped before closeout.
+- Default live dashboard authentication remains unavailable because the
+  retained stack contains one unknown Admin. Bundled WAHA remains unavailable
+  because the pinned image has no registry manifest. These are environment
+  blockers, not claims of completed external WhatsApp linking or delivery QA.
+
+Last updated: 2026-08-18
