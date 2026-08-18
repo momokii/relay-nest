@@ -94,6 +94,7 @@ export function NotificationsPage({
             })
           }
           disabled={notificationPreferencesAction.kind === "submitting"}
+          aria-busy={notificationPreferencesAction.kind === "submitting" ? "true" : "false"}
         >
           {notificationPreferencesAction.kind === "submitting"
             ? "Saving preferences…"
@@ -104,6 +105,7 @@ export function NotificationsPage({
           type="button"
           onClick={() => void onTest(scope, "operations")}
           disabled={notificationTestAction.kind === "submitting"}
+          aria-busy={notificationTestAction.kind === "submitting" ? "true" : "false"}
         >
           {notificationTestAction.kind === "submitting" ? "Testing…" : "Send operations test"}
         </button>
@@ -111,12 +113,15 @@ export function NotificationsPage({
           <StateNotice
             title="Test completed"
             message={`Email: ${notificationTestAction.data.email}; Telegram: ${notificationTestAction.data.telegram}.`}
+            live="polite"
           />
         ) : null}
         <button
           className="button button-secondary"
           type="button"
           onClick={() => void onLoadNotificationHistory(scope)}
+          disabled={notificationHistory.kind === "loading"}
+          aria-busy={notificationHistory.kind === "loading" ? "true" : "false"}
         >
           Reload failure history
         </button>

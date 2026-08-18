@@ -53,6 +53,7 @@ type StateNoticeProps = Readonly<{
   message: string
   tone?: PanelTone
   action?: React.ReactNode
+  live?: "polite" | "assertive"
 }>
 
 export function StateNotice({
@@ -60,9 +61,14 @@ export function StateNotice({
   message,
   tone = "inset",
   action,
+  live,
 }: StateNoticeProps): React.JSX.Element {
   return (
-    <div className={`state-notice state-${tone}`}>
+    <div
+      className={`state-notice state-${tone}`}
+      aria-live={live}
+      aria-atomic={live ? "true" : undefined}
+    >
       <strong>{title}</strong>
       <span>{message}</span>
       {action ? <div className="state-action">{action}</div> : null}

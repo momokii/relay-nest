@@ -12,11 +12,22 @@ export function ActionFeedback({
     case "submitting":
       return null
     case "unavailable":
-      return <StateNotice title="Unavailable" message={action.message} tone="warning" />
+      return (
+        <StateNotice title="Unavailable" message={action.message} tone="warning" live="polite" />
+      )
     case "denied":
-      return <StateNotice title="Server denied" message={action.message} tone="error" />
+      return (
+        <StateNotice title="Server denied" message={action.message} tone="error" live="polite" />
+      )
     case "error":
-      return <StateNotice title="Could not complete" message={action.message} tone="error" />
+      return (
+        <StateNotice
+          title="Could not complete"
+          message={action.message}
+          tone="error"
+          live="polite"
+        />
+      )
     case "ready":
       return <SendResultNotice result={action.data} />
     default:
@@ -31,6 +42,7 @@ function SendResultNotice({ result }: Readonly<{ result: SendResult }>): React.J
         <StateNotice
           title="Submitted"
           message="The transport accepted the request; recipient delivery remains unconfirmed."
+          live="polite"
         />
       )
     case "acknowledged":
@@ -38,6 +50,7 @@ function SendResultNotice({ result }: Readonly<{ result: SendResult }>): React.J
         <StateNotice
           title="Acknowledged"
           message="The transport advanced the request; this is not proof the recipient saw it."
+          live="polite"
         />
       )
     case "scheduled":
@@ -45,6 +58,7 @@ function SendResultNotice({ result }: Readonly<{ result: SendResult }>): React.J
         <StateNotice
           title="Scheduled"
           message={`One-time job recorded with reference ${result.jobId}.`}
+          live="polite"
         />
       )
     case "failed":
@@ -53,6 +67,7 @@ function SendResultNotice({ result }: Readonly<{ result: SendResult }>): React.J
           title="Failed"
           message={`The server returned a recovery state: ${result.recoveryCode}.`}
           tone="error"
+          live="polite"
         />
       )
     case "unknown":
@@ -61,6 +76,7 @@ function SendResultNotice({ result }: Readonly<{ result: SendResult }>): React.J
           title="Unknown outcome"
           message={`Do not retry blindly. Recovery reference: ${result.recoveryCode}.`}
           tone="warning"
+          live="polite"
         />
       )
     default:
@@ -69,6 +85,7 @@ function SendResultNotice({ result }: Readonly<{ result: SendResult }>): React.J
           title="Unknown outcome"
           message="The delivery state is not classified."
           tone="warning"
+          live="polite"
         />
       )
   }

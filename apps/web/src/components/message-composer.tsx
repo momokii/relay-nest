@@ -190,6 +190,7 @@ export function MessageComposer({
               className="button button-primary"
               type="submit"
               disabled={!canOperate || action.kind === "submitting"}
+              aria-busy={action.kind === "submitting" ? "true" : "false"}
             >
               {action.kind === "submitting"
                 ? "Submitting…"
