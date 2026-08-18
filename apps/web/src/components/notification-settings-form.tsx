@@ -136,6 +136,7 @@ export function NotificationSettingsForm({
         className="button button-secondary"
         type="submit"
         disabled={action.kind === "submitting"}
+        aria-busy={action.kind === "submitting" ? "true" : "false"}
       >
         {action.kind === "submitting" ? "Saving…" : "Save provider settings"}
       </button>
@@ -143,10 +144,16 @@ export function NotificationSettingsForm({
         <StateNotice
           title="Settings saved"
           message="Provider settings were accepted by the authenticated Admin route."
+          live="polite"
         />
       ) : null}
       {action.kind === "denied" || action.kind === "error" || action.kind === "unavailable" ? (
-        <StateNotice title="Settings unavailable" message={action.message} tone="error" />
+        <StateNotice
+          title="Settings unavailable"
+          message={action.message}
+          tone="error"
+          live="polite"
+        />
       ) : null}
     </form>
   )

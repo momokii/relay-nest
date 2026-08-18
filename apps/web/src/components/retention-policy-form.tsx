@@ -57,14 +57,24 @@ export function RetentionPolicyForm({
         className="button button-secondary"
         type="submit"
         disabled={action.kind === "submitting"}
+        aria-busy={action.kind === "submitting" ? "true" : "false"}
       >
         {action.kind === "submitting" ? "Saving…" : "Save retention policy"}
       </button>
       {action.kind === "ready" ? (
-        <StateNotice title="Policy saved" message="The selected scope policy was updated." />
+        <StateNotice
+          title="Policy saved"
+          message="The selected scope policy was updated."
+          live="polite"
+        />
       ) : null}
       {action.kind === "denied" || action.kind === "error" || action.kind === "unavailable" ? (
-        <StateNotice title="Policy update unavailable" message={action.message} tone="error" />
+        <StateNotice
+          title="Policy update unavailable"
+          message={action.message}
+          tone="error"
+          live="polite"
+        />
       ) : null}
     </form>
   )

@@ -71,6 +71,7 @@ export function ContactLookup({
           className="button button-secondary"
           type="submit"
           disabled={!canOperate || action.kind === "submitting"}
+          aria-busy={action.kind === "submitting" ? "true" : "false"}
         >
           {action.kind === "submitting" ? "Resolving…" : "Resolve target"}
         </button>
@@ -78,13 +79,24 @@ export function ContactLookup({
           <StateNotice
             title="Contact resolved"
             message={`${action.data.displayName ?? "Unnamed contact"} · ${action.data.phone}`}
+            live="polite"
           />
         ) : null}
         {action.kind === "unavailable" ? (
-          <StateNotice title="WAHA unavailable" message={action.message} tone="warning" />
+          <StateNotice
+            title="WAHA unavailable"
+            message={action.message}
+            tone="warning"
+            live="polite"
+          />
         ) : null}
         {action.kind === "denied" || action.kind === "error" ? (
-          <StateNotice title="Lookup unavailable" message={action.message} tone="error" />
+          <StateNotice
+            title="Lookup unavailable"
+            message={action.message}
+            tone="error"
+            live="polite"
+          />
         ) : null}
       </form>
     </Panel>

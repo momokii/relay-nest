@@ -91,6 +91,7 @@ export function RetentionPage({
           type="button"
           onClick={() => void onPreview(scope, category)}
           disabled={purgePreview.kind === "submitting"}
+          aria-busy={purgePreview.kind === "submitting" ? "true" : "false"}
         >
           Preview before purge
         </button>
@@ -99,6 +100,7 @@ export function RetentionPage({
             <StateNotice
               title="Preview ready"
               message={`The server selected ${purgePreview.data.count} records before ${purgePreview.data.cutoff}.`}
+              live="polite"
             />
             <button
               className="button button-danger"
@@ -111,6 +113,8 @@ export function RetentionPage({
                   previewToken: purgePreview.data.previewToken,
                 })
               }
+              disabled={purgeAction.kind === "submitting"}
+              aria-busy={purgeAction.kind === "submitting" ? "true" : "false"}
             >
               Confirm selected purge
             </button>
@@ -123,12 +127,18 @@ export function RetentionPage({
           <StateNotice
             title="Purge completed"
             message={`${purgeAction.data.deletedCount} records removed from the confirmed scope.`}
+            live="polite"
           />
         ) : null}
         {purgeAction.kind === "unavailable" ||
         purgeAction.kind === "denied" ||
         purgeAction.kind === "error" ? (
-          <StateNotice title="Purge unavailable" message={purgeAction.message} tone="error" />
+          <StateNotice
+            title="Purge unavailable"
+            message={purgeAction.message}
+            tone="error"
+            live="polite"
+          />
         ) : null}
       </Panel>
       <Panel eyebrow="Accountability" title="Purge safety" tone="warning">
