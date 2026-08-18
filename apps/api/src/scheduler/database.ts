@@ -30,6 +30,8 @@ export function createEncryptedSchedulerRepository(
   ) => Promise<{ readonly job: SchedulerJob; readonly duplicate: boolean }>
   readonly findByIdempotencyKey: (idempotencyKey: string) => Promise<{
     readonly jobId: string
+    readonly sessionId: string
+    readonly accountScope: AccountScope
     readonly state: SchedulerJob["state"]
     readonly providerMessageId?: string
     readonly recoveryCode?: string
@@ -108,6 +110,11 @@ export function createEncryptedSchedulerRepository(
       if (!existing) throw error
       const existingDecoded = decode(existing)
       if (!existingDecoded) throw error
+      if (
+        existingDecoded.sessionId !== input.sessionId ||
+        existingDecoded.accountScope !== input.accountScope
+      )
+        throw new DuplicateRecordError("idempotency key belongs to another session")
       return { job: existingDecoded, duplicate: true }
     }
     const decoded = decode(job)
@@ -150,6 +157,8 @@ export function createEncryptedSchedulerRepository(
       return decoded
         ? {
             jobId: decoded.id,
+            sessionId: decoded.sessionId,
+            accountScope: decoded.accountScope,
             state: decoded.state,
             ...(decoded.providerMessageId ? { providerMessageId: decoded.providerMessageId } : {}),
             ...(decoded.recoveryCode ? { recoveryCode: decoded.recoveryCode } : {}),

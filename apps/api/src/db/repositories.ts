@@ -5,6 +5,7 @@ import { createDispatchAttemptRepositories } from "./repositories/dispatch-attem
 import { createIdentityRepositories } from "./repositories/identity"
 import { createNotificationRepositories } from "./repositories/notifications"
 import { createRetentionRepositories } from "./repositories/retention"
+import { createScheduledListRepository } from "./repositories/scheduled-list"
 import { createSchedulingRepositories } from "./repositories/scheduling"
 import { createTransportRepositories } from "./repositories/transport"
 import {
@@ -33,10 +34,12 @@ type AuditInput = {
 }
 
 export function createRepositories(db: PersistenceDatabase) {
+  const scheduling = createSchedulingRepositories(db)
   return {
     ...createIdentityRepositories(db),
     ...createDispatchAttemptRepositories(db),
-    ...createSchedulingRepositories(db),
+    ...scheduling,
+    scheduledJobs: { ...scheduling.scheduledJobs, ...createScheduledListRepository(db) },
     ...createTransportRepositories(db),
     ...createNotificationRepositories(db),
     ...createRetentionRepositories(db),
