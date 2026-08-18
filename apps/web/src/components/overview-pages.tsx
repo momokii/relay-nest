@@ -93,7 +93,9 @@ export function OverviewPage({
       </Panel>
       <Panel eyebrow="Known gaps" title="Operational evidence" tone="inset">
         <ul className="plain-list">
-          <li>Job detail, edit, and cancel routes are not exposed by the API yet.</li>
+          <li>
+            Schedule detail, edit, and cancel controls are available for persisted one-time jobs.
+          </li>
           <li>General settings and user listing routes are not exposed by the API yet.</li>
           <li>Unknown transport evidence is shown as unknown, never converted to success.</li>
         </ul>

@@ -17,14 +17,29 @@ function AdminActionFeedback({
       return null
     case "ready":
       return (
-        <StateNotice title="Admin action accepted" message="The server accepted the command." />
+        <StateNotice
+          title="Admin action accepted"
+          message="The server accepted the command."
+          live="polite"
+        />
       )
     case "unavailable":
-      return <StateNotice title="Unavailable" message={action.message} tone="warning" />
+      return (
+        <StateNotice title="Unavailable" message={action.message} tone="warning" live="polite" />
+      )
     case "denied":
-      return <StateNotice title="Server denied" message={action.message} tone="error" />
+      return (
+        <StateNotice title="Server denied" message={action.message} tone="error" live="polite" />
+      )
     case "error":
-      return <StateNotice title="Could not complete" message={action.message} tone="error" />
+      return (
+        <StateNotice
+          title="Could not complete"
+          message={action.message}
+          tone="error"
+          live="polite"
+        />
+      )
     default:
       return null
   }
@@ -163,6 +178,7 @@ function CreateUserForm({
         className="button button-primary"
         type="submit"
         disabled={action.kind === "submitting"}
+        aria-busy={action.kind === "submitting" ? "true" : "false"}
       >
         {action.kind === "submitting" ? "Creating…" : "Create user"}
       </button>
@@ -210,6 +226,7 @@ function GrantForm({
         className="button button-secondary"
         type="submit"
         disabled={action.kind === "submitting"}
+        aria-busy={action.kind === "submitting" ? "true" : "false"}
       >
         {action.kind === "submitting" ? "Granting…" : "Grant session access"}
       </button>
@@ -242,6 +259,7 @@ function DisableForm({
         className="button button-secondary"
         type="submit"
         disabled={action.kind === "submitting"}
+        aria-busy={action.kind === "submitting" ? "true" : "false"}
       >
         {action.kind === "submitting" ? "Disabling…" : "Disable user"}
       </button>

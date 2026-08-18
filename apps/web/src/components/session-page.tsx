@@ -16,13 +16,24 @@ function SessionActionFeedback<T>({
     case "submitting":
       return null
     case "ready":
-      return <StateNotice title="Command accepted" message={readyMessage} />
+      return <StateNotice title="Command accepted" message={readyMessage} live="polite" />
     case "unavailable":
-      return <StateNotice title="Unavailable" message={action.message} tone="warning" />
+      return (
+        <StateNotice title="Unavailable" message={action.message} tone="warning" live="polite" />
+      )
     case "denied":
-      return <StateNotice title="Server denied" message={action.message} tone="error" />
+      return (
+        <StateNotice title="Server denied" message={action.message} tone="error" live="polite" />
+      )
     case "error":
-      return <StateNotice title="Could not complete" message={action.message} tone="error" />
+      return (
+        <StateNotice
+          title="Could not complete"
+          message={action.message}
+          tone="error"
+          live="polite"
+        />
+      )
     default:
       return null
   }
@@ -113,6 +124,7 @@ export function SessionsPage({
                   key={action}
                   onClick={() => runLifecycle(action)}
                   disabled={lifecycleAction.kind === "submitting"}
+                  aria-busy={lifecycleAction.kind === "submitting" ? "true" : "false"}
                 >
                   {action[0]?.toUpperCase()}
                   {action.slice(1)}
@@ -135,6 +147,7 @@ export function SessionsPage({
                   key={action}
                   onClick={() => runLifecycle(action)}
                   disabled={!confirmed || lifecycleAction.kind === "submitting"}
+                  aria-busy={lifecycleAction.kind === "submitting" ? "true" : "false"}
                 >
                   {action[0]?.toUpperCase()}
                   {action.slice(1)}
@@ -145,6 +158,7 @@ export function SessionsPage({
                 type="button"
                 onClick={() => selectedSession && void onLoadHistory(scope, selectedSession.id)}
                 disabled={!selectedSession || historyAction.kind === "submitting"}
+                aria-busy={historyAction.kind === "submitting" ? "true" : "false"}
               >
                 {historyAction.kind === "submitting" ? "Loading history…" : "Load status history"}
               </button>
