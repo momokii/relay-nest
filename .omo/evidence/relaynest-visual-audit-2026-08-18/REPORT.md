@@ -1,8 +1,8 @@
 # RelayNest live Compose visual and interaction audit
 
-**Date:** 2026-08-18  
-**Target:** `http://127.0.0.1:38080` (default `relaynest-dev` Compose stack)  
-**Browser:** Playwright MCP over the existing CDP browser at `127.0.0.1:9222`; Chrome/Chromium `151.0.7922.34`  
+**Date:** 2026-08-18
+**Target:** `http://127.0.0.1:38080` (default `relaynest-dev` Compose stack)
+**Browser:** Playwright MCP over the existing CDP browser at `127.0.0.1:9222`; Chrome/Chromium `151.0.7922.34`
 **Mode:** Read-only audit; no source, Compose, design, state, plan, ledger, or secret files were edited.
 
 ## Executive result

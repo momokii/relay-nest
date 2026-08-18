@@ -46,7 +46,7 @@ stable fork-pool full suite passed `33 files, 138 tests`.
 
 | Item | Status | Dependency |
 |---|---|---|
-| Todo 13 analytics projections | TODO | Todos 8-12 |
+| Todo 13 analytics projections | DONE | Todos 8-12 |
 | Todo 14 dashboard and human-approved AI seam | IN PROGRESS | Todos 5, 7, 9-13 |
 | Todo 15 Compose deployment and operations | TODO | Todos 1, 3, 6, 7 |
 | Todo 16 release verification | TODO | Todos 11-15 |
@@ -174,3 +174,13 @@ The implementation slice is verified. Repository closeout remains open for the
 protected plan/ledger authorization issue, PostgreSQL `28P01` full-test
 boundary, two full-lint analytics-fixture diagnostics, unavailable bundled WAHA,
 and incomplete Todo 14/F1-F4 acceptance gates.
+
+## Session closeout: Todo 13 and evidence synchronization
+
+Todo 13 is now DONE. Its plan checkbox, execution-ledger completion event, and
+redacted verification evidence are committed. The user explicitly authorized
+the protected plan/ledger changes and synchronization of all remaining evidence
+artifacts, so the former protected-record delivery blocker is resolved for this
+closeout. Full Vitest PostgreSQL authentication failures, the two full-lint
+analytics-fixture diagnostics, unavailable bundled WAHA, and incomplete Todo
+14/F1-F4 gates remain open and are not represented as passed.

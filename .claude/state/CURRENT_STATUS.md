@@ -207,6 +207,27 @@ Last updated: 2026-08-17
 
 Last updated: 2026-08-18
 
+## Session closeout: Todo 13 evidence and branch synchronization
+
+- Todo 13 analytics projections are complete and recorded in the protected plan
+  and execution ledger. The plan checkbox and ledger completion event were
+  committed after the user explicitly authorized protected-record handling.
+- The remaining Compose, analytics, Todo 14 backend/UI, dashboard capture,
+  accessibility, image-diff, React Doctor, and live visual-audit artifacts are
+  committed in focused documentation/evidence commits. No secrets were found in
+  the committed evidence scan; credential-bearing values remain redacted or
+  placeholder-only.
+- Local branch verification before push: 20 commits ahead of `origin/main`;
+  `git diff --check` passes after removing report trailing whitespace. The
+  worktree is otherwise clean.
+- Remaining blockers are unchanged: full Vitest has 12 PostgreSQL `28P01`
+  authentication failures, full Biome retains two analytics-fixture
+  diagnostics, bundled WAHA image `devlikeapro/waha:2026.8.1` is unavailable,
+  and Todo 14/F1-F4 acceptance gates remain open. No completion claim is made
+  for those gates.
+
+Last updated: 2026-08-19
+
 ## Session update: final scope-generation review
 
 - Added schedule-detail generation invalidation at schedule-effect start, while
