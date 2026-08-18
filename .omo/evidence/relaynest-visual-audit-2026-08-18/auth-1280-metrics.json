@@ -1,0 +1,23 @@
+{
+  "viewport": {
+    "width": 1280,
+    "height": 900
+  },
+  "document": {
+    "scrollWidth": 1280,
+    "clientWidth": 1280,
+    "scrollHeight": 900
+  },
+  "body": {
+    "scrollWidth": 1280,
+    "clientWidth": 1280
+  },
+  "focusableCount": 4,
+  "landmarks": [
+    {
+      "tag": "MAIN",
+      "id": "",
+      "label": null
+    }
+  ]
+}
