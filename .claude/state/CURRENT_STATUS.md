@@ -155,3 +155,53 @@ Last updated: 2026-08-17
   external scanners remain explicitly unclaimed.
 - Push is blocked pending an explicit decision on protected-record handling,
   whether the WAHA seam is sufficient for Todo 12, and a valid security review.
+
+## Session update: Todo 14 session lifecycle/status preview
+
+- Added the scope-safe session lifecycle/status preview seam in
+  `apps/web/src/dashboard-session-api.ts`, `apps/web/src/session-controller.ts`,
+  and `apps/web/src/components/session-page.tsx`. Start, Stop, Restart, Logout,
+  Delete, and status-history controls are explicit; Logout/Delete require
+  confirmation; unavailable provider routes remain visibly unavailable.
+- Added current-scope session fallback logic so a Personal-to-Business switch
+  cannot retain a prior-scope session ID. Added browser coverage for lifecycle
+  visibility, destructive confirmation gates, unavailable restart handling, and
+  unavailable status history.
+- Verification passed after the final patch: changed-file Biome, workspace
+  typecheck, web production build, focused Vitest (`17 passed`), and full
+  Playwright E2E (`6 passed`). The latest E2E `test-results/` directory was
+  removed; no task-owned preview/Playwright process remains.
+- This is still a preview seam, not authenticated backend completion. Todo 14
+  remains open for authenticated session linking/recovery and server-backed
+  lifecycle/status behavior, plus the other acceptance blockers recorded in
+  `.omo/evidence/task-14-waha-command-center.md`.
+
+## Session update: authenticated dashboard completion pass
+
+- Added authenticated dashboard logout through the existing CSRF-protected
+  `/auth/logout` route, explicit ready-empty schedule messaging, and an honest
+  unavailable AI state with no local suggestion or approval action. Logout E2E
+  uses a private authenticated context so it cannot revoke the shared parallel
+  fixture session.
+- Added explicit test-only loopback wiring: `createApiApp` and its configured
+  WAHA services now clamp loopback permission to `APP_ENV=test`, `NODE_ENV=test`,
+  and `--allow-loopback-for-tests`; `tests/app.test.ts` covers production
+  rejection and explicit test acceptance.
+- Focused verification passed: changed-file Biome, workspace typecheck,
+  production build, `tests/app.test.ts`, `tests/config.test.ts`, and
+  `tests/task-14-dashboard-api.test.ts` (`12/12`); authenticated dashboard E2E
+  passed `8/8`; responsive visual capture passed `1/1` at 375/768/1280; all
+  three image diffs report `100/100`, zero hotspots, and intact alpha. Both
+  final visual Oracle passes returned PASS.
+- The workspace Vitest run remains blocked by the local PostgreSQL boundary:
+  `31` files passed, `14` skipped, `12` tests failed with PostgreSQL `28P01`
+  authentication errors. Full lint still has the pre-existing analytics
+  fixture diagnostics. WIP implementation commits now exist locally; push is
+  pending final pre-push verification. `git diff --check` passed, and temporary
+  Playwright/runtime artifacts were cleaned up.
+- Final Oracle review is **BLOCKED / partially complete** for acceptance because
+  the full isolated PostgreSQL suite, full lint, evidence reconciliation, and
+  protected plan/ledger handling remain unresolved. The implementation is not
+  being represented as final plan completion.
+
+Last updated: 2026-08-18

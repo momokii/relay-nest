@@ -47,7 +47,7 @@ stable fork-pool full suite passed `33 files, 138 tests`.
 | Item | Status | Dependency |
 |---|---|---|
 | Todo 13 analytics projections | TODO | Todos 8-12 |
-| Todo 14 dashboard and human-approved AI seam | TODO | Todos 5, 7, 9-13 |
+| Todo 14 dashboard and human-approved AI seam | IN PROGRESS | Todos 5, 7, 9-13 |
 | Todo 15 Compose deployment and operations | TODO | Todos 1, 3, 6, 7 |
 | Todo 16 release verification | TODO | Todos 11-15 |
 | F1 plan compliance | TODO | Todo 16 |
@@ -77,3 +77,29 @@ verified by the stable `33 files, 138 tests` suite. Delivery remains blocked by
 the unassessed security lane, the earlier protected plan/ledger mutations, and
 the uncomposed WAHA runtime-settings audit seam; these require an explicit
 authorization/product decision rather than silent code changes.
+
+## Todo 14 session follow-up
+
+The scope-safe session lifecycle/status preview is implemented and browser-
+verified. The UI exposes confirmation-gated Start/Stop/Restart/Logout/Delete
+controls and explicit unavailable status-history/provider states. It does not
+claim authenticated backend completion; session linking/recovery and
+server-backed lifecycle/status routes remain acceptance blockers alongside the
+other items recorded in the Todo 14 evidence report.
+
+## Todo 14 dashboard completion pass
+
+The authenticated dashboard now has backend-backed scope navigation, scheduling,
+notifications, retention, session lifecycle/status previews, logout, explicit
+ready-empty schedule guidance, and an honest unavailable AI review state. The
+test harness passes an explicit loopback permission flag only in test mode, and
+the application boundary independently clamps that permission to test mode.
+
+Focused verification is complete: changed-file Biome, typecheck, production
+build, targeted contract tests (`12/12`), dashboard E2E (`8/8`), and responsive
+visual capture (`1/1`) pass; final visual Oracle passes are clean. The full
+workspace test gate remains blocked by twelve local PostgreSQL `28P01`
+authentication failures, and full lint retains the known analytics fixture
+diagnostics. Todo 14 and F1-F4 remain open until isolated full verification,
+security review, evidence reconciliation, and protected-record handling are
+resolved.
