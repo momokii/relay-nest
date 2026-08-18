@@ -1,0 +1,64 @@
+- link "Skip to main content":
+  - /url: "#main-content"
+- banner:
+  - strong: RelayNest
+  - text: WAHA command center Account scope
+  - combobox "Account scope":
+    - option "Personal" [selected]
+    - option "Business"
+  - region "Authenticated user":
+    - strong: E2E Admin
+    - text: admin · authenticated
+  - button "Sign out"
+- navigation "Primary navigation":
+  - text: Current boundary
+  - strong: Personal
+  - text: All requests and evidence stay inside this scope.
+  - button "Overview Command center"
+  - button "Sessions Transport"
+  - button "Contacts Recipients"
+  - button "Send Individual text"
+  - button "Schedule One-time jobs"
+  - button "Analytics Scoped evidence"
+  - button "Notifications Failure paths"
+  - button "Retention Admin controls"
+  - button "Users Access grants"
+  - button "Settings Workspace policy"
+  - text: Live data boundary
+- main:
+  - paragraph: Command center · personal
+  - heading "Operational overview" [level=1]
+  - paragraph: A scoped view of what the system knows, what it cannot verify, and what needs a human.
+  - text: e2e-61251ca5-db92-451d-bb03-97c0ddda6e36@example.invalid
+  - strong: admin access
+  - region "Personal overview":
+    - paragraph: Scoped operating picture
+    - heading "Personal overview" [level=2]
+    - paragraph: Only evidence inside the selected account scope appears here.
+    - text: Message volume
+    - strong: No data yet
+    - text: Evidence-backed only Acknowledgments
+    - strong: Unknown
+    - text: Not recipient delivery Failure rate
+    - strong: Unknown
+    - text: Window-scoped Session uptime
+    - strong: Available
+    - text: Status history required
+  - region "Session posture":
+    - paragraph: Transport
+    - heading "Session posture" [level=2]
+    - text: 1 visible
+    - strong: e2e-personal-session-d75f768a-ceff-446a-93d8-764bc7f2155e
+    - text: personal scope Session · WORKING Health · unknown Ready · unknown
+  - region "AI review posture":
+    - paragraph: Human checkpoint
+    - heading "AI review posture" [level=2]
+    - paragraph: Suggestions never cross the send boundary by themselves.
+    - text: Approval required Draft, summary, and classification outputs remain pending until a human reviews them.
+  - region "Operational evidence":
+    - paragraph: Known gaps
+    - heading "Operational evidence" [level=2]
+    - list:
+      - listitem: Schedule detail, edit, and cancel controls are available for persisted one-time jobs.
+      - listitem: General settings and user listing routes are not exposed by the API yet.
+      - listitem: Unknown transport evidence is shown as unknown, never converted to success.

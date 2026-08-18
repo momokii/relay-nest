@@ -1,0 +1,46 @@
+- generic [ref=f4e3] [box=0,0,1265,1114]:
+  - link "Skip to main content" [ref=f4e4] [cursor=pointer] [box=12,-52,179,40]:
+    - /url: "#main-content"
+  - banner [ref=f4e5] [box=0,0,1265,82]:
+    - generic [ref=f4e6] [box=24,16,178,49]:
+      - generic [ref=f4e7] [box=24,25,32,32]: RN
+      - generic [ref=f4e8] [box=68,16,134,49]:
+        - strong [ref=f4e9] [box=68,16,134,27]: RelayNest
+        - generic [ref=f4e10] [box=68,47,134,18]: WAHA command center
+    - generic [ref=f4e11] [box=900,19,341,43]:
+      - generic [ref=f4e12] [box=900,22,193,37]:
+        - generic [ref=f4e13] [box=900,32,86,18]: Account scope
+        - combobox "Account scope" [ref=f4e14] [cursor=pointer] [box=994,22,99,37]
+      - region "Authenticated user" [ref=f4e15] [box=1117,19,124,43]:
+        - strong [ref=f4e16] [box=1117,19,124,21]: Alex Morgan
+        - generic [ref=f4e17] [box=1117,44,124,18]: admin · authenticated
+  - generic [ref=f4e18] [box=0,82,1265,1032]:
+    - navigation "Primary navigation" [ref=f4e19] [box=0,82,240,1032]:
+      - generic [ref=f4e20] [box=16,106,207,114]:
+        - generic [ref=f4e21] [box=32,122,175,17]: Current boundary
+        - strong [ref=f4e22] [box=32,143,175,24]: Personal
+        - generic [ref=f4e23] [box=32,171,175,34]: All requests and evidence stay inside this scope.
+      - generic [ref=f4e24] [box=16,244,207,756]:
+        - button "Overview Command center" [ref=f4e25] [cursor=pointer] [box=16,244,207,72]
+        - button "Sessions Transport" [ref=f4e28] [cursor=pointer] [box=16,320,207,72]
+        - button "Contacts Recipients" [ref=f4e31] [cursor=pointer] [box=16,396,207,72]
+        - button "Send Individual text" [ref=f4e34] [cursor=pointer] [box=16,472,207,72]
+        - button "Schedule One-time jobs" [ref=f4e37] [cursor=pointer] [box=20,548,207,72]
+        - button "Analytics Scoped evidence" [ref=f4e40] [cursor=pointer] [box=16,624,207,72]
+        - button "Notifications Failure paths" [ref=f4e43] [cursor=pointer] [box=16,700,207,72]
+        - button "Retention Admin controls" [ref=f4e46] [cursor=pointer] [box=16,776,207,72]
+        - button "Users Access grants" [ref=f4e49] [cursor=pointer] [box=16,852,207,72]
+        - button "Settings Workspace policy" [ref=f4e52] [cursor=pointer] [box=16,928,207,72]
+      - generic [ref=f4e55] [box=16,1072,207,18]: Demo data boundary
+    - main [ref=f4e58] [box=240,82,1025,1032]:
+      - generic [ref=f4e59] [box=272,122,961,127]:
+        - generic [ref=f4e60] [box=272,122,513,127]
+        - generic [ref=f4e64] [box=1085,209,148,40]
+      - status [ref=f4e67] [box=272,281,961,66]:
+        - strong [ref=f4e68] [box=292,293,148,42]: Demo data boundary
+        - generic [ref=f4e69] [box=452,293,765,42]: Live API evidence is unavailable for at least one surface. Nothing here claims a production send, delivery, or aggregate.
+      - generic [ref=f4e70] [box=272,371,961,679]:
+        - generic [ref=f4e71] [box=272,371,469,373]
+        - generic [ref=f4e94] [box=765,371,469,373]
+        - generic [ref=f4e109] [box=272,768,469,283]
+        - generic [ref=f4e118] [box=765,768,469,283]
