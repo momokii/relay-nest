@@ -25,6 +25,17 @@ test.describe("authenticated dashboard shell", () => {
     await expect(page.getByRole("heading", { name: "Operational overview" })).toBeVisible()
     await expect(page.getByRole("heading", { name: "Sign in to RelayNest" })).toHaveCount(0)
     await expect(page.getByText("Live data boundary")).toBeVisible()
+    await expect(
+      page.getByText(
+        "Schedule detail, edit, and cancel controls are available for persisted one-time jobs.",
+        { exact: true },
+      ),
+    ).toBeVisible()
+    await expect(
+      page.getByText("Job detail, edit, and cancel routes are not exposed by the API yet.", {
+        exact: true,
+      }),
+    ).toHaveCount(0)
 
     // When the operator opens text sending and changes the account scope
     await page.getByRole("button", { name: "Send" }).click()
@@ -44,7 +55,10 @@ test.describe("authenticated dashboard shell", () => {
     await expect(page.locator("#message-session")).not.toHaveValue(seed.personal.id)
 
     // Then AI suggestions remain honest until a server-backed suggestion exists
-    await expect(page.getByText("AI suggestions unavailable", { exact: true })).toBeVisible()
+    const aiNotice = page.locator(".state-notice").filter({ hasText: "AI suggestions unavailable" })
+    await expect(aiNotice).toBeVisible()
+    await expect(aiNotice).not.toHaveAttribute("aria-live")
+    await expect(aiNotice).not.toHaveAttribute("aria-atomic")
     await expect(page.getByRole("button", { name: "Approve for separate review" })).toHaveCount(0)
     await expect(page.getByRole("button", { name: "Submit immediate text" })).toBeVisible()
   })
@@ -72,6 +86,7 @@ test.describe("authenticated dashboard shell", () => {
     // Then the browser receives the backend-backed list
     expect((await scheduleList).status()).toBe(200)
     await expect(page.getByRole("heading", { name: "One-time scheduling" })).toBeVisible()
+    await expect(page.getByLabel("Schedule session")).toHaveValue(seed.personal.id)
 
     // When a complete message omits consent
     await page.getByLabel("Recipient phone number").fill(seed.recipientPhone)
@@ -101,6 +116,9 @@ test.describe("authenticated dashboard shell", () => {
     const created = JSON.parse(createdBody)
     expect(created).toMatchObject({ state: "scheduled" })
     expect(created.jobId).toMatch(/[0-9a-f-]{36}/)
+    const scheduledNotice = page.locator(".state-notice").filter({ hasText: "Scheduled" })
+    await expect(scheduledNotice).toHaveAttribute("aria-live", "polite")
+    await expect(scheduledNotice).toHaveAttribute("aria-atomic", "true")
     expect(dispatchRequests).toBe(0)
 
     // When the dashboard discovers the persisted job after a fresh navigation
@@ -115,22 +133,70 @@ test.describe("authenticated dashboard shell", () => {
     })
     await page.getByRole("button", { name: "Schedule" }).click()
     expect((await persistedList).status()).toBe(200)
-    await expect(page.getByRole("combobox", { name: "Schedule" })).toHaveCount(1)
+    await expect(page.getByRole("combobox", { name: "Schedule", exact: true })).toHaveCount(1)
     await expect(page.getByText("State · scheduled", { exact: true })).toBeVisible()
     const scheduleDetail = page.locator(".schedule-detail")
+    const schedulesPanel = page.getByRole("region", { name: "Schedules" })
     await expect(scheduleDetail.getByLabel("Scheduled for")).toHaveValue(/2099/)
     await expect(scheduleDetail.getByLabel("Timezone")).toHaveValue("UTC")
 
+    // Then the schedule detail and action row remain usable without horizontal overflow
+    for (const width of [375, 768, 1280] as const) {
+      await page.setViewportSize({ width, height: 900 })
+      const closeMenu = page.getByRole("button", { name: "Close menu" })
+      if (await closeMenu.isVisible()) await closeMenu.click()
+      await expect(scheduleDetail).toBeVisible()
+      await expect(scheduleDetail.getByRole("button", { name: "Save schedule" })).toBeVisible()
+      await expect(scheduleDetail.getByRole("button", { name: "Cancel schedule" })).toBeVisible()
+      await expect(page.locator(".button-row")).toHaveCSS("display", "flex")
+      await expect(page.locator(".button-row")).toHaveCSS("flex-wrap", "wrap")
+      const layout = await schedulesPanel.evaluate((element) => ({
+        contentWidth: element.scrollWidth,
+        viewportWidth: element.clientWidth,
+      }))
+      expect(layout.contentWidth).toBeLessThanOrEqual(layout.viewportWidth)
+      const documentLayout = await page.evaluate(() => ({
+        documentWidth: document.documentElement.scrollWidth,
+        viewportWidth: window.innerWidth,
+      }))
+      expect(documentLayout.documentWidth).toBeLessThanOrEqual(documentLayout.viewportWidth)
+    }
+
     // When the operator edits the persisted schedule through the same-origin API
+    const scheduleMutationRoute = `**/scoped/sessions/${seed.personal.id}/messages/schedules/*`
+    let releaseScheduleEdit = (): void => undefined
+    const scheduleEditHeld = new Promise<void>((resolve) => {
+      releaseScheduleEdit = resolve
+    })
+    await page.route(scheduleMutationRoute, async (route) => {
+      if (route.request().method() !== "PUT") {
+        await route.continue()
+        return
+      }
+      await scheduleEditHeld
+      await route.continue()
+    })
     const editResponse = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname.match(
           new RegExp(`/scoped/sessions/${seed.personal.id}/messages/schedules/[0-9a-f-]{36}`),
         ) !== null && response.request().method() === "PUT",
     )
+    const saveScheduleButton = page.getByRole("button", {
+      name: /^(Save schedule|Saving…)$/,
+    })
+    const cancelScheduleButton = page.getByRole("button", {
+      name: /^(Cancel schedule|Cancelling…)$/,
+    })
     await scheduleDetail.getByLabel("Scheduled for").fill("2099-01-02T12:00:00.000Z")
-    await page.getByRole("button", { name: "Save schedule" }).click()
+    await saveScheduleButton.click()
+    await expect(saveScheduleButton).toHaveText("Saving…")
+    await expect(saveScheduleButton).toBeDisabled()
+    await expect(saveScheduleButton).toHaveAttribute("aria-busy", "true")
+    await expect(cancelScheduleButton).toBeDisabled()
+    releaseScheduleEdit()
     const edited = await editResponse
+    await page.unroute(scheduleMutationRoute)
     expect(edited.status()).toBe(200)
     expect(edited.request().headers()["x-csrf-token"]).toBeTruthy()
     expect(new URL(edited.url()).origin).toBe(new URL(page.url()).origin)
@@ -144,13 +210,28 @@ test.describe("authenticated dashboard shell", () => {
     expect(dispatchRequests).toBe(0)
 
     // When the operator cancels the persisted schedule through the same-origin API
+    const scheduleCancelRoute = `**/scoped/sessions/${seed.personal.id}/messages/schedules/*/cancel*`
+    let releaseScheduleCancel = (): void => undefined
+    const scheduleCancelHeld = new Promise<void>((resolve) => {
+      releaseScheduleCancel = resolve
+    })
+    await page.route(scheduleCancelRoute, async (route) => {
+      await scheduleCancelHeld
+      await route.continue()
+    })
     const cancelResponse = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname.endsWith("/cancel") &&
         response.request().method() === "POST",
     )
-    await page.getByRole("button", { name: "Cancel schedule" }).click()
+    await cancelScheduleButton.click()
+    await expect(cancelScheduleButton).toHaveText("Cancelling…")
+    await expect(cancelScheduleButton).toBeDisabled()
+    await expect(cancelScheduleButton).toHaveAttribute("aria-busy", "true")
+    await expect(saveScheduleButton).toBeDisabled()
+    releaseScheduleCancel()
     const cancelled = await cancelResponse
+    await page.unroute(scheduleCancelRoute)
     expect(cancelled.status()).toBe(200)
     expect(cancelled.request().headers()["x-csrf-token"]).toBeTruthy()
     expect(new URL(cancelled.url()).origin).toBe(new URL(page.url()).origin)
@@ -160,6 +241,8 @@ test.describe("authenticated dashboard shell", () => {
       recoveryCode: null,
       failureCode: null,
     })
+    await expect(page.getByText("State · cancelled", { exact: true })).toBeVisible()
+    await expect(page.getByRole("button", { name: "Cancel schedule" })).toHaveCount(0)
     expect(dispatchRequests).toBe(0)
 
     // Then Business cannot see the Personal schedule
@@ -176,7 +259,7 @@ test.describe("authenticated dashboard shell", () => {
     expect(businessSchedules.status()).toBe(200)
     expect(await businessSchedules.json()).toEqual([])
     await expect(page.getByRole("heading", { name: "Schedules" })).toBeVisible()
-    await expect(page.getByRole("combobox", { name: "Schedule" })).toHaveCount(0)
+    await expect(page.getByRole("combobox", { name: "Schedule", exact: true })).toHaveCount(0)
     await expect(page.getByText("No schedules", { exact: true })).toBeVisible()
   })
 
@@ -250,6 +333,15 @@ test.describe("authenticated dashboard shell", () => {
     await expect(page.getByRole("heading", { name: "Notifications" })).toBeVisible()
     await expect(page.getByRole("button", { name: "Save provider settings" })).toBeVisible()
 
+    let releaseSettingsResponse = (): void => undefined
+    const settingsResponseHeld = new Promise<void>((resolve) => {
+      releaseSettingsResponse = resolve
+    })
+    await page.route("**/admin/notifications/personal/settings", async (route) => {
+      await settingsResponseHeld
+      await route.continue()
+    })
+
     // When disabled provider settings are saved through the authenticated API
     await page.getByLabel("Email host").fill("smtp.example.invalid")
     await page.getByLabel("Email username").fill("disabled-user")
@@ -262,11 +354,23 @@ test.describe("authenticated dashboard shell", () => {
         new URL(response.url()).pathname === "/admin/notifications/personal/settings" &&
         response.request().method() === "PUT",
     )
-    await page.getByRole("button", { name: "Save provider settings" }).click()
+    const saveSettingsButton = page.getByRole("button", {
+      name: /^(Save provider settings|Saving…?)$/,
+    })
+    await saveSettingsButton.click()
+
+    // Then the in-flight async control is disabled and exposes its busy state
+    await expect(saveSettingsButton).toBeDisabled()
+    await expect(saveSettingsButton).toHaveAttribute("aria-busy", "true")
+    releaseSettingsResponse()
 
     // Then the API accepts safe disabled settings without exposing provider credentials
     expect((await saveSettings).status()).toBe(200)
-    await expect(page.getByText("Settings saved", { exact: true })).toBeVisible()
+    const settingsSavedNotice = page.locator(".state-notice").filter({ hasText: "Settings saved" })
+    await expect(settingsSavedNotice).toBeVisible()
+    await expect(settingsSavedNotice).toHaveAttribute("aria-live", "polite")
+    await expect(settingsSavedNotice).toHaveAttribute("aria-atomic", "true")
+    await page.unroute("**/admin/notifications/personal/settings")
 
     // When preferences and an operations test are requested
     const savePreferences = page.waitForResponse(

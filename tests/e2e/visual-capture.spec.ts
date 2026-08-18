@@ -1,6 +1,9 @@
+import { mkdir, writeFile } from "node:fs/promises"
+
 import { expect, test } from "./dashboard-fixture"
 
 test("captures the authenticated dashboard at required responsive widths", async ({ page }) => {
+  await mkdir(".omo/evidence", { recursive: true })
   for (const width of [375, 768, 1280]) {
     await page.setViewportSize({ width, height: 900 })
     await page.goto("/")
@@ -38,5 +41,28 @@ test("captures the authenticated dashboard at required responsive widths", async
       fullPage: true,
       animations: "disabled",
     })
+    await page.screenshot({
+      path: `.omo/evidence/task-14-dashboard-${width}-final.png`,
+      fullPage: true,
+      animations: "disabled",
+    })
+    await writeFile(
+      `.omo/evidence/task-14-dashboard-${width}-final-accessibility.yml`,
+      await page.locator("body").ariaSnapshot(),
+    )
+    if (width === 375) {
+      await page.getByRole("button", { name: "Menu" }).click()
+      await page.getByRole("button", { name: "Schedule" }).click()
+      await expect(page.getByRole("heading", { name: "One-time scheduling" })).toBeVisible()
+      await page.screenshot({
+        path: ".omo/evidence/task-14-dashboard-schedule-375-final.png",
+        fullPage: true,
+        animations: "disabled",
+      })
+      await writeFile(
+        ".omo/evidence/task-14-dashboard-schedule-375-final-accessibility.yml",
+        await page.locator("body").ariaSnapshot(),
+      )
+    }
   }
 })
