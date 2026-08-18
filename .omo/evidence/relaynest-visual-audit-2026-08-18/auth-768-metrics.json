@@ -1,0 +1,16 @@
+{
+  "viewport": {
+    "width": 768,
+    "height": 900
+  },
+  "document": {
+    "scrollWidth": 768,
+    "clientWidth": 768,
+    "scrollHeight": 900
+  },
+  "body": {
+    "scrollWidth": 768,
+    "clientWidth": 768
+  },
+  "visibleOverflow": []
+}
