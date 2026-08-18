@@ -31,6 +31,8 @@ export function createMessagingRepositories(
     accountScope: AccountScope,
   ): MessagingContact => ({
     id: row.id,
+    accountScope,
+    sessionId: row.sessionId,
     phone: cipher.decrypt(
       {
         version: 1,
@@ -134,6 +136,7 @@ export function createMessagingRepositories(
       },
       updateConsent: async (
         accountScope: AccountScope,
+        sessionId: string,
         id: string,
         consentGranted: boolean,
         optedOut: boolean,
@@ -141,7 +144,13 @@ export function createMessagingRepositories(
         const [row] = await db
           .update(contacts)
           .set({ consentGranted, optedOut, consentUpdatedAt: new Date(), updatedAt: new Date() })
-          .where(and(eq(contacts.accountScope, accountScope), eq(contacts.id, id)))
+          .where(
+            and(
+              eq(contacts.accountScope, accountScope),
+              eq(contacts.sessionId, sessionId),
+              eq(contacts.id, id),
+            ),
+          )
           .returning()
         return row ? decode(row, accountScope) : null
       },

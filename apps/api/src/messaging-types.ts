@@ -85,6 +85,8 @@ export type MessagingScheduler = {
 
 export type DurableDispatch = {
   readonly jobId: string
+  readonly sessionId: string
+  readonly accountScope: AccountScope
   readonly state:
     | "scheduled"
     | "queued"
@@ -116,6 +118,7 @@ export type MessagingServiceOptions = {
     readonly save: (input: MessagingContact) => Promise<MessagingContact>
     readonly updateConsent?: (
       accountScope: AccountScope,
+      sessionId: string,
       id: string,
       consentGranted: boolean,
       optedOut: boolean,

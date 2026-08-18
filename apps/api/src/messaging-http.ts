@@ -52,8 +52,13 @@ export function registerMessagingRoutes(
   service: MessagingRouteService,
 ): void {
   app.post("/scoped/sessions/:sessionId/contact", async (request, reply) => {
+    if (!sameOrigin(request)) return reply.code(403).send({ error: "forbidden" })
     const principal = await authenticate(auth, request, reply)
     if (!principal) return
+    if (
+      !(await auth.verifyCsrf(principal.sessionToken, request.headers["x-csrf-token"]?.toString()))
+    )
+      return reply.code(403).send({ error: "forbidden" })
     const { sessionId } = sessionParamsSchema.parse(request.params)
     const { scope } = scopeQuerySchema.parse(request.query)
     const target = targetSchema.parse(request.body)

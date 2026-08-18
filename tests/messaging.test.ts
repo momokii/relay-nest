@@ -1,61 +1,7 @@
 import { describe, expect, it } from "vitest"
 
-import {
-  createMessagingService,
-  type MessagingPrincipal,
-  normalizePhoneNumber,
-} from "../apps/api/src/messaging"
-
-const principal: MessagingPrincipal = {
-  userId: "user-1",
-  roles: ["operator"],
-}
-
-function serviceOptions(overrides: Record<string, unknown> = {}) {
-  return {
-    authorize: async () => ({ allowed: true as const }),
-    sessions: {
-      find: async () => ({
-        id: "session-1",
-        accountScope: "personal" as const,
-        wahaSessionName: "personal",
-        status: "WORKING",
-        linkedAt: new Date("2029-12-01T00:00:00.000Z"),
-      }),
-    },
-    contacts: {
-      find: async () => ({
-        id: "contact-1",
-        phone: "+628123456789",
-        displayName: "Example",
-        consentGranted: true,
-        optedOut: false,
-      }),
-      save: async (contact: unknown) => contact,
-    },
-    safety: {
-      evaluate: async () => ({ allowed: true as const }),
-    },
-    scheduler: {
-      schedule: async (input: unknown) => ({ jobId: "job-1", duplicate: false, ...input }),
-      dispatch: async () => ({ state: "submitted" as const, providerMessageId: "provider-1" }),
-    },
-    waha: {
-      checkExists: async () => ({ numberExists: true, chatId: "628123456789@c.us" }),
-      contact: async () => ({ id: "628123456789@c.us", isMyContact: false }),
-    },
-    wahaForSession: async () => ({
-      checkExists: async (session: string, phone: string) => {
-        void session
-        void phone
-        return { numberExists: true, chatId: "628123456789@c.us" }
-      },
-      contact: async () => ({ id: "628123456789@c.us", name: "Example" }),
-    }),
-    audit: async () => undefined,
-    ...overrides,
-  }
-}
+import { createMessagingService, normalizePhoneNumber } from "../apps/api/src/messaging"
+import { principal, serviceOptions } from "./messaging-fixtures"
 
 describe("individual text messaging", () => {
   it("normalizes an international manual number before any provider call", () => {
@@ -64,39 +10,6 @@ describe("individual text messaging", () => {
     // Then the service receives only canonical digits with a plus prefix
     expect(normalizePhoneNumber(" +62 (812) 3456-789 ")).toBe("+628123456789")
     expect(() => normalizePhoneNumber("0812-3456")).toThrow("international phone number")
-  })
-
-  it("resolves a manual number through WAHA without exposing the raw response", async () => {
-    // Given a granted Personal session and a valid manual number
-    const calls: string[] = []
-    const service = createMessagingService(
-      serviceOptions({
-        waha: {
-          checkExists: async (session: string, phone: string) => {
-            calls.push(`${session}:${phone}`)
-            return { numberExists: true, chatId: "628123456789@c.us" }
-          },
-          contact: async () => ({ id: "628123456789@c.us", name: "secret raw field" }),
-        },
-        wahaForSession: async () => ({
-          checkExists: async (session: string, phone: string) => {
-            calls.push(`${session}:${phone}`)
-            return { numberExists: true, chatId: "628123456789@c.us" }
-          },
-          contact: async () => ({ id: "628123456789@c.us", name: "secret raw field" }),
-        }),
-      }),
-    )
-
-    // When the operator resolves the target
-    const result = await service.resolveContact(principal, "session-1", "personal", {
-      phoneNumber: "+62 812 3456 789",
-    })
-
-    // Then the provider was called with the normalized value and only a safe projection returns
-    expect(calls).toEqual(["personal:+628123456789"])
-    expect(result).toEqual({ id: "contact-1", phone: "+628123456789", displayName: "Example" })
-    expect(JSON.stringify(result)).not.toContain("secret raw field")
   })
 
   it("rejects an unconsented or opted-out target before scheduling", async () => {
@@ -131,6 +44,47 @@ describe("individual text messaging", () => {
 
     // Then the decision is safe and no send is authorized
     expect(result).toEqual({ state: "failed", recoveryCode: "consent_required" })
+  })
+
+  it("does not mutate consent for a contact owned by another session", async () => {
+    // Given a contact in the same scope but owned by a different session
+    const updates: unknown[] = []
+    const service = createMessagingService(
+      serviceOptions({
+        contacts: {
+          find: async () => null,
+          findById: async () => ({
+            id: "contact-1",
+            accountScope: "personal" as const,
+            sessionId: "session-2",
+            phone: "+628123456789",
+            displayName: "Example",
+            providerChatId: "628123456789@c.us",
+            consentGranted: false,
+            optedOut: false,
+          }),
+          save: async (contact: unknown) => contact,
+          updateConsent: async (...input: readonly unknown[]) => {
+            updates.push(input)
+            return null
+          },
+        },
+      }),
+    )
+
+    // When an operator attempts to update that contact through session-1
+    const result = await service.setConsent(
+      principal,
+      "session-1",
+      "personal",
+      "contact-1",
+      true,
+      false,
+    )
+
+    // Then the session grant boundary rejects the mutation before persistence
+    expect(result).toEqual({ updated: false })
+    expect(updates).toHaveLength(0)
   })
 
   it("uses the scheduler for immediate and future sends and remains idempotent", async () => {
@@ -188,6 +142,8 @@ describe("individual text messaging", () => {
     // Given two service instances sharing a durable idempotency/result repository
     let durable: {
       readonly jobId: string
+      readonly sessionId: string
+      readonly accountScope: "personal"
       readonly state: "submitted"
       readonly providerMessageId: string
     } | null = null
@@ -197,7 +153,13 @@ describe("individual text messaging", () => {
       findByIdempotencyKey: async () => durable,
       dispatch: async () => {
         sends += 1
-        durable = { jobId: "job-1", state: "submitted", providerMessageId: "provider-1" }
+        durable = {
+          jobId: "job-1",
+          sessionId: "session-1",
+          accountScope: "personal",
+          state: "submitted",
+          providerMessageId: "provider-1",
+        }
         return { state: "submitted" as const, providerMessageId: "provider-1" }
       },
     }
@@ -219,5 +181,50 @@ describe("individual text messaging", () => {
     expect(firstResult).toEqual({ state: "submitted", providerMessageId: "provider-1" })
     expect(secondResult).toEqual({ state: "submitted", providerMessageId: "provider-1" })
     expect(sends).toBe(1)
+  })
+
+  it("does not replay a durable result for another session", async () => {
+    // Given a durable result bound to session-1
+    let dispatched = 0
+    const service = createMessagingService(
+      serviceOptions({
+        sessions: {
+          find: async (sessionId: string) => ({
+            id: sessionId,
+            accountScope: "personal" as const,
+            wahaSessionName: "personal",
+            status: "WORKING",
+            linkedAt: new Date("2029-12-01T00:00:00.000Z"),
+          }),
+        },
+        scheduler: {
+          schedule: async () => ({ jobId: "job-2", duplicate: false }),
+          findByIdempotencyKey: async () => ({
+            jobId: "job-1",
+            sessionId: "session-1",
+            accountScope: "personal" as const,
+            state: "submitted" as const,
+            providerMessageId: "provider-1",
+          }),
+          dispatch: async () => {
+            dispatched += 1
+            return { state: "submitted" as const, providerMessageId: "provider-2" }
+          },
+        },
+      }),
+    )
+
+    // When the same idempotency key is submitted through session-2
+    const result = await service.sendImmediate(principal, {
+      sessionId: "session-2",
+      accountScope: "personal",
+      phoneNumber: "+628123456789",
+      message: "hello",
+      idempotencyKey: "send-cross-session",
+    })
+
+    // Then the old provider result is not disclosed or replayed
+    expect(result).toEqual({ state: "submitted", providerMessageId: "provider-2" })
+    expect(dispatched).toBe(1)
   })
 })

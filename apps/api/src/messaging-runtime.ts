@@ -15,11 +15,13 @@ import {
 import { createWahaClient } from "./waha/adapter"
 
 type Repositories = ReturnType<typeof createRepositories>
+type ConfiguredMessagingServiceOptions = Readonly<{ allowLoopbackWaha?: boolean }>
 
 export function createConfiguredMessagingService(
   database: DatabaseHandle,
   repositories: Repositories,
   masterKey: Buffer | undefined,
+  options: ConfiguredMessagingServiceOptions = {},
 ) {
   if (!masterKey || masterKey.length !== 32) return undefined
   const cipher = createEnvelopeCipher(masterKey)
@@ -44,7 +46,14 @@ export function createConfiguredMessagingService(
       },
       { accountScope: "personal" },
     )
-    return { session, client: createWahaClient({ baseUrl: connection.baseUrl, apiKey }) }
+    return {
+      session,
+      client: createWahaClient({
+        baseUrl: connection.baseUrl,
+        apiKey,
+        allowLoopback: options.allowLoopbackWaha ?? false,
+      }),
+    }
   }
 
   const scheduler = createSchedulerService({

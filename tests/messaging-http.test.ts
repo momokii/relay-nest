@@ -90,6 +90,38 @@ describe("scoped messaging HTTP routes", () => {
     await app.close()
   })
 
+  it("rejects cross-origin contact resolution before the service", async () => {
+    // Given a browser request from a different origin
+    const app = Fastify()
+    const auth = {
+      authenticate: async () => principal,
+      verifyCsrf: async () => true,
+    }
+    let called = false
+    registerMessagingRoutes(app, auth, {
+      resolveContact: async () => {
+        called = true
+        return { id: contactId, phone: "+628123456789", displayName: null }
+      },
+      sendImmediate: async () => ({ state: "submitted", providerMessageId: "provider-1" }),
+      scheduleText: async () => ({ state: "scheduled", jobId: "job-1" }),
+      setConsent: async () => ({ updated: true }),
+    })
+
+    // When contact resolution is sent with a mismatched Origin header
+    const response = await app.inject({
+      method: "POST",
+      url: `/scoped/sessions/${sessionId}/contact?scope=personal`,
+      headers: { origin: "https://attacker.invalid", host: "localhost" },
+      payload: { phoneNumber: "+628123456789" },
+    })
+
+    // Then no provider lookup is reached
+    expect(response.statusCode).toBe(403)
+    expect(called).toBe(false)
+    await app.close()
+  })
+
   it("maps malformed immediate input to a generic 400 without Zod details", async () => {
     // Given an authenticated operator with malformed message and idempotency input
     const app = Fastify()
