@@ -196,9 +196,10 @@ Last updated: 2026-08-17
 - The workspace Vitest run remains blocked by the local PostgreSQL boundary:
   `31` files passed, `14` skipped, `12` tests failed with PostgreSQL `28P01`
   authentication errors. Full lint still has the pre-existing analytics
-  fixture diagnostics. WIP implementation commits now exist locally; push is
-  pending final pre-push verification. `git diff --check` passed, and temporary
-  Playwright/runtime artifacts were cleaned up.
+  fixture diagnostics. WIP implementation commits were published to
+  `origin/main` through `b16741a`; follow-up fixes remain pending.
+  `git diff --check` passed, and temporary Playwright/runtime artifacts were
+  cleaned up.
 - Final Oracle review is **BLOCKED / partially complete** for acceptance because
   the full isolated PostgreSQL suite, full lint, evidence reconciliation, and
   protected plan/ledger handling remain unresolved. The implementation is not
