@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import type { SessionView } from "./dashboard-api"
 import type { AccountScope } from "./dashboard-model"
@@ -16,10 +16,12 @@ import {
 
 export type DashboardScheduleController = Readonly<{
   schedules: ResourceState<readonly ScheduleView[]>
+  selectedSessionId: string
   selectedScheduleId: string
   detail: ResourceState<ScheduleView | undefined>
   editAction: ActionState<ScheduleView>
   cancelAction: ActionState<ScheduleView>
+  selectSession: (sessionId: string) => void
   selectSchedule: (jobId: string) => void
   editSchedule: (
     scope: AccountScope,
@@ -38,14 +40,29 @@ export function useDashboardScheduleController(
   const [schedules, setSchedules] = useState<ResourceState<readonly ScheduleView[]>>({
     kind: "loading",
   })
+  const [selectedSessionId, setSelectedSessionId] = useState("")
   const [selectedScheduleId, setSelectedScheduleId] = useState("")
   const [detail, setDetail] = useState<ResourceState<ScheduleView | undefined>>({ kind: "loading" })
   const [editAction, setEditAction] = useState<ActionState<ScheduleView>>({ kind: "idle" })
   const [cancelAction, setCancelAction] = useState<ActionState<ScheduleView>>({ kind: "idle" })
-  const selectedSessionId = sessions.kind === "ready" ? sessions.data[0]?.id : undefined
+  const detailRequestId = useRef(0)
+  const availableSessionIds =
+    sessions.kind === "ready" ? sessions.data.map((session) => session.id).join(",") : ""
+  const firstSessionId = sessions.kind === "ready" ? (sessions.data[0]?.id ?? "") : ""
+
+  useEffect(() => {
+    if (sessions.kind !== "ready") {
+      setSelectedSessionId("")
+      return
+    }
+    setSelectedSessionId((current) =>
+      availableSessionIds.split(",").includes(current) ? current : firstSessionId,
+    )
+  }, [availableSessionIds, firstSessionId, sessions.kind])
 
   useEffect(() => {
     let isCurrent = true
+    detailRequestId.current += 1
     setSelectedScheduleId("")
     setDetail({ kind: "loading" })
     setEditAction({ kind: "idle" })
@@ -65,8 +82,10 @@ export function useDashboardScheduleController(
         if (first) {
           setSelectedScheduleId(first.id)
           setDetail({ kind: "loading" })
+          const requestId = ++detailRequestId.current
           void api.get(scope, selectedSessionId, first.id).then((detailResult) => {
-            if (isCurrent) setDetail(resourceFromResult(detailResult))
+            if (isCurrent && requestId === detailRequestId.current)
+              setDetail(resourceFromResult(detailResult))
           })
         } else {
           setDetail({ kind: "ready", data: undefined })
@@ -78,13 +97,22 @@ export function useDashboardScheduleController(
     }
   }, [api, scope, selectedSessionId, sessions.kind])
 
+  const selectSession = (sessionId: string): void => {
+    if (sessions.kind !== "ready") return
+    if (sessions.data.some((session) => session.id === sessionId)) {
+      detailRequestId.current += 1
+      setSelectedSessionId(sessionId)
+    }
+  }
+
   const selectSchedule = (jobId: string): void => {
     setSelectedScheduleId(jobId)
     if (!selectedSessionId) return
     setDetail({ kind: "loading" })
-    void api
-      .get(scope, selectedSessionId, jobId)
-      .then((result) => setDetail(resourceFromResult(result)))
+    const requestId = ++detailRequestId.current
+    void api.get(scope, selectedSessionId, jobId).then((result) => {
+      if (requestId === detailRequestId.current) setDetail(resourceFromResult(result))
+    })
   }
 
   const editSchedule = async (
@@ -94,7 +122,9 @@ export function useDashboardScheduleController(
     input: ScheduleEditInput,
   ): Promise<void> => {
     setEditAction({ kind: "submitting" })
-    setEditAction(actionFromResult(await api.edit(selectedScope, sessionId, jobId, input)))
+    const result = await api.edit(selectedScope, sessionId, jobId, input)
+    setEditAction(actionFromResult(result))
+    if (result.kind === "ready") reconcileSchedule(result.data)
   }
 
   const cancelSchedule = async (
@@ -103,15 +133,33 @@ export function useDashboardScheduleController(
     jobId: string,
   ): Promise<void> => {
     setCancelAction({ kind: "submitting" })
-    setCancelAction(actionFromResult(await api.cancel(selectedScope, sessionId, jobId)))
+    const result = await api.cancel(selectedScope, sessionId, jobId)
+    setCancelAction(actionFromResult(result))
+    if (result.kind === "ready") reconcileSchedule(result.data)
+  }
+
+  const reconcileSchedule = (updated: ScheduleView): void => {
+    setSchedules((current) => {
+      if (current.kind !== "ready") return current
+      return {
+        kind: "ready",
+        data: current.data.map((schedule) => (schedule.id === updated.id ? updated : schedule)),
+      }
+    })
+    setDetail((current) => {
+      if (current.kind !== "ready" || current.data?.id !== updated.id) return current
+      return { kind: "ready", data: updated }
+    })
   }
 
   return {
     schedules,
+    selectedSessionId,
     selectedScheduleId,
     detail,
     editAction,
     cancelAction,
+    selectSession,
     selectSchedule,
     editSchedule,
     cancelSchedule,
