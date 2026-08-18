@@ -1,0 +1,24 @@
+{
+  "userCountProbe": null,
+  "alert": "The server could not complete this request.",
+  "alertRole": "alert",
+  "formValidity": [
+    {
+      "type": "text",
+      "valid": true,
+      "valueLength": 11
+    },
+    {
+      "type": "email",
+      "valid": true,
+      "valueLength": 27
+    },
+    {
+      "type": "password",
+      "valid": true,
+      "valueLength": 24
+    }
+  ],
+  "scrollWidth": 1280,
+  "clientWidth": 1280
+}

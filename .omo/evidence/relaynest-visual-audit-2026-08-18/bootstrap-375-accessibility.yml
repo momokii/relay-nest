@@ -1,0 +1,16 @@
+- main [ref=f1e3] [box=0,0,375,900]:
+  - paragraph [ref=f1e4] [box=32,178,69,17]: RelayNest
+  - heading "Create the first Admin" [level=1] [ref=f1e16] [box=32,210,311,70]
+  - paragraph [ref=f1e6] [box=32,296,290,24]: The server denied this scoped request.
+  - generic [ref=f1e7] [box=32,336,245,323]:
+    - generic [ref=f1e17] [box=32,336,245,76]:
+      - generic [ref=f1e18] [box=32,336,245,21]: Display name
+      - textbox "Display name" [ref=f1e19] [box=32,365,245,47]
+    - generic [ref=f1e8] [box=32,428,245,76]:
+      - generic [ref=f1e9] [box=32,428,245,21]: Email
+      - textbox "Email" [ref=f1e10] [box=32,457,245,47]
+    - generic [ref=f1e11] [box=32,520,245,76]:
+      - generic [ref=f1e12] [box=32,520,245,21]: Password
+      - textbox "Password" [ref=f1e13] [box=32,549,245,47]
+    - button "Create Admin" [ref=f1e20] [cursor=pointer] [box=32,612,245,47]
+  - button "Already configured? Sign in" [active] [ref=f1e21] [cursor=pointer] [box=32,673,225,47]
