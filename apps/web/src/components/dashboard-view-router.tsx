@@ -19,6 +19,7 @@ type PageContext = Pick<
   | "scope"
   | "role"
   | "sessions"
+  | "selectedSessionId"
   | "analytics"
   | "notifications"
   | "retention"
@@ -49,6 +50,7 @@ type PageContext = Pick<
   | "editAction"
   | "cancelAction"
   | "selectSchedule"
+  | "selectSession"
   | "editSchedule"
   | "cancelSchedule"
   | "notificationHistory"
@@ -114,6 +116,7 @@ export function renderDashboardPage(
           scope={context.scope}
           role={context.role}
           sessions={context.sessions}
+          selectedSessionId={context.selectedSessionId}
           action={context.scheduleAction}
           onSend={context.onSend}
           onSchedule={context.onSchedule}
@@ -122,6 +125,7 @@ export function renderDashboardPage(
           detail={context.detail}
           editAction={context.editAction}
           cancelAction={context.cancelAction}
+          selectSession={context.selectSession}
           selectSchedule={context.selectSchedule}
           editSchedule={context.editSchedule}
           cancelSchedule={context.cancelSchedule}

@@ -65,6 +65,7 @@ export function SchedulePage(
     scope: AccountScope
     role: DashboardRole
     sessions: ResourceState<readonly SessionView[]>
+    selectedSessionId: string
     action: ActionState<SendResult>
     onSend: (input: SendInput) => Promise<void>
     onSchedule: (input: ScheduleInput) => Promise<void>
@@ -73,6 +74,7 @@ export function SchedulePage(
     detail: ResourceState<ScheduleView | undefined>
     editAction: ActionState<ScheduleView>
     cancelAction: ActionState<ScheduleView>
+    selectSession: (sessionId: string) => void
     selectSchedule: (jobId: string) => void
     editSchedule: (
       scope: AccountScope,
@@ -94,22 +96,26 @@ export function SchedulePage(
 function ScheduleJobsPanel({
   scope,
   sessions,
+  selectedSessionId,
   schedules,
   selectedScheduleId,
   detail,
   editAction,
   cancelAction,
+  selectSession,
   selectSchedule,
   editSchedule,
   cancelSchedule,
 }: Readonly<{
   scope: AccountScope
   sessions: ResourceState<readonly SessionView[]>
+  selectedSessionId: string
   schedules: ResourceState<readonly ScheduleView[]>
   selectedScheduleId: string
   detail: ResourceState<ScheduleView | undefined>
   editAction: ActionState<ScheduleView>
   cancelAction: ActionState<ScheduleView>
+  selectSession: (sessionId: string) => void
   selectSchedule: (jobId: string) => void
   editSchedule: (
     scope: AccountScope,
@@ -119,10 +125,15 @@ function ScheduleJobsPanel({
   ) => Promise<void>
   cancelSchedule: (scope: AccountScope, sessionId: string, jobId: string) => Promise<void>
 }>): React.JSX.Element {
-  const sessionId = sessions.kind === "ready" ? sessions.data[0]?.id : undefined
+  const sessionId = selectedSessionId || undefined
+  const sessionOptions =
+    sessions.kind === "ready"
+      ? sessions.data.filter((session) => session.accountScope === scope)
+      : []
   const jobs = schedules.kind === "ready" ? schedules.data : []
   const selected = detail.kind === "ready" ? detail.data : undefined
   const canEdit = selected?.state === "scheduled" || selected?.state === "queued"
+  const scheduleActionBusy = editAction.kind === "submitting" || cancelAction.kind === "submitting"
   const [scheduledFor, setScheduledFor] = useState(selected?.scheduledFor ?? "")
   const [timezone, setTimezone] = useState(selected?.timezone ?? "")
 
@@ -151,21 +162,39 @@ function ScheduleJobsPanel({
           emptyMessage="No authenticated schedule records are available for this session."
         />
       )}
-      {jobs.length > 0 ? (
-        <label>
-          <span>Schedule</span>
-          <select
-            value={selectedScheduleId}
-            onChange={(event) => selectSchedule(event.target.value)}
-          >
-            {jobs.map((job) => (
-              <option key={job.id} value={job.id}>
-                {job.state} · {new Date(job.scheduledFor).toLocaleString()}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
+      <div className="operational-form">
+        {sessionOptions.length > 0 ? (
+          <label>
+            <span>Schedule session</span>
+            <select
+              aria-label="Schedule session"
+              value={selectedSessionId}
+              onChange={(event) => selectSession(event.target.value)}
+            >
+              {sessionOptions.map((session) => (
+                <option key={session.id} value={session.id}>
+                  {session.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        {jobs.length > 0 ? (
+          <label>
+            <span>Schedule</span>
+            <select
+              value={selectedScheduleId}
+              onChange={(event) => selectSchedule(event.target.value)}
+            >
+              {jobs.map((job) => (
+                <option key={job.id} value={job.id}>
+                  {job.state} · {new Date(job.scheduledFor).toLocaleString()}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+      </div>
       {selected ? (
         <div className="schedule-detail">
           <StatusBadge label={`State · ${selected.state}`} />
@@ -202,29 +231,41 @@ function ScheduleJobsPanel({
                     timezone,
                   })
                 }
-                disabled={editAction.kind === "submitting"}
+                disabled={scheduleActionBusy}
+                aria-busy={editAction.kind === "submitting" ? "true" : "false"}
               >
-                Save schedule
+                {editAction.kind === "submitting" ? "Saving…" : "Save schedule"}
               </button>
               <button
                 className="button button-danger"
                 type="button"
                 onClick={() => void cancelSchedule(scope, sessionId, selected.id)}
-                disabled={cancelAction.kind === "submitting"}
+                disabled={scheduleActionBusy}
+                aria-busy={cancelAction.kind === "submitting" ? "true" : "false"}
               >
-                Cancel schedule
+                {cancelAction.kind === "submitting" ? "Cancelling…" : "Cancel schedule"}
               </button>
             </div>
           ) : null}
         </div>
       ) : null}
       {detail.kind === "unavailable" || detail.kind === "denied" || detail.kind === "error" ? (
-        <StateNotice title="Schedule detail unavailable" message={detail.message} tone="warning" />
+        <StateNotice
+          title="Schedule detail unavailable"
+          message={detail.message}
+          tone="warning"
+          live="polite"
+        />
       ) : null}
       {editAction.kind === "denied" ||
       editAction.kind === "error" ||
       editAction.kind === "unavailable" ? (
-        <StateNotice title="Schedule edit unavailable" message={editAction.message} tone="error" />
+        <StateNotice
+          title="Schedule edit unavailable"
+          message={editAction.message}
+          tone="error"
+          live="polite"
+        />
       ) : null}
       {cancelAction.kind === "denied" ||
       cancelAction.kind === "error" ||
@@ -233,6 +274,7 @@ function ScheduleJobsPanel({
           title="Schedule cancellation unavailable"
           message={cancelAction.message}
           tone="error"
+          live="polite"
         />
       ) : null}
     </Panel>
