@@ -353,3 +353,20 @@ Last updated: 2026-08-18
   blockers, not claims of completed external WhatsApp linking or delivery QA.
 
 Last updated: 2026-08-18
+## Session update: Todo 14 Wave 1 focused acceptance
+
+- Todo 14 Wave 1 dashboard slices are implementation-complete and independently
+  reviewed. Final Oracle safety review returned PASS with high confidence: stale
+  session-create scope callbacks, previous-scope notification rendering, and
+  fabricated AI suggestions are guarded; AI approval remains `not_sent` with
+  zero dispatch calls.
+- Fresh focused verification passed: session grep `7/7`; schedule unit `7/7`,
+  integration `10/10`, E2E `3/3`; integrated authenticated dashboard E2E
+  `18/18`; changed-file Biome `28` files; workspace typecheck, web build, and
+  `git diff --check` passed.
+- Evidence is recorded in `.omo/evidence/task-14-next-phases-*.md`; temporary
+  browsers, databases, Playwright artifacts, debug journal, and task-owned
+  ports were cleaned. Real WAHA delivery is not claimed; pre-existing port
+  `4174` remains untouched.
+
+Last updated: 2026-08-25

@@ -47,7 +47,7 @@ stable fork-pool full suite passed `33 files, 138 tests`.
 | Item | Status | Dependency |
 |---|---|---|
 | Todo 13 analytics projections | DONE | Todos 8-12 |
-| Todo 14 dashboard and human-approved AI seam | IN PROGRESS | Todos 5, 7, 9-13 |
+| Todo 14 dashboard and human-approved AI seam | DONE | Todos 5, 7, 9-13 |
 | Todo 15 Compose deployment and operations | TODO | Todos 1, 3, 6, 7 |
 | Todo 16 release verification | TODO | Todos 11-15 |
 | F1 plan compliance | TODO | Todo 16 |
@@ -191,3 +191,11 @@ artifacts, so the former protected-record delivery blocker is resolved for this
 closeout. Full Vitest PostgreSQL authentication failures, the two full-lint
 analytics-fixture diagnostics, unavailable bundled WAHA, and incomplete Todo
 14/F1-F4 gates remain open and are not represented as passed.
+## Session update: Todo 14 Wave 1 acceptance
+
+Wave 1 is verified and ready for atomic commit/push. Session, scheduling,
+notification/retention, AI approval, scope-race, and integrated dashboard
+evidence are present. The remaining roadmap is Todo 15 Compose/operations,
+Todo 16 release verification, and F1-F4 final gates; bundled WAHA availability,
+ambient PostgreSQL credentials, and missing release checker work remain explicit
+future blockers.
