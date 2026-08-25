@@ -4,10 +4,148 @@ import { authCredentialsPath, bootstrapOrLogin, e2eAuthCredentialsSchema } from 
 import { expect, test } from "./dashboard-fixture"
 
 test.describe("authenticated dashboard shell", () => {
-  test("uses seeded sessions and keeps unavailable AI suggestions honest", async ({
+  test("lets an Admin open the authenticated session-linking form", async ({ page }) => {
+    // Given an authenticated Admin inside the Personal scope
+    await page.goto("/")
+    await page.getByRole("button", { name: "Sessions" }).click()
+
+    // When the Admin opens the session dashboard
+    // Then the server-backed linking form is available without provider secrets
+    await expect(page.getByRole("heading", { name: "Link a session" })).toBeVisible()
+    await expect(page.getByLabel("Connection ID")).toBeVisible()
+    await expect(page.getByLabel("Session name", { exact: true })).toBeVisible()
+    await expect(page.getByLabel("WAHA session name")).toBeVisible()
+    await expect(page.getByText("Connection capability unavailable", { exact: true })).toHaveCount(
+      0,
+    )
+    await expect(page.locator("body")).not.toContainText("apiKey")
+    await expect(page.locator("body")).not.toContainText("WAHA_API_KEY")
+  })
+
+  test("links in the current scope and keeps provider recovery states explicit", async ({
     page,
     seed,
   }) => {
+    // Given an authenticated Admin viewing the seeded Personal session
+    await page.goto("/")
+    await page.getByRole("button", { name: "Sessions" }).click()
+    await expect(page.getByLabel("Authorized session")).toHaveValue(seed.personal.id)
+    await expect(page.getByText("Health · unknown", { exact: true })).toBeVisible()
+    await expect(page.getByText("Ready · unknown", { exact: true })).toBeVisible()
+
+    // When status history is requested and the deterministic provider cannot handle lifecycle
+    const historyResponse = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname ===
+          `/scoped/sessions/${seed.personal.id}/status-history` &&
+        response.request().method() === "GET",
+    )
+    await page.getByRole("button", { name: "Load status history" }).click()
+    expect((await historyResponse).status()).toBe(200)
+    await expect(page.getByText("No status history", { exact: true })).toBeVisible()
+    await expect(page.getByRole("button", { name: "Logout" })).toBeDisabled()
+    await expect(page.getByRole("button", { name: "Delete" })).toBeDisabled()
+
+    const lifecycleResponse = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === `/scoped/sessions/${seed.personal.id}/lifecycle` &&
+        response.request().method() === "POST",
+    )
+    await page.getByRole("button", { name: "Start", exact: true }).click()
+    expect((await lifecycleResponse).status()).toBe(502)
+    await expect(page.getByText("Unavailable", { exact: true })).toBeVisible()
+    await expect(page.locator("body")).not.toContainText("WAHA_API_KEY")
+
+    // When the Admin links a second session through the current Personal scope
+    const linkedName = `E2E linked ${crypto.randomUUID()}`
+    await page.getByLabel("Connection ID").fill(seed.personal.connectionId)
+    await page.getByLabel("Session name", { exact: true }).fill(linkedName)
+    await page.getByLabel("WAHA session name").fill(`e2e-linked-${crypto.randomUUID()}`)
+    const personalCreate = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/scoped/sessions" &&
+        new URL(response.url()).searchParams.get("scope") === "personal" &&
+        response.request().method() === "POST",
+    )
+    await page.getByRole("button", { name: "Link session" }).click()
+    const personalCreated = await personalCreate
+    expect(personalCreated.status()).toBe(200)
+    expect(await personalCreated.json()).not.toHaveProperty("connectionUrl")
+    await expect(
+      page.getByText("The session was linked in this scope", { exact: false }),
+    ).toBeVisible()
+
+    // Then changing scope changes the selected authorized session before another link
+    const businessSessions = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/scoped/sessions" &&
+        new URL(response.url()).searchParams.get("scope") === "business" &&
+        response.request().method() === "GET",
+    )
+    await page.getByLabel("Account scope").selectOption("business")
+    expect((await businessSessions).status()).toBe(200)
+    await expect(page.getByLabel("Authorized session")).toHaveValue(seed.business.id)
+    await expect(page.getByLabel("Connection ID")).toHaveValue("")
+    await expect(
+      page.getByText("The session was linked in this scope", { exact: false }),
+    ).toHaveCount(0)
+  })
+
+  test("does not refresh a completed Personal session create into Business", async ({
+    page,
+    seed,
+  }) => {
+    // Given an authenticated Admin with the Personal session form loaded
+    await page.goto("/")
+    await page.getByRole("button", { name: "Sessions" }).click()
+    await expect(page.getByLabel("Authorized session")).toHaveValue(seed.personal.id)
+
+    // When a Personal session create remains in flight while the scope changes
+    const linkedName = `Held Personal ${crypto.randomUUID()}`
+    let releaseCreate = (): void => undefined
+    const createHeld = new Promise<void>((resolve) => {
+      releaseCreate = resolve
+    })
+    await page.route("**/scoped/sessions**", async (route) => {
+      const url = new URL(route.request().url())
+      if (route.request().method() === "POST" && url.searchParams.get("scope") === "personal") {
+        await createHeld
+      }
+      await route.continue()
+    })
+    await page.getByLabel("Connection ID").fill(seed.personal.connectionId)
+    await page.getByLabel("Session name", { exact: true }).fill(linkedName)
+    await page.getByLabel("WAHA session name").fill(`held-${crypto.randomUUID()}`)
+    const createResponse = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/scoped/sessions" &&
+        new URL(response.url()).searchParams.get("scope") === "personal" &&
+        response.request().method() === "POST",
+    )
+    await page.getByRole("button", { name: "Link session" }).click()
+    await expect(page.getByRole("button", { name: "Linking…" })).toBeVisible()
+
+    const businessSessions = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/scoped/sessions" &&
+        new URL(response.url()).searchParams.get("scope") === "business" &&
+        response.request().method() === "GET",
+    )
+    await page.getByLabel("Account scope").selectOption("business")
+
+    // Then the first Business render remains on Business data before the old request completes
+    expect((await businessSessions).status()).toBe(200)
+    await expect(page.getByLabel("Authorized session")).toHaveValue(seed.business.id)
+    await expect(page.locator("body")).not.toContainText(linkedName)
+
+    releaseCreate()
+    expect((await createResponse).status()).toBe(200)
+    await page.unroute("**/scoped/sessions**")
+    await expect(page.getByLabel("Authorized session")).toHaveValue(seed.business.id)
+    await expect(page.locator("body")).not.toContainText(linkedName)
+  })
+
+  test("uses seeded sessions and keeps AI suggestion scope explicit", async ({ page, seed }) => {
     // Given the global setup supplied authenticated storage state and seed metadata
     const authMe = page.waitForResponse(
       (response) => new URL(response.url()).pathname === "/auth/me",
@@ -54,13 +192,38 @@ test.describe("authenticated dashboard shell", () => {
     await expect(page.locator("#message-session")).toHaveValue(seed.business.id)
     await expect(page.locator("#message-session")).not.toHaveValue(seed.personal.id)
 
-    // Then AI suggestions remain honest until a server-backed suggestion exists
-    const aiNotice = page.locator(".state-notice").filter({ hasText: "AI suggestions unavailable" })
-    await expect(aiNotice).toBeVisible()
-    await expect(aiNotice).not.toHaveAttribute("aria-live")
-    await expect(aiNotice).not.toHaveAttribute("aria-atomic")
-    await expect(page.getByRole("button", { name: "Approve for separate review" })).toHaveCount(0)
+    // Then no local suggestion is fabricated when the server supplies none
+    const aiPanel = page.getByRole("region", { name: "Review before use" })
+    await expect(aiPanel.getByText("AI suggestions unavailable", { exact: true })).toBeVisible()
+    await expect(aiPanel.getByRole("button", { name: "Approve suggestion" })).toHaveCount(0)
     await expect(page.getByRole("button", { name: "Submit immediate text" })).toBeVisible()
+  })
+
+  test("keeps unavailable AI review from creating approval or dispatch requests", async ({
+    page,
+  }) => {
+    // Given an authenticated Operator with no server-backed suggestion available
+    let dispatchRequests = 0
+    let approvalRequests = 0
+    page.on("request", (request) => {
+      const url = new URL(request.url())
+      if (
+        request.method() !== "GET" &&
+        (url.pathname === "/api/sendText" || url.pathname.includes("/messages/"))
+      )
+        dispatchRequests += 1
+      if (url.pathname.includes("/scoped/ai/suggestions/") && url.pathname.endsWith("/approve"))
+        approvalRequests += 1
+    })
+    await page.goto("/")
+    await page.getByRole("button", { name: "Send" }).click()
+    const aiPanel = page.getByRole("region", { name: "Review before use" })
+
+    // Then the unavailable state has no approval action and no network mutation
+    await expect(aiPanel.getByText("AI suggestions unavailable", { exact: true })).toBeVisible()
+    await expect(aiPanel.getByRole("button", { name: "Approve suggestion" })).toHaveCount(0)
+    expect(approvalRequests).toBe(0)
+    expect(dispatchRequests).toBe(0)
   })
 
   test("creates, edits, and cancels a persisted Personal schedule without dispatch", async ({
@@ -148,8 +311,8 @@ test.describe("authenticated dashboard shell", () => {
       await expect(scheduleDetail).toBeVisible()
       await expect(scheduleDetail.getByRole("button", { name: "Save schedule" })).toBeVisible()
       await expect(scheduleDetail.getByRole("button", { name: "Cancel schedule" })).toBeVisible()
-      await expect(page.locator(".button-row")).toHaveCSS("display", "flex")
-      await expect(page.locator(".button-row")).toHaveCSS("flex-wrap", "wrap")
+      await expect(scheduleDetail.locator(".button-row")).toHaveCSS("display", "flex")
+      await expect(scheduleDetail.locator(".button-row")).toHaveCSS("flex-wrap", "wrap")
       const layout = await schedulesPanel.evaluate((element) => ({
         contentWidth: element.scrollWidth,
         viewportWidth: element.clientWidth,
@@ -406,6 +569,45 @@ test.describe("authenticated dashboard shell", () => {
     await expect(page.getByRole("button", { name: "Reload failure history" })).toBeVisible()
   })
 
+  test("hydrates the masked notification settings projection after reload", async ({ page }) => {
+    // Given an authenticated Admin with provider settings stored through the real route
+    await page.goto("/")
+    await page.getByRole("button", { name: "Notifications" }).click()
+    await page.getByLabel("Email host").fill("smtp.example.invalid")
+    await page.getByLabel("Email username").fill("disabled-user")
+    await page.getByLabel("Email password").fill("fixture-password")
+    await page.getByLabel("Email from").fill("e2e@example.invalid")
+    await page.getByLabel("Telegram bot token").fill("fixture-token")
+    await page.getByLabel("Telegram chat IDs").fill("chat-id")
+    const saveSettings = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/admin/notifications/personal/settings" &&
+        response.request().method() === "PUT",
+    )
+    await page.getByRole("button", { name: "Save provider settings" }).click()
+    const saved = await saveSettings
+    const savedBody = await saved.text()
+
+    // Then the response remains masked and content-free
+    expect(saved.status()).toBe(200)
+    expect(savedBody).not.toContain("fixture-password")
+    expect(savedBody).not.toContain("fixture-token")
+    await expect(page.getByLabel("Email password")).toHaveValue(/^••••••••/)
+    await expect(page.getByLabel("Telegram bot token")).toHaveValue(/^••••••••/)
+
+    // When the Admin returns to the notification page after a fresh authenticated read
+    await page.reload()
+    await page.getByRole("button", { name: "Notifications" }).click()
+
+    // Then safe non-secret fields and masked credentials are bound to the form
+    await expect(page.getByLabel("Email host")).toHaveValue("smtp.example.invalid")
+    await expect(page.getByLabel("Email username")).toHaveValue("disabled-user")
+    await expect(page.getByLabel("Email from")).toHaveValue("e2e@example.invalid")
+    await expect(page.getByLabel("Email password")).toHaveValue(/^••••••••/)
+    await expect(page.getByLabel("Telegram bot token")).toHaveValue(/^••••••••/)
+    await expect(page.getByLabel("Telegram chat IDs")).toHaveValue(/^••••••••/)
+  })
+
   test("requires retention preview before cancel or confirm and completes the scoped purge", async ({
     page,
   }) => {
@@ -425,7 +627,10 @@ test.describe("authenticated dashboard shell", () => {
     await page.getByRole("button", { name: "Preview before purge" }).click()
 
     // Then the server supplies the confirmation data and both gates appear
-    expect((await preview).status()).toBe(200)
+    const previewResponse = await preview
+    expect(previewResponse.status()).toBe(200)
+    expect(previewResponse.request().headers()["x-csrf-token"]).toBeTruthy()
+    expect((await previewResponse.request().allHeaders()).origin).toBe(new URL(page.url()).origin)
     await expect(page.getByText("Preview ready", { exact: true })).toBeVisible()
     await expect(page.getByRole("button", { name: "Confirm selected purge" })).toBeVisible()
     await expect(page.getByRole("button", { name: "Cancel preview" })).toBeVisible()
@@ -440,6 +645,29 @@ test.describe("authenticated dashboard shell", () => {
     // When a fresh preview is explicitly confirmed
     await page.getByRole("button", { name: "Preview before purge" }).click()
     await expect(page.getByRole("button", { name: "Confirm selected purge" })).toBeVisible()
+    const stalePreviewPurge = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/admin/retention/personal/purge" &&
+        response.request().method() === "POST",
+    )
+    const previewCategory = page
+      .locator("label")
+      .filter({ hasText: "Preview category" })
+      .locator("select")
+    await previewCategory.selectOption("contacts")
+    await page.getByRole("button", { name: "Confirm selected purge" }).click()
+
+    // Then a mismatched category fails closed without deleting the previewed scope
+    const staleResponse = await stalePreviewPurge
+    expect(staleResponse.status()).toBe(409)
+    expect(staleResponse.request().headers()["x-csrf-token"]).toBeTruthy()
+    expect((await staleResponse.request().allHeaders()).origin).toBe(new URL(page.url()).origin)
+    await expect(page.getByText("Purge unavailable", { exact: true })).toBeVisible()
+
+    // When the Admin requests a new matching preview after the failed mismatch
+    await previewCategory.selectOption("messages")
+    await page.getByRole("button", { name: "Preview before purge" }).click()
+    await expect(page.getByRole("button", { name: "Confirm selected purge" })).toBeVisible()
     const purge = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname === "/admin/retention/personal/purge" &&
@@ -448,7 +676,10 @@ test.describe("authenticated dashboard shell", () => {
     await page.getByRole("button", { name: "Confirm selected purge" }).click()
 
     // Then the authenticated backend completes the confirmed scoped operation
-    expect((await purge).status()).toBe(200)
+    const purgeResponse = await purge
+    expect(purgeResponse.status()).toBe(200)
+    expect(purgeResponse.request().headers()["x-csrf-token"]).toBeTruthy()
+    expect((await purgeResponse.request().allHeaders()).origin).toBe(new URL(page.url()).origin)
     await expect(page.getByText("Purge completed", { exact: true })).toBeVisible()
   })
 

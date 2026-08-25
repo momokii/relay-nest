@@ -2,6 +2,8 @@ import { writeFile } from "node:fs/promises"
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http"
 import { z } from "zod"
 
+import { seedScheduleStates } from "./seed-schedules"
+
 const scopes = ["personal", "business"] as const
 export const seedMetadataPath = ".tmp/playwright/seed.json"
 const e2eRecipientPhone = "+15551234567"
@@ -9,6 +11,7 @@ const e2eRecipientChatId = "e2e-schedule-recipient@c.us"
 
 const sessionMetadataSchema = z.object({
   id: z.string().uuid(),
+  connectionId: z.string().uuid(),
   name: z.string().min(1),
   wahaSessionName: z.string().min(1),
 })
@@ -106,6 +109,13 @@ export async function seedE2EData(
           optedOut: false,
           consentUpdatedAt: new Date(),
         })
+        if (session.scope === "personal")
+          await seedScheduleStates({
+            repositories,
+            database,
+            sessionId: stored.id,
+            accountScope: "personal",
+          })
         for (const category of RETENTION_CATEGORIES) {
           await repositories.retentionPolicies.upsert({
             accountScope: session.scope,
@@ -115,6 +125,7 @@ export async function seedE2EData(
         }
         metadata[session.scope] = {
           id: stored.id,
+          connectionId: connection.id,
           name: stored.name,
           wahaSessionName: stored.wahaSessionName,
         }
@@ -182,6 +193,15 @@ function handleWahaRequest(
   recipientPhone: string,
   server: ReturnType<typeof createServer>,
 ): void {
+  if (request.url === "/api/sessions" && request.method === "POST") {
+    sendJson(response, 200, {
+      name: `created-${crypto.randomUUID()}`,
+      presence: {},
+      timestamps: { activity: null },
+      status: "STARTING",
+    })
+    return
+  }
   if (request.url === "/api/sessions" && request.method === "GET") {
     sendJson(
       response,

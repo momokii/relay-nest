@@ -1,5 +1,5 @@
 import { type ChildProcess, execFile, spawn } from "node:child_process"
-import { mkdir, writeFile } from "node:fs/promises"
+import { mkdir, rm, writeFile } from "node:fs/promises"
 import { promisify } from "node:util"
 
 import { type FullConfig, request as playwrightRequest } from "@playwright/test"
@@ -85,6 +85,7 @@ export default async function globalSetup(_config: FullConfig): Promise<void> {
     }
     if (seedRuntime !== undefined) await stopWahaFixture(seedRuntime.wahaPort)
     await stopDatabase(database.containerName)
+    await rm(stateDirectory, { recursive: true, force: true })
     throw error
   }
 }

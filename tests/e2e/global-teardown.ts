@@ -18,6 +18,7 @@ export default async function globalTeardown(): Promise<void> {
   const lifecycle = await readFile(lifecyclePath, "utf8")
     .then((value) => lifecycleSchema.parse(JSON.parse(value)))
     .catch(() => undefined)
+  if (lifecycle === undefined) return
   if (lifecycle?.apiPid !== undefined) {
     try {
       process.kill(-lifecycle.apiPid, "SIGTERM")
