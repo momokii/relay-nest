@@ -13,7 +13,7 @@ import "./styles.css"
 export function App(): React.JSX.Element {
   const dashboard = useDashboardController()
   const admin = useDashboardAdminController()
-  const session = useDashboardSessionController()
+  const session = useDashboardSessionController(dashboard.scope)
   const schedule = useDashboardScheduleController(dashboard.scope, dashboard.sessions)
   const operations = useDashboardOperationsController(dashboard.scope, dashboard.role)
   if (!dashboard.activePrincipal) return <AuthBoundary state={dashboard.principal} />
@@ -44,6 +44,12 @@ export function App(): React.JSX.Element {
         {...session}
         {...schedule}
         {...operations}
+        onCreateSession={async (scope, input) => {
+          const request = dashboard.currentScopeRequest
+          if (request.scope !== scope) return
+          const created = await session.createSession(request.scope, input)
+          if (created) await dashboard.refreshSessions(request)
+        }}
         onLifecycle={session.lifecycleSession}
         onLoadHistory={session.loadSessionHistory}
       />

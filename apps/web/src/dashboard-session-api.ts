@@ -15,7 +15,7 @@ const historySchema = z.array(z.object({ status: z.string(), observedAt: z.strin
 const metadataSchema = z.object({ id: z.string().optional(), pushname: z.string().optional() })
 const qrSchema = z.object({ value: z.string() })
 const acceptedSchema = z.object({ accepted: z.literal(true) })
-const createSessionSchema = z.object({
+export const createSessionSchema = z.object({
   connectionId: z.string().uuid(),
   name: z.string().min(1),
   wahaSessionName: z.string().min(1),
