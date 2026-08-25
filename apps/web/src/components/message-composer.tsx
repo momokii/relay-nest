@@ -1,14 +1,17 @@
 import type * as React from "react"
-import { type FormEvent, useState } from "react"
+import { type FormEvent, useMemo, useState } from "react"
 
+import type { AiApprovalResult } from "../dashboard-ai-api"
+import { createDashboardAiApi } from "../dashboard-ai-api"
 import type { ScheduleInput, SendInput, SendResult, SessionView } from "../dashboard-api"
 import {
   type AccountScope,
+  type AiSuggestion,
   canPerform,
   type DashboardRole,
   validateMessageInput,
 } from "../dashboard-model"
-import type { ActionState, ResourceState } from "../dashboard-state"
+import { type ActionState, actionFromResult, type ResourceState } from "../dashboard-state"
 import { ActionFeedback } from "./action-feedback"
 import { AiReviewPanel } from "./ai-review-panel"
 import { LoadingRows, Panel, StateNotice } from "./ui"
@@ -19,6 +22,7 @@ export function MessageComposer({
   role,
   sessions,
   action,
+  suggestion,
   onSend,
   onSchedule,
 }: Readonly<{
@@ -27,6 +31,7 @@ export function MessageComposer({
   role: DashboardRole
   sessions: ResourceState<readonly SessionView[]>
   action: ActionState<SendResult>
+  suggestion?: AiSuggestion | undefined
   onSend: (input: SendInput) => Promise<void>
   onSchedule: (input: ScheduleInput) => Promise<void>
 }>): React.JSX.Element {
@@ -37,6 +42,8 @@ export function MessageComposer({
   const [scheduledFor, setScheduledFor] = useState("")
   const [timezone, setTimezone] = useState("UTC")
   const [validationError, setValidationError] = useState<string | undefined>()
+  const [aiApproval, setAiApproval] = useState<ActionState<AiApprovalResult>>({ kind: "idle" })
+  const aiApi = useMemo(() => createDashboardAiApi(import.meta.env.VITE_API_BASE_URL), [])
   const sessionOptions =
     sessions.kind === "ready"
       ? sessions.data.filter((session) => session.accountScope === scope)
@@ -80,6 +87,16 @@ export function MessageComposer({
     }
     void onSchedule({ ...common, scheduledFor, timezone })
   }
+
+  async function approveAi(suggestion: AiSuggestion): Promise<void> {
+    setAiApproval({ kind: "submitting" })
+    setAiApproval(
+      actionFromResult(
+        await aiApi.approve(scope, suggestion.id, suggestion.provider, suggestion.kind),
+      ),
+    )
+  }
+
   return (
     <div className="form-stack">
       <Panel
@@ -205,7 +222,13 @@ export function MessageComposer({
           <ActionFeedback action={action} />
         </form>
       </Panel>
-      <AiReviewPanel />
+      <AiReviewPanel
+        scope={scope}
+        role={role}
+        suggestion={suggestion}
+        approval={aiApproval}
+        onApprove={approveAi}
+      />
     </div>
   )
 }
