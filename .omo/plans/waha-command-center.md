@@ -214,7 +214,7 @@ this plan and must be copied into the durable project decision document by Todo 
   QA scenarios (name the exact tool + invocation): happy: `pnpm test -- analytics`; failure: cross-session query and incomplete acknowledgment fixture cannot leak or overstate delivery. Evidence `.omo/evidence/task-13-waha-command-center.md`.
   Commit: N | no commit until explicitly requested
 
-- [ ] 14. Build the authenticated dashboard UI and human-approved AI seam
+- [x] 14. Build the authenticated dashboard UI and human-approved AI seam
   What to do / Must NOT do: Create responsive dashboard navigation for sessions, Personal/Business scope, contacts, immediate send, scheduling, job detail, analytics, notifications, retention, users, and settings; expose Admin-only controls and warnings. Add provider-agnostic AI interface for summaries/classification/draft suggestions with explicit approval, but no autonomous send. Must not build full inbox, media composer, campaigns, or raw unrestricted API UI.
   Parallelization: Wave 4 | Blocked by: 5, 7, 9, 10, 11, 13 | Blocks: 16
   References (executor has NO interview context - be exhaustive): `## Locked product decisions` in this plan; `.claude/README.md`; `.claude/SECURITY_STANDARDS.md`; `docs/waha-capability-matrix.md`
