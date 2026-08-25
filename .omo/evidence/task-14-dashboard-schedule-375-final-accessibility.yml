@@ -12,7 +12,7 @@
   - paragraph: Durable jobs · personal
   - heading "One-time scheduling" [level=1]
   - paragraph: Record one future dispatch with an explicit timezone and no recurrence.
-  - text: e2e-61251ca5-db92-451d-bb03-97c0ddda6e36@example.invalid
+  - text: e2e-24164df3-f033-4a8b-8546-0bbf4c5f00ba@example.invalid
   - strong: admin access
   - region "Schedule one text":
     - paragraph: Durable one-time job
@@ -21,7 +21,7 @@
     - text: Authorized session
     - combobox "Authorized session":
       - option "Select a session"
-      - option "e2e-personal-session-d75f768a-ceff-446a-93d8-764bc7f2155e" [selected]
+      - option "e2e-personal-session-bad03896-1cd4-4560-b8d8-6272ee473573" [selected]
     - text: Recipient phone number
     - textbox "Recipient phone number Country code required. The server performs final contact and consent checks."
     - text: Country code required. The server performs final contact and consent checks. Text message
@@ -43,20 +43,19 @@
     - paragraph: Summaries, classifications, and drafts are suggestions only. No AI action can send a message.
     - text: Unavailable
     - strong: AI suggestions unavailable
-    - text: No server-backed suggestion is available for this scope. Nothing is shown or approved locally.
+    - text: No scoped suggestion is available for this dashboard. Nothing is shown or approved locally.
   - region "Schedules":
     - paragraph: Durable jobs
     - heading "Schedules" [level=2]
     - paragraph: List, inspect, edit, or cancel one-time jobs in this scope.
     - text: Schedule session
     - combobox "Schedule session":
-      - option "e2e-personal-session-d75f768a-ceff-446a-93d8-764bc7f2155e" [selected]
+      - option "e2e-personal-session-bad03896-1cd4-4560-b8d8-6272ee473573" [selected]
     - text: Schedule
     - combobox "Schedule":
-      - option "scheduled · 1/1/2099, 12:00:00 PM" [selected]
-    - text: State · scheduled Scheduled for
-    - textbox "Scheduled for": 2099-01-01T05:00:00.000Z
-    - text: Timezone
-    - textbox "Timezone": UTC
-    - button "Save schedule"
-    - button "Cancel schedule"
+      - option "cancelled · 1/2/2099, 7:00:00 PM" [selected]
+      - option "submitted · 12/30/2099, 7:00:00 AM"
+      - option "unknown · 12/31/2099, 7:00:00 AM"
+    - text: State · cancelled
+    - strong: Schedule is locked
+    - text: This schedule is no longer editable or cancellable.
