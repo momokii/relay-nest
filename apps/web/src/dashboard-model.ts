@@ -55,6 +55,7 @@ export type AiSendState = "not_sent"
 export type AiSuggestion = {
   readonly id: string
   readonly kind: "summary" | "classification" | "draft"
+  readonly provider: string
   readonly text: string
   readonly provenance: string
   readonly status: AiSuggestionStatus
@@ -67,6 +68,7 @@ export type AiSuggestion = {
 type AiSuggestionInput = Readonly<{
   id: string
   kind: AiSuggestion["kind"]
+  provider: string
   text: string
   provenance: string
 }>
