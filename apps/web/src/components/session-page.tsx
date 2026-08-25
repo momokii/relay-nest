@@ -2,9 +2,14 @@ import type * as React from "react"
 import { useState } from "react"
 
 import type { SessionView } from "../dashboard-api"
-import type { AccountScope } from "../dashboard-model"
-import type { SessionLifecycleAction, SessionStatusHistory } from "../dashboard-session-api"
+import type { AccountScope, DashboardRole } from "../dashboard-model"
+import type {
+  SessionCreateInput,
+  SessionLifecycleAction,
+  SessionStatusHistory,
+} from "../dashboard-session-api"
 import type { ActionState, ResourceState } from "../dashboard-state"
+import { SessionLinkForm } from "./session-link-form"
 import { Panel, StateNotice, StatusBadge } from "./ui"
 
 function SessionActionFeedback<T>({
@@ -41,16 +46,22 @@ function SessionActionFeedback<T>({
 
 export function SessionsPage({
   scope,
+  role,
   sessions,
+  createAction,
   lifecycleAction,
   historyAction,
+  onCreate,
   onLifecycle,
   onLoadHistory,
 }: Readonly<{
   scope: AccountScope
+  role: DashboardRole
   sessions: ResourceState<readonly SessionView[]>
+  createAction: ActionState<SessionView>
   lifecycleAction: ActionState<SessionView | null>
   historyAction: ActionState<readonly SessionStatusHistory[]>
+  onCreate: (scope: AccountScope, input: SessionCreateInput) => Promise<void>
   onLifecycle: (
     scope: AccountScope,
     sessionId: string,
@@ -175,12 +186,27 @@ export function SessionsPage({
           </div>
         ) : null}
       </Panel>
-      <Panel eyebrow="Linking floor" title="Session linking" tone="inset">
-        <StateNotice
-          title="Connection capability unavailable"
-          message="The UI does not expose raw WAHA controls or credentials. Admin linking still requires the server-side connection route and capability result."
-          tone="warning"
-        />
+      <Panel
+        eyebrow="Admin transport setup"
+        title="Link a session"
+        description="Create a server-backed session in the currently selected account scope. Provider credentials stay server-side."
+        tone="inset"
+      >
+        {role === "admin" ? (
+          <>
+            <SessionLinkForm key={scope} scope={scope} action={createAction} onSubmit={onCreate} />
+            <SessionActionFeedback
+              action={createAction}
+              readyMessage="The session was linked in this scope; provider status remains separately observable."
+            />
+          </>
+        ) : (
+          <StateNotice
+            title="Role denied"
+            message="Only an Admin in the selected scope can link a session."
+            tone="warning"
+          />
+        )}
       </Panel>
     </div>
   )

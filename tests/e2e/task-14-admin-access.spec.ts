@@ -135,6 +135,27 @@ test("Admin creates, scopes, and disables a temporary Operator", async ({
     expect(personalAccess.status()).toBe(200)
     expect(await personalAccess.json()).toEqual([])
 
+    const operatorPage = await operatorContext.newPage()
+    try {
+      // When the scoped Operator opens Admin-only dashboard destinations
+      await operatorPage.goto("/")
+      await operatorPage.getByRole("button", { name: "Notifications" }).click()
+
+      // Then provider settings are denied without rendering controls or settings
+      await expect(operatorPage.getByText("Role denied", { exact: true })).toBeVisible()
+      await expect(
+        operatorPage.getByRole("button", { name: "Save provider settings" }),
+      ).toHaveCount(0)
+
+      await operatorPage.getByRole("button", { name: "Retention" }).click()
+      await expect(operatorPage.getByText("Role denied", { exact: true })).toBeVisible()
+      await expect(
+        operatorPage.getByRole("button", { name: "Confirm selected purge" }),
+      ).toHaveCount(0)
+    } finally {
+      await operatorPage.close()
+    }
+
     // Then the Personal grant cannot be reused against the Business session
     const businessAccess = await operatorContext.request.get(
       `/scoped/sessions/${seed.business.id}/status-history?scope=business`,
