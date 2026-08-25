@@ -1,18 +1,27 @@
 import type * as React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import type { AccountScope } from "../dashboard-model"
-import type { NotificationSettingsInput } from "../dashboard-notification-api"
+import type { NotificationSettings, NotificationSettingsInput } from "../dashboard-notification-api"
 import type { ActionState } from "../dashboard-state"
 import { StateNotice } from "./ui"
 
+export function notificationSettingsForScope(
+  settings: NotificationSettings | undefined,
+  scope: AccountScope,
+): NotificationSettings | undefined {
+  return settings?.accountScope === scope ? settings : undefined
+}
+
 export function NotificationSettingsForm({
   scope,
+  settings,
   action,
   onSave,
 }: Readonly<{
   scope: AccountScope
-  action: ActionState<unknown>
+  settings: NotificationSettings | undefined
+  action: ActionState<NotificationSettings>
   onSave: (scope: AccountScope, input: NotificationSettingsInput) => Promise<void>
 }>): React.JSX.Element {
   const [emailEnabled, setEmailEnabled] = useState(false)
@@ -24,6 +33,22 @@ export function NotificationSettingsForm({
   const [telegramEnabled, setTelegramEnabled] = useState(false)
   const [botToken, setBotToken] = useState("")
   const [chatIds, setChatIds] = useState("")
+
+  const displayedSettings =
+    (action.kind === "ready" ? notificationSettingsForScope(action.data, scope) : undefined) ??
+    notificationSettingsForScope(settings, scope)
+
+  useEffect(() => {
+    setEmailEnabled(displayedSettings?.email.enabled ?? false)
+    setHost(displayedSettings?.email.host ?? "")
+    setPort(String(displayedSettings?.email.port ?? 465))
+    setUsername(displayedSettings?.email.username ?? "")
+    setPassword(displayedSettings?.email.password ?? "")
+    setFrom(displayedSettings?.email.from ?? "")
+    setTelegramEnabled(displayedSettings?.telegram.enabled ?? false)
+    setBotToken(displayedSettings?.telegram.botToken ?? "")
+    setChatIds(displayedSettings?.telegram.chatIds?.join(", ") ?? "")
+  }, [displayedSettings])
 
   const submit = (event: React.FormEvent<HTMLFormElement>): void => {
     event.preventDefault()

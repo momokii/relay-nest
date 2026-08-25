@@ -1,6 +1,5 @@
 import type * as React from "react"
 
-import type { NotificationSettings as DashboardNotificationSettings } from "../dashboard-api"
 import type { AccountScope, DashboardRole } from "../dashboard-model"
 import type {
   NotificationHistoryEntry,
@@ -29,7 +28,7 @@ export function NotificationsPage({
 }: Readonly<{
   scope: AccountScope
   role: DashboardRole
-  notifications: ResourceState<DashboardNotificationSettings>
+  notifications: ResourceState<NotificationSettings>
   notificationHistory: ResourceState<readonly NotificationHistoryEntry[]>
   notificationSettingsAction: ActionState<NotificationSettings>
   notificationPreferencesAction: ActionState<null>
@@ -80,6 +79,7 @@ export function NotificationsPage({
       <Panel eyebrow="Provider settings" title="Admin notification controls" tone="inset">
         <NotificationSettingsForm
           scope={scope}
+          settings={settings}
           action={notificationSettingsAction}
           onSave={onSaveSettings}
         />
