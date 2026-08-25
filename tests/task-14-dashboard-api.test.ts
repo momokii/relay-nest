@@ -5,6 +5,7 @@ import { createDashboardAuthApi } from "../apps/web/src/dashboard-auth-api"
 import { createDashboardNotificationApi } from "../apps/web/src/dashboard-notification-api"
 import { createDashboardRetentionApi } from "../apps/web/src/dashboard-retention-api"
 import { createDashboardScheduleApi } from "../apps/web/src/dashboard-schedule-api"
+import { createDashboardSessionApi } from "../apps/web/src/dashboard-session-api"
 
 const sessionId = "11111111-1111-4111-8111-111111111111"
 const jobId = "22222222-2222-4222-8222-222222222222"
@@ -15,6 +16,104 @@ function response(body: unknown, status = 200): Response {
 }
 
 describe("Todo 14 authenticated dashboard adapters", () => {
+  it("characterizes the existing scoped lifecycle adapter contract", async () => {
+    // Given an authenticated lifecycle response for a scoped session
+    const fetchMock = vi.fn().mockResolvedValue(
+      response({
+        id: sessionId,
+        accountScope: "personal",
+        name: "Personal fixture",
+        status: "WORKING",
+        serviceHealth: "unknown",
+        sendingReadiness: "unknown",
+      }),
+    )
+    vi.stubGlobal("document", { cookie: "waha_csrf=csrf-token" })
+    vi.stubGlobal("fetch", fetchMock)
+
+    // When an operator starts the selected session
+    const result = await createDashboardSessionApi().lifecycle(
+      "personal",
+      sessionId,
+      "start",
+      false,
+    )
+
+    // Then the existing same-origin contract remains unchanged
+    expect(result.kind).toBe("ready")
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/scoped/sessions/${sessionId}/lifecycle?scope=personal`,
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ action: "start", confirmed: false }),
+        headers: expect.objectContaining({ "x-csrf-token": "csrf-token" }),
+      }),
+    )
+    vi.unstubAllGlobals()
+  })
+
+  it("characterizes the existing scoped session-create adapter contract", async () => {
+    // Given an authenticated session-create response for the selected scope
+    const fetchMock = vi.fn().mockResolvedValue(
+      response({
+        id: sessionId,
+        accountScope: "business",
+        name: "Business fixture",
+        status: "STARTING",
+        serviceHealth: "unknown",
+        sendingReadiness: "unknown",
+      }),
+    )
+    vi.stubGlobal("document", { cookie: "waha_csrf=csrf-token" })
+    vi.stubGlobal("fetch", fetchMock)
+
+    // When the Admin creates a Business session
+    const result = await createDashboardSessionApi().create("business", {
+      connectionId: "44444444-4444-4444-8444-444444444444",
+      name: "Business fixture",
+      wahaSessionName: "business-fixture",
+    })
+
+    // Then the existing request stays scoped and CSRF-protected
+    expect(result.kind).toBe("ready")
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/scoped/sessions?scope=business",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          connectionId: "44444444-4444-4444-8444-444444444444",
+          name: "Business fixture",
+          wahaSessionName: "business-fixture",
+        }),
+        headers: expect.objectContaining({ "x-csrf-token": "csrf-token" }),
+      }),
+    )
+    vi.unstubAllGlobals()
+  })
+
+  it("characterizes the existing notification settings response boundary", async () => {
+    // Given an authenticated redacted Business notification settings response
+    const fetchMock = vi.fn().mockResolvedValue(
+      response({
+        accountScope: "business",
+        email: { enabled: true, configured: true, host: null, port: null },
+        telegram: { enabled: false, configured: false, chatIds: [] },
+      }),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    // When settings are loaded for Business
+    const result = await createDashboardNotificationApi().getSettings("business")
+
+    // Then the response keeps its server-declared scope
+    expect(result).toMatchObject({ kind: "ready", data: { accountScope: "business" } })
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/admin/notifications/business/settings",
+      expect.anything(),
+    )
+    vi.unstubAllGlobals()
+  })
+
   it("lists scoped schedules through the backend contract", async () => {
     // Given an authenticated schedule response for one session
     const fetchMock = vi.fn().mockResolvedValue(

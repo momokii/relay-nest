@@ -1,9 +1,14 @@
 import type * as React from "react"
 import { useState } from "react"
 
-import type { RetentionPolicy, RetentionPreview } from "../dashboard-api"
 import type { AccountScope, DashboardRole } from "../dashboard-model"
-import type { RetentionPolicyInput } from "../dashboard-retention-api"
+import {
+  RETENTION_CATEGORIES,
+  type RetentionCategory,
+  type RetentionPolicy,
+  type RetentionPolicyInput,
+  type RetentionPreview,
+} from "../dashboard-retention-api"
 import type { ActionState, ResourceState } from "../dashboard-state"
 import { RetentionPolicyForm } from "./retention-policy-form"
 import { Divider, Panel, StateNotice, StatusBadge } from "./ui"
@@ -24,12 +29,12 @@ export function RetentionPage({
   scope: AccountScope
   role: DashboardRole
   retention: ResourceState<readonly RetentionPolicy[]>
-  onPreview: (scope: AccountScope, category: string) => Promise<void>
+  onPreview: (scope: AccountScope, category: RetentionCategory) => Promise<void>
   purgePreview: ActionState<RetentionPreview>
   onPurge: (
     scope: AccountScope,
     input: Readonly<{
-      category: string
+      category: RetentionCategory
       cutoff: string
       previewCount: number
       previewToken: string
@@ -40,7 +45,7 @@ export function RetentionPage({
   onUpdatePolicy: (scope: AccountScope, input: RetentionPolicyInput) => Promise<void>
   onCancelPreview: () => void
 }>): React.JSX.Element {
-  const [category, setCategory] = useState("messages")
+  const [category, setCategory] = useState<RetentionCategory>("messages")
   if (role !== "admin")
     return (
       <Panel eyebrow="Admin only" title="Retention">
@@ -78,7 +83,15 @@ export function RetentionPage({
         <Divider />
         <label>
           <span>Preview category</span>
-          <select value={category} onChange={(event) => setCategory(event.target.value)}>
+          <select
+            value={category}
+            onChange={(event) => {
+              const next = RETENTION_CATEGORIES.find(
+                (candidate) => candidate === event.target.value,
+              )
+              if (next) setCategory(next)
+            }}
+          >
             <option value="messages">Messages</option>
             <option value="contacts">Contacts</option>
             <option value="events">Events</option>

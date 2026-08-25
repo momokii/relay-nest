@@ -4,17 +4,25 @@ import type { AdminCreateUserInput, AdminGrantInput, AdminUser } from "../dashbo
 import type {
   AnalyticsView,
   ContactView,
-  NotificationSettings,
   Principal,
-  RetentionPolicy,
-  RetentionPreview,
   ScheduleInput,
   SendInput,
   SendResult,
   SessionView,
 } from "../dashboard-api"
 import type { AccountScope, DashboardRole, DashboardViewId } from "../dashboard-model"
-import type { SessionLifecycleAction, SessionStatusHistory } from "../dashboard-session-api"
+import type { NotificationSettings } from "../dashboard-notification-api"
+import type {
+  RetentionCategory,
+  RetentionPolicy,
+  RetentionPreview,
+  RetentionPurgeInput,
+} from "../dashboard-retention-api"
+import type {
+  SessionCreateInput,
+  SessionLifecycleAction,
+  SessionStatusHistory,
+} from "../dashboard-session-api"
 import type { ActionState, ResourceState } from "../dashboard-state"
 import type { DashboardOperationsController } from "../operations-controller"
 import type { DashboardScheduleController } from "../schedule-controller"
@@ -42,20 +50,13 @@ export type DashboardViewProps = Readonly<
       grantAction: ActionState<null>
       disableAction: ActionState<null>
       sessionLifecycleAction: ActionState<SessionView | null>
+      sessionCreateAction: ActionState<SessionView>
       sessionHistoryAction: ActionState<readonly SessionStatusHistory[]>
       onSend: (input: SendInput) => Promise<void>
       onSchedule: (input: ScheduleInput) => Promise<void>
       onResolveContact: (scope: AccountScope, sessionId: string, recipient: string) => Promise<void>
-      onPreviewPurge: (scope: AccountScope, category: string) => Promise<void>
-      onPurge: (
-        scope: AccountScope,
-        input: Readonly<{
-          category: string
-          cutoff: string
-          previewCount: number
-          previewToken: string
-        }>,
-      ) => Promise<void>
+      onPreviewPurge: (scope: AccountScope, category: RetentionCategory) => Promise<void>
+      onPurge: (scope: AccountScope, input: Omit<RetentionPurgeInput, "confirmed">) => Promise<void>
       onCreateUser: (input: AdminCreateUserInput) => Promise<void>
       onCreateGrant: (input: AdminGrantInput) => Promise<void>
       onDisableUser: (userId: string) => Promise<void>
@@ -65,6 +66,7 @@ export type DashboardViewProps = Readonly<
         action: SessionLifecycleAction,
         confirmed: boolean,
       ) => Promise<void>
+      onCreateSession: (scope: AccountScope, input: SessionCreateInput) => Promise<void>
       onLoadHistory: (scope: AccountScope, sessionId: string) => Promise<void>
     }
 >

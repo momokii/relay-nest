@@ -33,6 +33,7 @@ describe("Todo 14 dashboard model", () => {
     const suggestion = createAiApproval({
       id: "suggestion-1",
       kind: "draft",
+      provider: "provider-under-test",
       text: "A human-reviewed draft",
       provenance: "Provider unavailable; provenance unknown",
     })

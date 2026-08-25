@@ -37,9 +37,11 @@ type PageContext = Pick<
   | "createUserAction"
   | "grantAction"
   | "disableAction"
+  | "sessionCreateAction"
   | "onCreateUser"
   | "onCreateGrant"
   | "onDisableUser"
+  | "onCreateSession"
   | "sessionLifecycleAction"
   | "sessionHistoryAction"
   | "onLifecycle"
@@ -81,10 +83,14 @@ export function renderDashboardPage(
     case "sessions":
       return (
         <SessionsPage
+          key={context.scope}
           scope={context.scope}
+          role={context.role}
           sessions={context.sessions}
+          createAction={context.sessionCreateAction}
           lifecycleAction={context.sessionLifecycleAction}
           historyAction={context.sessionHistoryAction}
+          onCreate={context.onCreateSession}
           onLifecycle={context.onLifecycle}
           onLoadHistory={context.onLoadHistory}
         />
@@ -136,9 +142,10 @@ export function renderDashboardPage(
     case "notifications":
       return (
         <NotificationsPage
+          key={context.scope}
           scope={context.scope}
           role={context.role}
-          notifications={context.notifications}
+          notifications={notificationStateForScope(context.notifications, context.scope)}
           notificationHistory={context.notificationHistory}
           notificationSettingsAction={context.notificationSettingsAction}
           notificationPreferencesAction={context.notificationPreferencesAction}
@@ -181,6 +188,14 @@ export function renderDashboardPage(
     default:
       return assertNever(view)
   }
+}
+
+function notificationStateForScope(
+  state: DashboardViewProps["notifications"],
+  scope: DashboardViewProps["scope"],
+): DashboardViewProps["notifications"] {
+  if (state.kind === "ready" && state.data.accountScope !== scope) return { kind: "loading" }
+  return state
 }
 
 export function pageDefinition(
