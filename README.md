@@ -41,17 +41,21 @@ Personal and Business scopes are enforced server-side in authorization,
 queries, retention, backups, analytics, and audit records. HTTP acceptance or
 WAHA `WORKING` status is not recipient-delivery proof.
 
-Supported deployment modes are dashboard-only with an external WAHA service and
-bundled WAHA (`docker-compose.external-waha.yml`,
-`docker-compose.bundled-waha.yml`, and `docker-compose.yml`). Public deployment
-requires reverse-proxy HTTPS/TLS, firewall restrictions, hardened cookies and
-headers, rate limiting, and an explicit threat-model review.
+The repository defines dashboard-only external-WAHA and bundled-WAHA Compose
+configurations (`docker-compose.external-waha.yml`,
+`docker-compose.bundled-waha.yml`, and `docker-compose.yml`). External mode is
+the verified operational path. Bundled mode is deliberately fail-closed until
+the exact image and a supported secret boundary are runtime-verified. Public
+deployment requires reverse-proxy HTTPS/TLS, firewall restrictions, hardened
+cookies and headers, rate limiting, and an explicit threat-model review.
 
 ## Setup and verification
 
 Use the pinned Node/pnpm toolchain and lockfile. Copy `.env.example`, provide
-local secrets, and choose a Compose mode. Do not expose real secrets in source,
-fixtures, logs, browser storage, or evidence.
+local secrets, and choose a Compose mode. The exact Compose commands, secret
+precedence, health semantics, persistence, backup, and cleanup procedures are in
+`docs/operations.md`. Do not expose real secrets in source, fixtures, logs,
+browser storage, or evidence.
 
 Common checks:
 
