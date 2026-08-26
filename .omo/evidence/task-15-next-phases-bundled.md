@@ -155,3 +155,143 @@ process starts. This removes the prior resolved-config credential exposure but
 does not make bundled runtime acceptance pass. The exact image remains
 manifest-unavailable and the profile remains blocked pending a verified image
 and supported secret boundary.
+
+## Re-verification — 2026-08-26
+
+### DoneClaim
+
+- **Claim:** Slice 8 was re-verified without changing product code, protected
+  plans, the execution ledger, committing, or pushing.
+- **Exact image:** `devlikeapro/waha:2026.8.1` remains unavailable from Docker
+  Hub using Docker context `default`, Docker client/server `29.3.1`.
+- **Bundled runtime:** Not started because the exact image prerequisite failed.
+- **Secret boundary:** Upstream WAHA security documentation and the exact
+  upstream `core` entrypoint source support environment-based
+  `WAHA_API_KEY`/`WHATSAPP_API_KEY` handling, including plaintext and
+  `sha512:` forms. No Docker secret-file or `WAHA_API_KEY_FILE` handling is
+  documented or present in that source. A hash is still an API credential and
+  is not a supported resolved-config/inspection-safe boundary for this task.
+- **Outcome:** Configuration-only checks and project-scoped cleanup passed;
+  runtime acceptance remains blocked.
+
+### Independent blocked/verified verdict
+
+**BLOCKED — Todo 15 Slice 8 remains open.** The exact image prerequisite is not
+available, and the supported secret boundary prerequisite is not available. The
+credential-free fail-closed Compose boundary is verified, but it is not a
+replacement for runtime acceptance. Todo 16 and F1-F4 remain blocked.
+
+### Fresh exact registry receipts
+
+Commands:
+
+```text
+docker manifest inspect devlikeapro/waha:2026.8.1
+docker pull devlikeapro/waha:2026.8.1
+```
+
+Redacted results:
+
+```text
+no such manifest: docker.io/devlikeapro/waha:2026.8.1
+manifest_exit=1
+
+Error response from daemon: manifest for devlikeapro/waha:2026.8.1 not found: manifest unknown: manifest unknown
+pull_exit=1
+```
+
+### Secret-boundary re-confirmation
+
+- Upstream security source: `https://waha.devlike.pro/docs/how-to/security/`.
+  It documents `WAHA_API_KEY` and `WHATSAPP_API_KEY` environment handling and
+  the `sha512:{SHA512_HEX_HASH}` or plaintext credential forms.
+- Exact upstream source: `https://github.com/devlikeapro/waha/blob/core/entrypoint.sh`.
+  Its key handling reads the environment variables, hashes plaintext values,
+  and exports the resulting API key; it does not read Docker secret files or a
+  `WAHA_API_KEY_FILE` variable.
+- No plaintext value, hash, secret-file content, or real credential was used
+  or recorded. No wrapper, hash deployment, or undocumented variable was
+  invented.
+
+### Fresh bundled Compose rendering
+
+Temporary Postgres/encryption files were created with mode `600`; their values
+were never printed and were removed by the bounded cleanup trap. The merged
+configuration command used explicit empty `WAHA_API_KEY`, `WHATSAPP_API_KEY`,
+`WAHA_API_KEY_FILE`, and `ENCRYPTION_MASTER_KEY` environment values, plus the
+temporary file paths:
+
+```text
+docker compose -p relaynest-t15-bundled-20260826 \
+  -f docker-compose.yml -f docker-compose.override.yml \
+  -f docker-compose.bundled-waha.yml --profile waha config --format json
+```
+
+Redacted assertions:
+
+```text
+config_exit=0
+placeholder_modes=600,600
+secret_output_assertions=PASS
+internal_port_and_fail_closed_assertions=PASS
+web_only_host_port_assertion=PASS
+temporary_secret_cleanup=PASS
+```
+
+The rendered output contained none of `WAHA_API_KEY`, `WHATSAPP_API_KEY`,
+`sha512:`, or either temporary secret value. It verified no WAHA or API host
+port, internal port `3000`, `waha-sessions:/app/.sessions`, `exit 78`, and
+`restart: "no"`; only web had a host port, with container target `4173`.
+
+### Runtime gate
+
+The isolated command below was **not run** because both exact registry checks
+failed:
+
+```text
+docker compose -p relaynest-t15-bundled-20260826 \
+  -f docker-compose.yml -f docker-compose.override.yml \
+  -f docker-compose.bundled-waha.yml --profile waha up --build --wait -d
+```
+
+Therefore no bundled health, API/WAHA endpoint, container UID, image
+inspection, WhatsApp linking, or message delivery result is claimed.
+
+### Fresh project-scoped cleanup proof
+
+```text
+project=relaynest-t15-bundled-20260826
+before_containers=0
+before_volumes=0
+before_networks=0
+down_exit=0
+after_containers=0
+after_volumes=0
+after_networks=0
+temporary_secret_cleanup=PASS
+```
+
+Cleanup used only `docker compose ... down --remove-orphans` for the isolated
+project. No `-v`, broad prune, unrelated project, or unrelated volume was
+targeted.
+
+### Adversarial-class notes and remaining gates
+
+- `stale_state`: fresh manifest and pull probes were run; the prior evidence
+  was not treated as proof.
+- `dirty_worktree`: preflight branch/worktree was clean and remains limited to
+  this evidence refresh.
+- `long_commands`: registry and Compose commands were individually bounded;
+  runtime startup was correctly skipped.
+- `misleading_success_output`: `config_exit=0` and `down_exit=0` were not
+  treated as image availability or runtime health.
+- `generated_artifacts`: temporary secret files were mode `600` and removed;
+  task-labeled resources are zero.
+- `repeated_interruptions`: cleanup was trap-backed; no interrupted runtime
+  existed and no rerun beyond bounded probes was needed.
+- Full lint remains an explicit non-passed gate; this Slice 8 re-verification
+  does not convert the known pre-existing analytics-fixture diagnostics into a
+  pass. Fresh command result: `npx --yes pnpm@10.12.4 lint` exited `1` with
+  `tests/task-13-analytics-db-fixture.ts:1:1 assist/source/organizeImports`
+  and its format diagnostic (`Found 2 errors`). No WhatsApp linking or delivery
+  is claimed.
