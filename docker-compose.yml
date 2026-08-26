@@ -2,7 +2,7 @@ name: waha-command-center
 
 services:
   postgres:
-    image: postgres:17.6-alpine
+    image: postgres:17.6-alpine@sha256:ef257d85f76e48da1c64832459b59fcaba1a4dac97bf5d7450c77753542eee94
     restart: unless-stopped
     environment:
       POSTGRES_DB: waha_command_center
@@ -31,9 +31,11 @@ services:
       DATABASE_NAME: waha_command_center
       DATABASE_USER: app
       DATABASE_PASSWORD_FILE: /run/secrets/postgres_password
+      ENCRYPTION_MASTER_KEY_FILE: /run/secrets/encryption_master_key
       WAHA_BASE_URL: ${WAHA_BASE_URL:-https://waha.example.invalid}
     secrets:
       - postgres_password
+      - encryption_master_key
     depends_on:
       postgres:
         condition: service_healthy
@@ -41,6 +43,7 @@ services:
       - "3000"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      start_period: 30s
       interval: 10s
       timeout: 5s
       retries: 5
@@ -58,13 +61,23 @@ services:
         condition: service_healthy
     ports:
       - "${WEB_PORT:-8080}:4173"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4173/').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   waha:
     image: devlikeapro/waha:2026.8.1
     profiles: ["waha"]
-    restart: unless-stopped
-    environment:
-      WHATSAPP_API_KEY: ${WAHA_API_KEY:-}
+    restart: "no"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        printf '%s\n' 'Bundled WAHA is disabled until a verified secret-injection path and image runtime are available.' >&2;
+        exit 78
+    volumes:
+      - waha-sessions:/app/.sessions
     expose:
       - "3000"
     depends_on:
@@ -73,7 +86,10 @@ services:
 
 volumes:
   postgres-data:
+  waha-sessions:
 
 secrets:
   postgres_password:
     file: ${POSTGRES_PASSWORD_FILE:-./.secrets/postgres_password}
+  encryption_master_key:
+    file: ${ENCRYPTION_MASTER_KEY_FILE:?Set ENCRYPTION_MASTER_KEY_FILE to a secret file}
