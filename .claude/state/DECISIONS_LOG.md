@@ -227,3 +227,37 @@ the final credential-pattern scan found no credential-bearing database URLs or
 private-key blocks in the committed state, plan, ledger, or evidence files. The
 remaining verification blockers stay open and are not converted into completion
 claims.
+
+## Todo 15: Compose operations boundary and readiness semantics
+
+**Date:** 2026-08-25
+
+Compose operations use `docker-compose.yml` with `docker-compose.override.yml`
+and exactly one of `docker-compose.external-waha.yml` or
+`docker-compose.bundled-waha.yml`. Only web publishes a host port. API and
+bundled WAHA remain internal. The API runs migrations before listening, and
+Compose health dependencies establish startup ordering only; `/health` is not
+WhatsApp linking or recipient-delivery proof.
+
+Production Compose takes the encryption master key from the file named by
+`ENCRYPTION_MASTER_KEY_FILE`; direct `ENCRYPTION_MASTER_KEY` is reserved for
+deliberate non-Compose use, and both sources fail closed. PostgreSQL passwords
+use a Docker secret file. Bundled WAHA session state is retained in
+`waha-sessions:/app/.sessions` and is sensitive backup material.
+
+Historical snapshot before the 2026-08-26 correction: the exact bundled image
+had no registry manifest, and bundled Compose interpolated `WAHA_API_KEY` as a
+plain environment value. That configuration was not approved for delivery and
+is superseded by the fail-closed decision below. No replacement image or
+undocumented WAHA secret-file behavior was authorized.
+
+## Todo 15: Bundled WAHA must fail closed without a verified secret boundary
+
+**Date:** 2026-08-26
+
+WAHA's supported `WAHA_API_KEY` and `sha512:<hash>` configuration values are
+credentials and must not appear in resolved Compose configuration or container
+inspection. The exact source does not support Docker secret files or an
+`*_FILE` variable. Until an image digest and runtime-tested wrapper or other
+supported boundary are available, the bundled service exits before WAHA starts
+and the external-WAHA Compose mode remains the only verified deployment path.

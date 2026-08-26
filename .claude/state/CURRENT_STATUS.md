@@ -370,3 +370,53 @@ Last updated: 2026-08-18
   `4174` remains untouched.
 
 Last updated: 2026-08-25
+
+## Session update: Todo 15 operations documentation and external Compose QA
+
+- Verified repository state before this documentation slice: branch `main`,
+  `HEAD` `0cac56c9ec02eba0ef6e7b1e80bbccf1bc882687`, `origin/main` at the same
+  commit, tracking `origin/main`; Compose and Docker changes were uncommitted.
+- Updated the operations, threat-model, capability-matrix, README, and example
+  environment guidance with exact Compose invocations, secret precedence,
+  migration-before-listen startup, health/readiness limits, internal API/WAHA
+  ports, `waha-sessions:/app/.sessions` handling, project-scoped cleanup,
+  backup/restore, key rotation, LAN/VPN/firewall and reverse-proxy TLS rules,
+  and unofficial-client ban risk.
+- External-mode disposable Compose QA passed: PostgreSQL, API, and web became
+  healthy; web root and same-origin `/health` returned HTTP 200; only web had a
+  host port; API host port metadata was absent; API and web ran as UID 1000.
+  No real WAHA account, linking, credential, or delivery was used.
+- Bundled runtime remains blocked: direct manifest inspection and pull of the
+  exact `devlikeapro/waha:2026.8.1` reference returned `manifest unknown`.
+  No replacement tag or digest was guessed and bundled health, UID, API-key
+  behavior, linking, or delivery are not claimed.
+- Plain `WAHA_API_KEY` interpolation was removed in the follow-up correction.
+  Bundled Compose now fails closed before starting WAHA; no file-backed WAHA
+  secret support is assumed or claimed.
+- Focused Compose tests, changed-file Biome, typecheck, build, and Compose
+  configuration checks passed as recorded in
+  `.omo/evidence/task-15-next-phases-operations.md`. Full lint remains blocked
+  only by the pre-existing diagnostics in
+  `tests/task-13-analytics-db-fixture.ts`. Todo 15 remains open pending its
+  bundled and secret-handling acceptance conditions; Todo 16 and F1-F4 remain
+  open.
+- Task-owned disposable resources and temporary secret material were removed;
+  no unrelated projects or volumes were targeted. No commit or push was made.
+
+Last updated: 2026-08-25
+
+## Session update: bundled WAHA fail-closed correction
+
+- Authoritative WAHA research confirmed that the exact source supports
+  `WAHA_API_KEY` and `sha512:<hash>` values, but does not consume Docker secret
+  files or an `*_FILE` variable. A hash verifier is still an authentication
+  credential and does not satisfy RelayNest's resolved-config/inspection rule.
+- Removed bundled `WAHA_API_KEY` interpolation and the unverified health-path
+  environment setting. The profile's WAHA service now exits with status 78
+  before starting WAHA, so the unavailable/unsupported bundled path fails closed.
+- External mode remains the only verified operational path. The exact
+  `devlikeapro/waha:2026.8.1` manifest remains unavailable; no replacement tag,
+  digest, real credential, linking, or delivery claim was used.
+- This correction is uncommitted pending focused verification and review.
+
+Last updated: 2026-08-26

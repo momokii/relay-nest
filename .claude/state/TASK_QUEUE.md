@@ -199,3 +199,26 @@ evidence are present. The remaining roadmap is Todo 15 Compose/operations,
 Todo 16 release verification, and F1-F4 final gates; bundled WAHA availability,
 ambient PostgreSQL credentials, and missing release checker work remain explicit
 future blockers.
+
+## Session follow-up: Todo 15 operations slice
+
+Todo 15 operational documentation now matches the verified Compose files and
+external-mode runtime behavior. External Compose readiness, internal API/WAHA
+ports, migration ordering, secret source precedence, session-volume handling,
+cleanup, backup/restore, key rotation, network exposure, and unofficial-client
+risk are recorded in `docs/operations.md` and supporting security documents.
+
+Todo 15 remains **TODO**. The exact bundled image
+`devlikeapro/waha:2026.8.1` has no registry manifest. Bundled Compose now fails
+closed before WAHA starts because no supported secret boundary is available;
+this is a blocker, not a passed runtime claim. Full lint also retains the
+pre-existing analytics-fixture diagnostics.
+
+## Session follow-up: bundled WAHA security boundary
+
+Authoritative WAHA research confirmed no Docker-secret or `WAHA_API_KEY_FILE`
+support in the exact source, and a SHA-512 verifier remains a credential.
+Bundled Compose was corrected to contain no WAHA credential and to exit before
+the WAHA process starts. Todo 15 remains TODO until an exact available image and
+a runtime-tested supported secret boundary exist; external mode remains the
+verified path.
