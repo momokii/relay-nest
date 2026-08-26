@@ -1,4 +1,8 @@
-import { createEnvelopeCipher, EnvelopeEncryptionError } from "@waha-command-center/config"
+import {
+  createEnvelopeCipher,
+  EnvelopeEncryptionError,
+  resolveEncryptionMasterKey,
+} from "@waha-command-center/config"
 import { z } from "zod"
 
 import { createWahaClient } from "./waha/adapter"
@@ -25,10 +29,8 @@ export function createConfiguredSessionService(
   audit: AuditCallback,
   options: ConfiguredSessionServiceOptions = {},
 ) {
-  // biome-ignore lint/complexity/useLiteralKeys: required by noPropertyAccessFromIndexSignature
-  const encodedKey = process.env["ENCRYPTION_MASTER_KEY"]
-  const masterKey = encodedKey ? Buffer.from(encodedKey, "base64") : undefined
-  if (!masterKey || masterKey.length !== 32) return undefined
+  const masterKey = resolveEncryptionMasterKey(process.env)
+  if (!masterKey) return undefined
   const cipher = createEnvelopeCipher(masterKey)
   const clientForConnection = async (connectionId: string) => {
     const connection = await repositories.wahaConnections.findById(connectionId)

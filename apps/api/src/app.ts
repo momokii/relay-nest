@@ -1,5 +1,5 @@
 import cors from "@fastify/cors"
-import { createEnvelopeCipher } from "@waha-command-center/config"
+import { createEnvelopeCipher, resolveEncryptionMasterKey } from "@waha-command-center/config"
 import Fastify, { type FastifyInstance } from "fastify"
 import { z } from "zod"
 import { registerAiApprovalRoutes } from "./ai/http"
@@ -89,38 +89,26 @@ export function createApiApp(
   const webhookEnvironment = z
     .object({
       WAHA_WEBHOOK_SECRET: z.string().optional(),
-      ENCRYPTION_MASTER_KEY: z.string().base64().optional(),
     })
     .parse(process.env)
+  const encryptionMasterKey = resolveEncryptionMasterKey(process.env)
   const configuredMessagingService =
     options.messagingService ??
-    createConfiguredMessagingService(
-      database,
-      repositories,
-      webhookEnvironment.ENCRYPTION_MASTER_KEY
-        ? Buffer.from(webhookEnvironment.ENCRYPTION_MASTER_KEY, "base64")
-        : undefined,
-      loopbackOptions,
-    )
+    createConfiguredMessagingService(database, repositories, encryptionMasterKey, loopbackOptions)
   const configuredNotificationService =
     options.notificationService ??
-    (webhookEnvironment.ENCRYPTION_MASTER_KEY
+    (encryptionMasterKey
       ? createNotificationService({
           repository: repositories,
-          cipher: createEnvelopeCipher(
-            Buffer.from(webhookEnvironment.ENCRYPTION_MASTER_KEY, "base64"),
-          ),
+          cipher: createEnvelopeCipher(encryptionMasterKey),
           audit,
         })
       : undefined)
   const configuredAnalyticsService =
     options.analyticsService ??
-    (webhookEnvironment.ENCRYPTION_MASTER_KEY
+    (encryptionMasterKey
       ? createAnalyticsService({
-          source: createAnalyticsSource(
-            database,
-            Buffer.from(webhookEnvironment.ENCRYPTION_MASTER_KEY, "base64"),
-          ),
+          source: createAnalyticsSource(database, encryptionMasterKey),
           authorize: (principal, sessionId, scope) =>
             auth.authorize(principal, sessionId, scope, "read"),
         })
@@ -130,9 +118,7 @@ export function createApiApp(
   const backupRepository = createBackupRepository(database.sql)
   registerWahaWebhookRoutes(app, {
     secret: webhookEnvironment.WAHA_WEBHOOK_SECRET,
-    encryptionMasterKey: webhookEnvironment.ENCRYPTION_MASTER_KEY
-      ? Buffer.from(webhookEnvironment.ENCRYPTION_MASTER_KEY, "base64")
-      : undefined,
+    encryptionMasterKey,
     store: {
       findSession: (accountScope, sessionName) =>
         repositories.sessions.findByWahaSessionName(accountScope, sessionName),
@@ -210,16 +196,6 @@ export function createApiApp(
   if (configuredAnalyticsService) registerAnalyticsRoutes(app, auth, configuredAnalyticsService)
   if (configuredNotificationService)
     registerNotificationRoutes(app, auth, admin, configuredNotificationService)
-  registerRetentionRoutes(
-    app,
-    auth,
-    admin,
-    retention,
-    backupRepository,
-    webhookEnvironment.ENCRYPTION_MASTER_KEY
-      ? Buffer.from(webhookEnvironment.ENCRYPTION_MASTER_KEY, "base64")
-      : undefined,
-    audit,
-  )
+  registerRetentionRoutes(app, auth, admin, retention, backupRepository, encryptionMasterKey, audit)
   return app
 }
