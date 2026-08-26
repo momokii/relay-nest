@@ -66,22 +66,40 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 Always ask before running a Compose command that is not clearly development. Confirm
 the selected files, profile, service targets, and environment before execution.
 
-## Planned WAHA Command Center Topology
+## Verified WAHA Command Center Topology
 
-The implementation plan defines one Compose setup with two supported modes:
+The repository has two Compose modes. External mode runs the dashboard,
+PostgreSQL, and API locally and uses an external WAHA URL. Bundled mode adds
+the pinned `devlikeapro/waha:2026.8.1` image on the internal Compose network.
+The exact image currently has no registry manifest, so bundled runtime startup
+is blocked and no bundled health or delivery claim is made.
 
-- **Dashboard-only:** the dashboard and PostgreSQL run locally and connect to an external WAHA URL configured at runtime.
-- **Bundled:** the dashboard, PostgreSQL, and a pinned WAHA image run together; WAHA remains reachable only on the internal Compose network.
+Run external mode with:
 
-The dashboard is planned to bind to `0.0.0.0` for LAN/VPN convenience, so the host
-firewall or private network must restrict access. This is not a claim that public
-exposure is safe. A public deployment requires a reverse proxy, HTTPS/TLS, secure
-headers/cookies, login rate limiting, and explicit firewall rules. Replace this
-planned topology with verified commands and image tags when the deployment task is
-implemented.
+```bash
+docker compose -f docker-compose.yml -f docker-compose.override.yml \
+  -f docker-compose.external-waha.yml up --build --wait -d
+```
 
-The WAHA API must not be published directly to the host by default. The dashboard
-holds WAHA credentials server-side and proxies only authorized, scoped operations.
+Run bundled mode only for configuration validation; the service is deliberately
+fail-closed until the exact image and a supported secret boundary are verified:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.override.yml \
+  -f docker-compose.bundled-waha.yml --profile waha up --build --wait -d
+```
+
+Only web publishes a host port. API and bundled WAHA are internal services, and
+the API container port is fixed at `3000`; there is no `API_PORT` host setting.
+The dashboard may bind for a trusted LAN/VPN, but the firewall must restrict
+access. Public exposure requires a reverse proxy, HTTPS/TLS, secure
+headers/cookies, login rate limiting, and explicit firewall rules.
+
+The WAHA API must not be published directly to the host. The dashboard holds
+WAHA credentials server-side and proxies only authorized, scoped operations.
+Production Compose reads the encryption master key from the file named by
+`ENCRYPTION_MASTER_KEY_FILE`; direct `ENCRYPTION_MASTER_KEY` is for deliberate
+non-Compose use, and both sources fail closed.
 
 ## Environment Files
 
