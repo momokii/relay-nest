@@ -4,7 +4,11 @@ import { join } from "node:path"
 
 import { describe, expect, it } from "vitest"
 
-import { parseWorkspaceEnvironment, resolveDatabaseUrl } from "../packages/config/src/index"
+import {
+  parseWorkspaceEnvironment,
+  resolveDatabaseUrl,
+  resolveEncryptionMasterKey,
+} from "../packages/config/src/index"
 
 describe("database configuration", () => {
   it("rejects test mode unless the runtime is also test mode", () => {
@@ -67,5 +71,35 @@ describe("database configuration", () => {
     } finally {
       rmSync(directory, { recursive: true, force: true })
     }
+  })
+
+  it("reads the encryption master key from its Compose secret file", () => {
+    // Given a Compose encryption secret mounted as a file
+    const directory = mkdtempSync(join(tmpdir(), "waha-config-key-"))
+    const keyFile = join(directory, "encryption_master_key")
+    const expectedKey = Buffer.alloc(32, 7)
+    writeFileSync(keyFile, `${expectedKey.toString("base64")}\n`, "utf8")
+
+    try {
+      // When the shared encryption boundary resolves the file source
+      const resolvedKey = resolveEncryptionMasterKey({ ENCRYPTION_MASTER_KEY_FILE: keyFile })
+
+      // Then the API receives the key bytes without an environment secret value
+      expect(resolvedKey?.equals(expectedKey)).toBe(true)
+    } finally {
+      rmSync(directory, { recursive: true, force: true })
+    }
+  })
+
+  it("rejects ambiguous encryption secret sources", () => {
+    // Given both direct and file-backed encryption sources
+    const environment = {
+      ENCRYPTION_MASTER_KEY: Buffer.alloc(32).toString("base64"),
+      ENCRYPTION_MASTER_KEY_FILE: "/run/secrets/encryption_master_key",
+    }
+
+    // When the shared environment boundary parses the sources
+    // Then startup fails instead of choosing an undocumented precedence rule
+    expect(() => parseWorkspaceEnvironment(environment)).toThrowError(/one source/i)
   })
 })

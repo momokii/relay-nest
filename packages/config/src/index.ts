@@ -13,6 +13,23 @@ const databaseUrlSchema = z
     const protocol = new URL(value).protocol
     return protocol === "postgresql:" || protocol === "postgres:"
   }, "database URL must use PostgreSQL")
+const encryptionEnvironmentSchema = z
+  .object({
+    ENCRYPTION_MASTER_KEY: z.string().base64().optional(),
+    ENCRYPTION_MASTER_KEY_FILE: z.string().min(1).optional(),
+  })
+  .superRefine((environment, context) => {
+    if (
+      environment.ENCRYPTION_MASTER_KEY !== undefined &&
+      environment.ENCRYPTION_MASTER_KEY_FILE !== undefined
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["ENCRYPTION_MASTER_KEY"],
+        message: "encryption master key needs one source",
+      })
+    }
+  })
 const environmentSchema = z
   .object({
     APP_ENV: appEnvSchema.optional(),
@@ -26,6 +43,7 @@ const environmentSchema = z
     DATABASE_PASSWORD: z.string().optional(),
     DATABASE_PASSWORD_FILE: z.string().optional(),
     ENCRYPTION_MASTER_KEY: z.string().base64().optional(),
+    ENCRYPTION_MASTER_KEY_FILE: z.string().min(1).optional(),
   })
   .superRefine((environment, context) => {
     if (environment.APP_ENV === "test" && environment.NODE_ENV !== "test") {
@@ -33,6 +51,16 @@ const environmentSchema = z
         code: z.ZodIssueCode.custom,
         path: ["APP_ENV"],
         message: "test mode requires NODE_ENV=test",
+      })
+    }
+    if (
+      environment.ENCRYPTION_MASTER_KEY !== undefined &&
+      environment.ENCRYPTION_MASTER_KEY_FILE !== undefined
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["ENCRYPTION_MASTER_KEY"],
+        message: "encryption master key needs one source",
       })
     }
   })
@@ -47,6 +75,35 @@ const parsedEnvironment = parseWorkspaceEnvironment(process.env)
 
 export class EnvironmentConfigError extends Error {
   readonly name = "EnvironmentConfigError"
+}
+
+function decodeEncryptionMasterKey(encoded: string): Buffer {
+  const parsed = z.string().base64().safeParse(encoded)
+  if (!parsed.success) throw new EnvironmentConfigError("encryption master key is invalid")
+  const key = Buffer.from(parsed.data, "base64")
+  if (key.length !== 32) throw new EnvironmentConfigError("encryption master key must be 32 bytes")
+  return key
+}
+
+export function resolveEncryptionMasterKey(
+  environment: Readonly<Record<string, string | undefined>>,
+): Buffer | undefined {
+  const parsed = encryptionEnvironmentSchema.parse(environment)
+  if (parsed.ENCRYPTION_MASTER_KEY !== undefined) {
+    return decodeEncryptionMasterKey(parsed.ENCRYPTION_MASTER_KEY)
+  }
+  if (parsed.ENCRYPTION_MASTER_KEY_FILE === undefined) return undefined
+
+  let encodedKey: string
+  try {
+    encodedKey = readFileSync(parsed.ENCRYPTION_MASTER_KEY_FILE, "utf8").trim()
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new EnvironmentConfigError("encryption master key file is unavailable")
+    }
+    throw error
+  }
+  return decodeEncryptionMasterKey(encodedKey)
 }
 
 const composeDatabaseSchema = z.object({
@@ -104,8 +161,11 @@ export function resolveDatabaseUrl(environment: DatabaseEnvironment): string {
   if (passwordFile !== undefined) {
     try {
       resolvedPassword = readFileSync(passwordFile, "utf8").trim()
-    } catch {
-      throw new EnvironmentConfigError("database password file is unavailable")
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new EnvironmentConfigError("database password file is unavailable")
+      }
+      throw error
     }
   }
   if (!resolvedPassword) {
@@ -126,9 +186,7 @@ export const workspaceConfig = {
     parsedEnvironment.APP_ENV ?? (parsedEnvironment.NODE_ENV === "test" ? "test" : "development"),
   wahaBaseUrl: parsedEnvironment.WAHA_BASE_URL,
   databaseUrl: resolveDatabaseUrl(parsedEnvironment),
-  encryptionMasterKey: parsedEnvironment.ENCRYPTION_MASTER_KEY
-    ? Buffer.from(parsedEnvironment.ENCRYPTION_MASTER_KEY, "base64")
-    : undefined,
+  encryptionMasterKey: resolveEncryptionMasterKey(process.env),
 } as const
 
 export type WorkspaceConfig = typeof workspaceConfig
