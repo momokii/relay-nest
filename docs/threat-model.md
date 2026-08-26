@@ -43,6 +43,10 @@ protection, and login rate limiting. Do not publish bundled WAHA or its API
 port. Verify unauthenticated routes, rate limits, secure cookies, and denial of
 cross-scope requests.
 
+Compose publishes only the web port. API and bundled WAHA use internal
+container ports, so a host firewall and reverse proxy must expose the dashboard
+without bypassing the same-origin API boundary.
+
 ### WAHA credentials
 
 **Threat:** A browser payload, URL, log, error, backup, or response leaks the
@@ -54,6 +58,13 @@ runtime; redact errors and logs; never place them in browser state, bundles,
 URLs, fixtures, or ordinary responses. Restrict dangerous infrastructure
 operations to Admins and expose only typed, bounded capabilities. Test response,
 log, and browser-network redaction.
+
+Production Compose reads the encryption master key from the file named by
+`ENCRYPTION_MASTER_KEY_FILE`; direct key injection is for deliberate non-Compose
+use only, and both sources together fail closed. PostgreSQL passwords use a
+Docker secret file. Bundled Compose intentionally injects no WAHA credential and
+exits before the WAHA process starts until a supported, runtime-tested secret
+boundary is available; no `_FILE` convention is assumed.
 
 ### Webhook spoofing and replay
 
@@ -145,6 +156,11 @@ protection, newly-linked cooldowns, timelock/capping gates, and batch approval.
 Do not implement scraping, spam, stealth, ban evasion, broadcasts, campaigns, or
 autonomous sending. Display the residual risk prominently; no control promises
 account safety.
+
+Operators must not use unofficial clients for scraping, spam, broadcasts,
+stealth, anti-detection, or ban evasion. No Compose health result, WAHA
+`WORKING` state, HTTP acceptance, or transport acknowledgment is recipient
+delivery proof.
 
 ## Residual risk and verification boundary
 
