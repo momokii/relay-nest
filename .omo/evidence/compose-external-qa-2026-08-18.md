@@ -1,4 +1,8 @@
-# External-WAHA Compose QA — 2026-08-18
+# Historical External-WAHA Compose QA — 2026-08-18
+
+> Historical pre-hardening receipt. Do not reuse its API-port or environment
+> variables as current deployment guidance; current Compose keeps API private
+> and uses file-backed secrets.
 
 ## Scope and safety
 
