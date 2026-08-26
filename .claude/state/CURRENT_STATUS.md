@@ -420,3 +420,25 @@ Last updated: 2026-08-25
 - This correction is uncommitted pending focused verification and review.
 
 Last updated: 2026-08-26
+
+## Session closeout: Todo 15 bounded tranche synchronized
+
+- Ten atomic Todo 15 Compose/API/configuration/documentation/evidence commits
+  were pushed to `origin/main`; local `HEAD` and `origin/main` both resolve to
+  `2b22cb4157bbc63337d14b80578b8c6f8c5eb0fa`.
+- Final verification passed: focused Vitest `3 files, 17 tests`, changed-file
+  Biome, workspace typecheck, production build, base/external/bundled Compose
+  configuration, credential-free bundled rendering, `git diff --check`, and
+  protected plan/ledger diff audit.
+- External disposable runtime remains verified. Bundled runtime remains blocked
+  by the unavailable exact `devlikeapro/waha:2026.8.1` manifest and the absence
+  of a runtime-tested supported WAHA secret boundary; bundled Compose fails
+  closed before starting WAHA and makes no linking or delivery claim.
+- Full lint remains blocked only by the pre-existing diagnostics in
+  `tests/task-13-analytics-db-fixture.ts`. LSP diagnostics were unavailable
+  because the diagnostics connection closed; typecheck and changed-file Biome
+  passed. No task-owned resources remain.
+- Todo 15 remains open for the environment-dependent bundled prerequisite;
+  Todo 16 and F1-F4 remain open.
+
+Last updated: 2026-08-26

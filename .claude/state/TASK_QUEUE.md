@@ -222,3 +222,12 @@ Bundled Compose was corrected to contain no WAHA credential and to exit before
 the WAHA process starts. Todo 15 remains TODO until an exact available image and
 a runtime-tested supported secret boundary exist; external mode remains the
 verified path.
+
+## Session closeout: Todo 15 bounded tranche synchronized
+
+The verified bounded Todo 15 tranche is pushed at
+`2b22cb4157bbc63337d14b80578b8c6f8c5eb0fa`, with local and `origin/main`
+parity and a clean worktree. External Compose operations and the credential-free
+fail-closed bundled boundary are recorded; the exact bundled image prerequisite
+remains unavailable, so Todo 15 stays TODO. Todo 16 and F1-F4 remain blocked on
+the remaining roadmap work and explicit environment gates.
