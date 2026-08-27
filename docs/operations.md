@@ -4,8 +4,9 @@
 
 RelayNest supports the following Compose invocations. Run them from the
 repository root with the required secret files present. The override file is
-development-only configuration and is loaded explicitly below so the selected
-files are visible in the command.
+explicitly loaded below so the selected files are visible in the command. It
+currently supplies the encryption secret path; it does not publish ports or
+enable development tooling.
 
 ### External WAHA, supported runtime
 
@@ -15,7 +16,10 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml \
 ```
 
 `WAHA_BASE_URL` must point to the approved external service. The external WAHA
-service is not created or exposed by this project.
+service is not created or exposed by this project. External mode is the only
+verified operational path in this repository. The verification used a
+placeholder, unavailable provider URL and therefore proves Compose ordering,
+health, proxy, and exposure boundaries, not WhatsApp linking or delivery.
 
 ### Bundled WAHA, configuration-only until the image is available
 
@@ -32,7 +36,9 @@ API-key behavior, container UID, linking, or delivery.
 
 ### File and port rules
 
-`docker-compose.yml` is the base. `docker-compose.external-waha.yml` requires
+`docker-compose.yml` is the base. A base-only command is useful for merged
+configuration checks, but its default example URL is not an external provider
+acceptance test. `docker-compose.external-waha.yml` requires
 an external `WAHA_BASE_URL`. `docker-compose.bundled-waha.yml` changes the API
 target to `http://waha:3000`, adds the `waha` health dependency, and enables the
 `waha` profile. `docker-compose.override.yml` supplies the Compose encryption

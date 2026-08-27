@@ -47,6 +47,23 @@ Compose publishes only the web port. API and bundled WAHA use internal
 container ports, so a host firewall and reverse proxy must expose the dashboard
 without bypassing the same-origin API boundary.
 
+### Compose runtime boundary
+
+The base Compose file uses a digest-pinned PostgreSQL image and digest-pinned
+Node application images. PostgreSQL must become healthy before the API starts;
+the API applies migrations before listening; and web waits for a healthy API.
+Bundled mode adds a healthy-WAHA dependency, but that mode is currently blocked,
+not verified. Only web publishes the configurable host port. API and bundled
+WAHA expose port `3000` only inside the Compose network.
+
+External mode is the verified operational path, based on disposable placeholder
+provider QA. That evidence proves service ordering, API readiness, same-origin
+proxying, private API exposure, and non-root API/web UIDs. It does not prove
+WhatsApp linking, account health, or recipient delivery. The exact bundled image
+`devlikeapro/waha:2026.8.1` has no registry manifest, and no supported runtime
+secret-file boundary has been verified, so no bundled health or delivery claim
+is made.
+
 ### WAHA credentials
 
 **Threat:** A browser payload, URL, log, error, backup, or response leaks the
