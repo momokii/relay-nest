@@ -231,3 +231,19 @@ parity and a clean worktree. External Compose operations and the credential-free
 fail-closed bundled boundary are recorded; the exact bundled image prerequisite
 remains unavailable, so Todo 15 stays TODO. Todo 16 and F1-F4 remain blocked on
 the remaining roadmap work and explicit environment gates.
+
+## Session follow-up: independent Todo 6 Compose verification
+
+Fresh external Compose verification passed the required Compose tests (`11/11`),
+changed-test Biome, typecheck, build, exact base/external/bundled config checks
+with placeholder-only mode-600 secret files, and the missing-secret/URL failure
+checks. A unique external project reached healthy Postgres/API/web; API remained
+internal (`ports=null`, `expose=["3000"]`), only web published a host port, and
+API/web ran as UID 1000. Resolved config and logs had no placeholder secret
+values, and cleanup left zero task-labeled containers, volumes, or networks.
+
+The exact bundled image manifest still returns `no such manifest` and the
+credential-free bundled service was not started. Todo 6 is verified for every
+available acceptance gate but remains blocked on the exact bundled image and a
+supported runtime secret boundary; Todo 15 remains TODO and no plan/ledger
+checkbox or completion record was changed.

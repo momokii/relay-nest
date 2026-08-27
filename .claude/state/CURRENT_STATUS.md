@@ -421,6 +421,30 @@ Last updated: 2026-08-25
 
 Last updated: 2026-08-26
 
+## Session update: independent Todo 6 Compose verification
+
+- Fresh verification on 2026-08-27 appended to
+  `.omo/evidence/task-15-next-phases-compose.md`. The Compose startup/proxy
+  tests passed `11/11`, changed-test Biome passed, typecheck passed, and the
+  workspace build passed.
+- A unique disposable external project reached healthy Postgres/API/web;
+  same-origin web-proxy `/health` and `/` returned `200`, only web published
+  its unique port, API resolved with `ports=null` and `expose=["3000"]`, and
+  API/web ran as UID `1000`. Resolved configuration and runtime logs contained
+  no placeholder secret values.
+- The raw host `127.0.0.1:3000` probe was not treated as evidence because the
+  pre-existing unrelated Grafana container owns that port. The unique external
+  project cleanup returned zero project-labeled containers, volumes, and
+  networks; the separate bundled cleanup probe also returned zero each.
+- The exact `devlikeapro/waha:2026.8.1` manifest still returns `no such
+  manifest`. Bundled mode remains explicitly blocked and was not started; no
+  replacement tag, digest, credential, linking, or delivery claim was made.
+- No Compose/Dockerfile/test hardening change was necessary. Todo 6 is verified
+  for all available checks and remains blocked only by the documented bundled
+  image/secret-boundary prerequisite. Todo 15, Todo 16, and F1-F4 remain open.
+
+Last updated: 2026-08-27
+
 ## Session closeout: Todo 15 bounded tranche synchronized
 
 - Ten atomic Todo 15 Compose/API/configuration/documentation/evidence commits
