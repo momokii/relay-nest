@@ -3,9 +3,9 @@
 Top-level execution remains **IN PROGRESS**. The statement that original project
 Todos 1-12 are complete refers to the project's original Todo numbering, not the
 next-phases Todos 6-11 listed in the live queue below. Todo 12 implementation and
-verification are recorded in local semantic commits; final branch synchronization
-is pending. The protected plan and ledger are the approved scope/history; this
-queue is the live operational view.
+verification are recorded in local semantic commits; the current `main` and
+`origin/main` branches are synchronized. The protected plan and ledger are the
+approved scope/history; this queue is the live operational view.
 
 ## Completed implementation
 
