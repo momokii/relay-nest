@@ -274,3 +274,20 @@ by the missing `devlikeapro/waha:2026.8.1` manifest and the absence of a verifie
 secret-file boundary, so no bundled health, linking, account safety, or delivery
 claim is permitted. The README and runbooks use the pinned pnpm invocation and
 retain the unofficial-client restriction and ban-risk warning.
+
+## Todo 9: repository-local release verification evidence
+
+**Date:** 2026-08-27
+
+The release gate interface is four deterministic package commands backed by typed
+boundary parsers: requirements mapping, secret scanning, scope fidelity, and
+documentation structure/link checks. They use the pinned pnpm wrapper, return
+exit 0 for the current repository, and return safe nonzero diagnostics for
+temporary invalid inputs. Diagnostics contain rule/remediation information only,
+never injected secrets, source content, absolute paths, or stack traces.
+
+The focused release suite passed `13 files, 101 tests`, and its package manifest
+test passed `5/5`. Temporary mutation roots are cleaned in test finally paths;
+no external account, uncontrolled service, or external scanner is part of this
+evidence. Todo 9, Todo 16, and F1-F4 remain open until their later independent
+reconciliation gates are completed.

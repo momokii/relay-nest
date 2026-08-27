@@ -286,3 +286,16 @@ remain open.
 - Todo 8 remains **BLOCKED** on the exact bundled-WAHA image and supported
   secret-boundary prerequisites. Todo 15, Todo 16, and F1-F4 remain open; no
   bundled completion or release completion is claimed.
+
+## Session update: Todo 9 release tooling evidence - 2026-08-27
+
+The four repository-local release commands are implemented and passed with the
+pinned pnpm wrapper. The focused release suite passed `13 files, 101 tests`,
+and the package-command manifest test passed `5/5`. Direct CLI boundary probes
+and disposable mutation cleanup are recorded in
+`.omo/evidence/task-16-next-phases-tooling.md`.
+
+Todo 9 remains TODO until the later Todo 10/11 reconciliation permits its plan
+and ledger treatment. Todo 16 and F1-F4 remain open. The bundled WAHA image and
+supported secret-boundary blockers, full lint analytics-fixture diagnostics, and
+PostgreSQL `28P01` boundary remain unchanged.

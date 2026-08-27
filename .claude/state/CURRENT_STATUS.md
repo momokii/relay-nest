@@ -447,6 +447,22 @@ Last updated: 2026-08-26
 
 Last updated: 2026-08-27
 
+## Session update: Todo 9 release tooling evidence
+
+- Repository-local release tooling is implemented and present in the synchronized
+  branch: `verify:requirements`, `secret-scan`, `verify:scope`, and `docs:check`.
+  The pinned command run passed all four checks with exit 0.
+- The focused release suite passed `13 files, 101 tests`; the package-command
+  manifest test passed `1 file, 5 tests`. Direct invalid-command, invalid-option,
+  missing-root, and absolute-plan probes returned the expected safe nonzero exits.
+- Redacted mutation coverage and disposable cleanup receipts are recorded in
+  `.omo/evidence/task-16-next-phases-tooling.md`. No secret, source content,
+  absolute path, or task-owned disposable resource remains.
+- Todo 9 and Todo 16 remain open pending later plan reconciliation. F1-F4 remain
+  open; this evidence does not alter the protected plan or execution ledger.
+
+Last updated: 2026-08-27
+
 ## Session update: Todo 8 bundled-WAHA re-verification
 
 - Fresh exact probes on 2026-08-27 still returned `manifest_exit=1` (`no such
