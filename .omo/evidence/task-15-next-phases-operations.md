@@ -244,3 +244,22 @@ containers=0, volumes=0, networks=0; temporary secret directory removed
 No unrelated project, volume, port, WAHA account, or production resource was
 targeted. Todo 7 remains open until the orchestrator independently verifies the
 tranche and handles the protected plan and ledger records.
+
+### Cleanup correction
+
+The first disposable command attempt left its unique project
+`relaynest-task7-1787843619` running because its shell trap lacked the required
+Compose interpolation variables. No unrelated resource was affected. A second
+project-scoped cleanup supplied placeholder path variables and the same
+non-contacting provider URL:
+
+```text
+docker compose --env-file /dev/null -p relaynest-task7-1787843619 -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.external-waha.yml down --volumes --remove-orphans
+exit 0
+remaining task7 resources: none
+```
+
+The final filtered audit reported zero matching containers, volumes, and
+networks. The temporary secret directory was already removed. This correction
+does not change the external verification result or introduce a bundled runtime
+claim.
