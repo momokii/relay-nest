@@ -27,9 +27,9 @@ scraping, spam, stealth, anti-detection, and ban evasion. AI suggestions always
 require human approval.
 
 WAHA uses an unofficial reverse-engineered WhatsApp client. Restriction or ban
-risk is inherent; consent, pacing, budgets, quiet hours, duplicate/burst
-protection, cooldowns, timelock, capping, and approval gates cannot guarantee
-account safety.
+risk is inherent and must be treated as an operational blocker, not an edge case.
+Consent, pacing, budgets, quiet hours, duplicate/burst protection,
+cooldowns, timelock, capping, and approval gates reduce risk but cannot guarantee account safety or recipient delivery.
 
 ## Architecture and security
 
@@ -51,21 +51,21 @@ cookies and headers, rate limiting, and an explicit threat-model review.
 
 ## Setup and verification
 
-Use the pinned Node/pnpm toolchain and lockfile. Copy `.env.example`, provide
-local secrets, and choose a Compose mode. The exact Compose commands, secret
-precedence, health semantics, persistence, backup, and cleanup procedures are in
-`docs/operations.md`. Do not expose real secrets in source, fixtures, logs,
-browser storage, or evidence.
+Use the pinned Node/pnpm toolchain and lockfile. Copy `.env.example`, provision
+the required secret files through the deployment environment, and choose a
+Compose mode. The exact Compose commands, secret precedence, health semantics,
+persistence, backup, and cleanup procedures are in `docs/operations.md`. Do not
+expose real secrets in source, fixtures, logs, browser storage, or evidence.
 
 Common checks:
 
 ```text
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm test:e2e
-pnpm audit --audit-level=high
-docker compose config
+npx --yes pnpm@10.12.4 lint
+npx --yes pnpm@10.12.4 typecheck
+npx --yes pnpm@10.12.4 test
+npx --yes pnpm@10.12.4 test:e2e
+npx --yes pnpm@10.12.4 audit --audit-level=high
+npx --yes pnpm@10.12.4 run docs:check
 ```
 
 Todo 12 evidence includes migration replay, repository and HTTP integration,
