@@ -132,3 +132,115 @@ by the unavailable image and unsupported secret boundary, but its configuration
 now fails closed without interpolating a credential. Todo 15 stays open; this
 evidence does not claim full lint, bundled health, WhatsApp linking, or message
 delivery.
+
+## Fresh Todo 7 reconciliation verification, 2026-08-27
+
+### Baseline and source reconciliation
+
+```text
+GIT_MASTER=1 git rev-parse HEAD
+2cebc7ddf383b9a9e94c095dcc2a6ac756ddc2a2
+
+GIT_MASTER=1 git rev-parse origin/main
+2cebc7ddf383b9a9e94c095dcc2a6ac756ddc2a2
+
+GIT_MASTER=1 git status --short --branch
+## main...origin/main
+```
+
+The protected `.omo/plans/*` records and `.omo/start-work/ledger.jsonl` were
+not edited. The initial `npx --yes pnpm@10.12.4 run docs:check` passed. The
+initial Compose tests passed `2 files, 11 tests`; focused Compose Biome and
+typecheck passed. The initial local Markdown scan reported `60` Markdown files
+and `0` missing local links.
+
+### Documentation and release checks
+
+```text
+npx --yes pnpm@10.12.4 run docs:check
+exit 0
+
+npx --yes pnpm@10.12.4 secret-scan
+exit 0, no diagnostics
+
+npx --yes pnpm@10.12.4 verify:scope
+exit 0, no diagnostics
+
+npx --yes pnpm@10.12.4 exec vitest run tests/release-docs-input.test.ts tests/release-docs-traversal.test.ts tests/release-package.test.ts tests/release-requirements.test.ts tests/release-requirements-bounds.test.ts tests/release-requirements-integrity.test.ts tests/release-docs-links-basic.test.ts tests/release-docs-links-fenced.test.ts tests/release-docs-link-budget.test.ts tests/release-docs-structure.test.ts tests/release-docs-freshness.test.ts tests/release-scope.test.ts tests/release-secret-scan.test.ts
+13 files, 101 tests passed
+
+npx --yes pnpm@10.12.4 typecheck
+exit 0
+
+npx --yes pnpm@10.12.4 build
+exit 0, config, domain, WAHA contracts, API, and web builds passed
+
+GIT_MASTER=1 git diff --check
+exit 0
+```
+
+The local Markdown scan was rerun after editing and reported `0` missing local
+links. Full `npx --yes pnpm@10.12.4 lint` was not a pass: it reported permission
+diagnostics for unrelated `/etc` paths and the pre-existing diagnostics in
+`tests/task-13-analytics-db-fixture.ts`. No source or test was changed to hide
+that failure.
+
+### Compose configuration and failure paths
+
+With generated placeholder-only secret files, both files mode `600`, and an
+explicit `--env-file /dev/null` to prevent ambient `.env` values:
+
+```text
+docker compose --env-file /dev/null -p relaynest-docs-baseline -f docker-compose.yml -f docker-compose.override.yml config --quiet
+exit 0
+
+docker compose --env-file /dev/null -p relaynest-docs-baseline -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.external-waha.yml config --quiet
+exit 0
+
+docker compose --env-file /dev/null -p relaynest-bundled-config -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.bundled-waha.yml --profile waha config --format json
+exit 0; bundled image is devlikeapro/waha:2026.8.1, ports are absent, environment keys are empty, entrypoint is the credential-free exit-78 guard, and /app/.sessions uses the named waha-sessions volume
+
+docker compose --env-file /dev/null -p relaynest-docs-missing -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.external-waha.yml config --quiet
+exit 1; required variable WAHA_BASE_URL is missing a value
+
+docker manifest inspect devlikeapro/waha:2026.8.1
+exit 1; no such manifest: docker.io/devlikeapro/waha:2026.8.1
+```
+
+All secret values were placeholders, were not printed, and were removed with
+their temporary directory. No replacement image, digest, WAHA credential, or
+undocumented `_FILE` behavior was introduced.
+
+### Disposable external Compose QA
+
+The documented external command was run with unique project
+`relaynest-task7-1787843671`, a dynamically allocated host port `58021`, and
+placeholder-only provider and secret files:
+
+```text
+docker compose --env-file /dev/null -p relaynest-task7-1787843671 -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.external-waha.yml up --build --wait --wait-timeout 180 -d
+exit 0
+services=api:healthy,postgres:healthy,web:healthy
+root_http=200 health_http=200
+api_ports={"3000/tcp":null}
+api_uid=1000
+web_uid=1000
+secret_modes=600 600
+secret_values_in_startup_log=NONE
+```
+
+This proves the external Compose ordering, API readiness, same-origin proxy,
+private API port, and non-root application runtime boundary only. It did not
+contact WAHA, link an account, or test recipient delivery or account safety.
+
+Cleanup used only the unique project:
+
+```text
+docker compose --env-file /dev/null -p relaynest-task7-1787843671 -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.external-waha.yml down --volumes --remove-orphans
+exit 0
+containers=0, volumes=0, networks=0; temporary secret directory removed
+```
+
+No unrelated project, volume, port, WAHA account, or production resource was
+targeted. Todo 7 remains open until the orchestrator independently verifies the
+tranche and handles the protected plan and ledger records.
