@@ -68,11 +68,13 @@ the selected files, profile, service targets, and environment before execution.
 
 ## Verified WAHA Command Center Topology
 
-The repository has two Compose modes. External mode runs the dashboard,
-PostgreSQL, and API locally and uses an external WAHA URL. Bundled mode adds
-the pinned `devlikeapro/waha:2026.8.1` image on the internal Compose network.
-The exact image currently has no registry manifest, so bundled runtime startup
-is blocked and no bundled health or delivery claim is made.
+The repository has a base Compose definition and two deployment overlays.
+External mode runs the dashboard, PostgreSQL, and API locally and uses an
+external WAHA URL. Bundled mode adds the pinned
+`devlikeapro/waha:2026.8.1` image on the internal Compose network. The exact
+image currently has no registry manifest, and no supported runtime secret-file
+boundary has been verified, so bundled runtime startup is blocked and no
+bundled health or delivery claim is made.
 
 Run external mode with:
 

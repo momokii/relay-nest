@@ -68,6 +68,15 @@ without an explicit, documented decision.
 - Keep images minimal, patched, and free of build-time credentials.
 - Separate development conveniences from production images and Compose configuration.
 
+For this repository, Compose reads PostgreSQL and encryption secrets from
+mode-600 files named by `POSTGRES_PASSWORD_FILE` and
+`ENCRYPTION_MASTER_KEY_FILE`. The direct encryption variable is reserved for
+deliberate non-Compose use, and providing both sources fails closed. Only web
+publishes a host port. External mode is the verified operational path for
+disposable placeholder-provider QA. Bundled mode remains blocked on the exact
+`devlikeapro/waha:2026.8.1` manifest and an unsupported runtime secret boundary;
+never infer bundled health or delivery from configuration validation.
+
 ## WAHA Command Center Controls
 
 - Keep the WAHA master API key and any session-scoped keys on the server side; never place them in browser state, client bundles, URLs, or ordinary logs.
