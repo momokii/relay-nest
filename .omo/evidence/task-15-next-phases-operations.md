@@ -250,16 +250,18 @@ tranche and handles the protected plan and ledger records.
 The first disposable command attempt left its unique project
 `relaynest-task7-1787843619` running because its shell trap lacked the required
 Compose interpolation variables. No unrelated resource was affected. A second
-project-scoped cleanup supplied placeholder path variables and the same
-non-contacting provider URL:
+project-scoped cleanup was reproduced with `--env-file /dev/null` and explicit
+safe interpolation values. The two file values used `/dev/null`; the external
+provider used the non-contacting `waha.example.invalid` placeholder:
 
 ```text
-docker compose --env-file /dev/null -p relaynest-task7-1787843619 -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.external-waha.yml down --volumes --remove-orphans
+env POSTGRES_PASSWORD_FILE=/dev/null ENCRYPTION_MASTER_KEY_FILE=/dev/null WAHA_BASE_URL=https://waha.example.invalid WEB_PORT=18080 docker compose --env-file /dev/null -p relaynest-task7-cleanup-20260827 -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.external-waha.yml down --volumes --remove-orphans
 exit 0
-remaining task7 resources: none
+task-owned resources: containers=0, volumes=0, networks=0
 ```
 
-The final filtered audit reported zero matching containers, volumes, and
-networks. The temporary secret directory was already removed. This correction
-does not change the external verification result or introduce a bundled runtime
-claim.
+The preceding `config --quiet` check passed with the same explicit variables.
+The final filtered audit reported zero matching task-owned containers, volumes,
+and networks. The temporary secret directory was already removed. This
+correction does not change the external verification result or introduce a
+bundled runtime claim.

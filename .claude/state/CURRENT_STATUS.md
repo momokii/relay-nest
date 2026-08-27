@@ -2,11 +2,13 @@
 
 ## Repository truth
 
-- Branch: `main`, tracking `momokii/relay-nest` `origin/main`.
-- Todo 12 implementation and documentation are committed locally in semantic
-  commits through `a69c248`; the final push is pending branch verification.
-- `.omo/plans/waha-command-center.md` and `.omo/start-work/ledger.jsonl` were
-  updated with the verified Todo 12 completion record.
+- Branch: `main`, tracking `origin/main`; both point to current HEAD `ef9196b`.
+- Verified implementation and documentation through Todo 6 and Todos 8-14
+  are represented in the synchronized history. Todo 7 remains open pending
+  independent orchestration. Todo 15 Compose deployment and operations, Todo
+  16 release verification, and final gates F1-F4 remain open.
+- The protected plan and execution ledger remain unchanged by this correction;
+  they retain their approved-scope and execution-history roles.
 
 ## Implementation
 
