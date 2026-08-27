@@ -274,3 +274,15 @@ Bundled mode remains blocked by the exact unavailable image manifest and
 unsupported runtime secret boundary. Todo 7 remains TODO until its final
 evidence, review, and delivery checks are complete; Todo 15, Todo 16, and F1-F4
 remain open.
+
+## Latest reconciliation: Todo 8 verifier state contradiction — 2026-08-27
+
+- **Current source of truth:** `main` and `origin/main` are synchronized at the
+  current `HEAD`; this hash-independent statement is authoritative for the
+  present repository state.
+- Older commit hashes in prior `Session closeout` sections are historical
+  snapshots from those sessions, not current branch or remote claims. Do not
+  interpret them as the current `HEAD`.
+- Todo 8 remains **BLOCKED** on the exact bundled-WAHA image and supported
+  secret-boundary prerequisites. Todo 15, Todo 16, and F1-F4 remain open; no
+  bundled completion or release completion is claimed.

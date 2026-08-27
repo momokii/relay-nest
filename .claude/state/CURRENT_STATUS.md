@@ -514,3 +514,15 @@ Last updated: 2026-08-26
   in `.omo/evidence/task-15-next-phases-operations.md`.
 
 Last updated: 2026-08-27
+
+## Latest reconciliation: Todo 8 verifier state contradiction — 2026-08-27
+
+- **Current source of truth:** `main` and `origin/main` are synchronized at the
+  current `HEAD`; this hash-independent statement is authoritative for the
+  present repository state.
+- Older commit hashes written in prior `Session closeout` sections are
+  historical snapshots from those sessions, not current branch or remote
+  claims. They must not be interpreted as the current `HEAD`.
+- Todo 8 remains **BLOCKED** on the exact bundled-WAHA image and supported
+  secret-boundary prerequisites. Todo 15, Todo 16, and F1-F4 remain open; no
+  bundled completion or release completion is claimed.
