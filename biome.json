@@ -27,7 +27,6 @@
       "!.omo/**",
       "!.codegraph/**",
       "!.claude/**",
-      "!scripts/**",
       "!docs/**"
     ]
   },
