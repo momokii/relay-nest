@@ -2,7 +2,7 @@
 
 ## Repository truth
 
-- Branch: `main`, tracking `origin/main`; both point to current HEAD `ef9196b`.
+- Branch: `main`, tracking `origin/main`; local and remote branches are synchronized.
 - Verified implementation and documentation through Todo 6 and Todos 8-14
   are represented in the synchronized history. Todo 7 remains open pending
   independent orchestration. Todo 15 Compose deployment and operations, Todo
