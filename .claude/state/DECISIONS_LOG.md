@@ -261,3 +261,16 @@ inspection. The exact source does not support Docker secret files or an
 `*_FILE` variable. Until an image digest and runtime-tested wrapper or other
 supported boundary are available, the bundled service exits before WAHA starts
 and the external-WAHA Compose mode remains the only verified deployment path.
+
+## Todo 7: reconcile operational documentation with verified Compose behavior
+
+**Date:** 2026-08-27
+
+Operational documentation must distinguish configuration validation from runtime
+acceptance. External mode is verified only with disposable placeholder-provider
+QA for PostgreSQL, API, web, migration ordering, readiness, same-origin proxying,
+private API exposure, and non-root application UIDs. Bundled mode remains blocked
+by the missing `devlikeapro/waha:2026.8.1` manifest and the absence of a verified
+secret-file boundary, so no bundled health, linking, account safety, or delivery
+claim is permitted. The README and runbooks use the pinned pnpm invocation and
+retain the unofficial-client restriction and ban-risk warning.

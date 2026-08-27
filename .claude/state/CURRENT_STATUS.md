@@ -466,3 +466,27 @@ Last updated: 2026-08-27
   Todo 16 and F1-F4 remain open.
 
 Last updated: 2026-08-26
+
+## Session update: Todo 7 operations reconciliation
+
+- Fresh source and state reconciliation is based on clean `main` at `2cebc7d`,
+  with `origin/main` at the same commit. The protected next-phases plan and
+  `.omo/start-work/ledger.jsonl` were not edited.
+- Documentation now uses the pinned `npx --yes pnpm@10.12.4` commands, names the
+  exact base, override, external, and bundled Compose combinations, and states
+  the actual migration, health, port, persistence, cleanup, backup, restore,
+  key-rotation, LAN/VPN, firewall, TLS, and secret precedence boundaries.
+- External mode remains verified only for disposable placeholder-provider
+  Compose ordering, readiness, same-origin proxying, private API exposure, and
+  non-root API/web runtime UIDs. No linking, account safety, or recipient
+  delivery claim is made.
+- Bundled mode remains blocked by the unavailable exact
+  `devlikeapro/waha:2026.8.1` manifest and the unsupported runtime secret
+  boundary. Its credential-free exit-78 guard is not bundled health or delivery
+  acceptance.
+- Baseline `docs:check`, Compose tests (`11/11`), focused Biome, typecheck, and
+  local Markdown link scan passed. The corrected missing external URL config
+  probe failed closed with exit 1. Final verification and evidence are recorded
+  in `.omo/evidence/task-15-next-phases-operations.md`.
+
+Last updated: 2026-08-27

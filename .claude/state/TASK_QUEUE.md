@@ -247,3 +247,13 @@ credential-free bundled service was not started. Todo 6 is verified for every
 available acceptance gate but remains blocked on the exact bundled image and a
 supported runtime secret boundary; Todo 15 remains TODO and no plan/ledger
 checkbox or completion record was changed.
+
+## Todo 7 documentation reconciliation follow-up
+
+The operations, threat-model, WAHA capability, README, environment, and
+security guidance now reflects the current Compose source. External mode is
+described as verified only for the disposable placeholder-provider boundary.
+Bundled mode remains blocked by the exact unavailable image manifest and
+unsupported runtime secret boundary. Todo 7 remains TODO until its final
+evidence, review, and delivery checks are complete; Todo 15, Todo 16, and F1-F4
+remain open.
