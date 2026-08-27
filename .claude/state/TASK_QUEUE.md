@@ -1,13 +1,16 @@
 # Task Queue
 
-Top-level execution remains **IN PROGRESS**. Todos 1-12 are complete. Todo 12
-implementation and verification are recorded in local semantic commits; final
-branch synchronization is pending. The protected plan and ledger are the approved
-scope/history; this queue is the live operational view.
+Top-level execution remains **IN PROGRESS**. The statement that original project
+Todos 1-12 are complete refers to the project's original Todo numbering, not the
+next-phases Todos 6-11 listed in the live queue below. Todo 12 implementation and
+verification are recorded in local semantic commits; final branch synchronization
+is pending. The protected plan and ledger are the approved scope/history; this
+queue is the live operational view.
 
 ## Completed implementation
 
-Todos 1-12 are DONE. Todo 12 is **IMPLEMENTED, VERIFIED, AND COMMITTED LOCALLY**:
+Original project Todos 1-12 are DONE. Todo 12 is **IMPLEMENTED, VERIFIED, AND
+COMMITTED LOCALLY**:
 retention policies, scoped preview/confirmation purge,
 immutable content-free audit accountability, encrypted backup/restore,
 key-rotation guidance, independent two-worker claim coverage, and auth HTTP
@@ -46,9 +49,13 @@ stable fork-pool full suite passed `33 files, 138 tests`.
 
 | Item | Status | Dependency |
 |---|---|---|
+| Todo 8 bundled-WAHA verification | TODO / BLOCKED on the exact bundled image and supported secret boundary | Todos 4, 6 |
+| Todo 9 repository-local release tooling | IMPLEMENTATION/EVIDENCE VERIFIED; protected plan checkbox OPEN | Todos 2, 4, 6 |
+| Todo 10 release matrix | TODO | Todos 5, 6, 9 |
+| Todo 11 F1-F4 final gates | TODO | Todos 4, 5, 9, 10 |
 | Todo 13 analytics projections | DONE | Todos 8-12 |
 | Todo 14 dashboard and human-approved AI seam | DONE | Todos 5, 7, 9-13 |
-| Todo 15 Compose deployment and operations | TODO | Todos 1, 3, 6, 7 |
+| Todo 15 Compose deployment and operations | TODO / BLOCKED on the exact bundled image and supported secret boundary | Todos 1, 3, 6, 7 |
 | Todo 16 release verification | TODO | Todos 11-15 |
 | F1 plan compliance | TODO | Todo 16 |
 | F2 security and quality | TODO | Todo 16 |
