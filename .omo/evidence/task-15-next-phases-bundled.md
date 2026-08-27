@@ -295,3 +295,131 @@ targeted.
   `tests/task-13-analytics-db-fixture.ts:1:1 assist/source/organizeImports`
   and its format diagnostic (`Found 2 errors`). No WhatsApp linking or delivery
   is claimed.
+
+## Fresh re-verification — 2026-08-27
+
+### DoneClaim
+
+- **Claim:** Todo 8 was rechecked with the exact pinned image and unique,
+  disposable Compose projects. The result remains **BLOCKED**; no bundled
+  runtime was started and no product code, plan, or execution ledger was
+  changed.
+- **Exact image:** `devlikeapro/waha:2026.8.1` remains unavailable from Docker
+  context `default` (Docker client/server `29.3.1`).
+- **Credential boundary:** no supported WAHA Docker-secret or `*_FILE` boundary
+  is available in the verified contract. The merged bundled configuration
+  injects no `WAHA_API_KEY`, `WHATSAPP_API_KEY`, hash verifier, or undocumented
+  file variable; the credential-free guard exits `78` before the WAHA process.
+  This is a safe blocker, not bundled runtime acceptance.
+
+### Exact registry probes
+
+```text
+docker manifest inspect devlikeapro/waha:2026.8.1
+docker pull devlikeapro/waha:2026.8.1
+```
+
+Redacted results:
+
+```text
+no such manifest: docker.io/devlikeapro/waha:2026.8.1
+manifest_exit=1
+Error response from daemon: manifest for devlikeapro/waha:2026.8.1 not found: manifest unknown: manifest unknown
+pull_exit=1
+```
+
+No replacement tag, digest, `latest`, credential, WhatsApp account, linking,
+or delivery claim was used.
+
+### Safe merged-config boundary probe
+
+Temporary files under `/tmp/opencode/` contained only non-secret placeholders,
+were mode `600`, and were removed by probe traps. The probe used explicit
+empty-environment isolation and `--env-file /dev/null` with placeholder
+Postgres/encryption file paths:
+
+```text
+docker compose --env-file /dev/null -p <unique-project> \
+  -f docker-compose.yml -f docker-compose.override.yml \
+  -f docker-compose.bundled-waha.yml --profile waha config --format json
+```
+
+`config_exit=0`. Redacted assertions:
+
+```text
+image=devlikeapro/waha:2026.8.1
+waha_host_ports=NONE
+api_host_ports=NONE
+internal_expose=waha:3000,api:3000
+credential_free_render=PASS
+exit_78_guard=PASS
+session_volume=PASS
+web_only_host_port=PASS
+```
+
+The rendered configuration contained no WAHA key variable, `sha512:` value, or
+placeholder value. A corrected explicit-argument config matrix also passed:
+
+```text
+base_config_exit=0 external_config_exit=0 bundled_config_exit=0
+placeholder_modes=600,600 temp_cleanup=PASS
+```
+
+### Runtime gate and cleanup proof
+
+Because both exact registry probes failed, this command was deliberately not
+run:
+
+```text
+docker compose -p <unique-project> -f docker-compose.yml \
+  -f docker-compose.override.yml -f docker-compose.bundled-waha.yml \
+  --profile waha up --build --wait -d
+```
+
+Therefore no bundled health, API/WAHA endpoint, UID, immutable image inspect,
+linking, or delivery result is claimed. Project-scoped cleanup used only:
+
+```text
+docker compose --env-file /dev/null -p <unique-project> \
+  -f docker-compose.yml -f docker-compose.override.yml \
+  -f docker-compose.bundled-waha.yml --profile waha down --remove-orphans
+```
+
+The completed project-scoped cleanup command returned `down_exit=0`; exact
+project-label audits for all four disposable probe projects returned:
+
+```text
+containers=0 volumes=0 networks=0
+```
+
+No `-v`, prune, existing project, or unrelated volume was targeted. A first
+config harness passed Compose options as one shell scalar and returned an
+`unknown flag` harness error; it created no resources and was superseded by the
+correct explicit-argument probe.
+
+### Required checks and adversarial classes
+
+- `npx --yes pnpm@10.12.4 exec vitest run tests/compose-startup.test.ts tests/compose-external-proxy.test.ts` — **PASS**, `2 files, 11 tests`.
+- `npx --yes pnpm@10.12.4 run docs:check` — **PASS**.
+- `npx --yes pnpm@10.12.4 run secret-scan` — **PASS**.
+- `npx --yes pnpm@10.12.4 run verify:scope` — **PASS**.
+- `npx --yes pnpm@10.12.4 typecheck` — **PASS**.
+- `npx --yes pnpm@10.12.4 build` — **PASS**.
+- `GIT_MASTER=1 git diff --check` — **PASS**.
+- `npx --yes pnpm@10.12.4 lint` — **NOT PASSED**: six diagnostics from
+  workstation `/etc` traversal/permission paths and the pre-existing
+  `tests/task-13-analytics-db-fixture.ts` import/format diagnostics; no task
+  file was changed to bypass them.
+- `stale_state`, `missing_manifest`, `unsupported_secret_boundary`,
+  `credential_leakage`, `host_port_exposure`, `false_health_claim`,
+  `malformed_probe_arguments`, `temporary_secret_cleanup`, and
+  `project_resource_cleanup` were checked. No secret value was printed or
+  recorded.
+
+### Bounded acceptance
+
+**BLOCKED — Todo 8 and Todo 15 remain open.** Make the exact pinned manifest
+available and establish a documented, runtime-tested supported credential
+boundary before rerunning bundled startup, health, immutable image, UID,
+persistence, and cleanup QA. Todo 16 and F1-F4 remain open; this receipt does
+not alter any protected plan or ledger completion marker.
