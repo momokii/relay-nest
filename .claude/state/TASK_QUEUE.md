@@ -248,6 +248,23 @@ available acceptance gate but remains blocked on the exact bundled image and a
 supported runtime secret boundary; Todo 15 remains TODO and no plan/ledger
 checkbox or completion record was changed.
 
+## Session follow-up: Todo 8 bundled-WAHA re-verification
+
+On 2026-08-27, the exact `docker manifest inspect` and `docker pull` probes for
+`devlikeapro/waha:2026.8.1` again failed with redacted `no such manifest` /
+`manifest unknown` results. A safe `--env-file /dev/null` merged-config probe
+passed for base, external, and bundled Compose with mode-600 placeholders; it
+confirmed no WAHA credential or hash injection, internal-only WAHA/API port
+3000, web-only host port, `exit 78`, and `waha-sessions` persistence. No
+supported WAHA Docker-secret or `*_FILE` runtime boundary was established.
+
+Compose tests passed `11/11`, docs:check, secret-scan, verify:scope, typecheck,
+build, and whitespace checks passed. Full lint remains not passed due six
+workstation/known analytics-fixture diagnostics. Unique project-scoped cleanup
+left zero task-owned containers, volumes, and networks. Todo 8 and Todo 15
+remain TODO/blocked; Todo 16 and F1-F4 remain open, with no bundled health,
+linking, or delivery claim.
+
 ## Todo 7 documentation reconciliation follow-up
 
 The operations, threat-model, WAHA capability, README, environment, and

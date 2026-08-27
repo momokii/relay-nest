@@ -447,6 +447,28 @@ Last updated: 2026-08-26
 
 Last updated: 2026-08-27
 
+## Session update: Todo 8 bundled-WAHA re-verification
+
+- Fresh exact probes on 2026-08-27 still returned `manifest_exit=1` (`no such
+  manifest`) and `pull_exit=1` (`manifest unknown`) for
+  `devlikeapro/waha:2026.8.1` using Docker context `default`, client/server
+  `29.3.1`. No replacement tag or digest was guessed, and bundled startup was
+  correctly skipped.
+- Isolated merged base/external/bundled Compose config passed with
+  `--env-file /dev/null` and mode-600 placeholder secret files. The exact image,
+  internal-only WAHA/API port 3000, web-only host port, `waha-sessions` volume,
+  credential-free rendering, and exit-78 guard were verified. No supported WAHA
+  Docker-secret or `*_FILE` credential boundary was established.
+- Compose tests passed `11/11`; docs:check, secret-scan, verify:scope, typecheck,
+  build, and `git diff --check` passed. Full lint remains not passed because of
+  six workstation/known analytics-fixture diagnostics. All four unique task
+  probe projects cleaned to zero containers, volumes, and networks; temporary
+  files were removed.
+- Todo 8 and Todo 15 remain TODO/blocked. Todo 16 and F1-F4 remain open. No
+  bundled health, UID, linking, account-safety, or delivery claim is made.
+
+Last updated: 2026-08-27
+
 ## Session closeout: Todo 15 bounded tranche synchronized
 
 - Ten atomic Todo 15 Compose/API/configuration/documentation/evidence commits
