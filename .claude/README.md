@@ -8,13 +8,26 @@ backup/restore, and key-rotation guidance are also implemented and focused-
 verified, including its scheduler concurrency regression fix. Its implementation
 and evidence are committed locally; final plan gates remain open.
 
-## Required sequence
+## Fast feature path
 
-Read `HOW_TO_RESUME.md`, `state/CURRENT_STATUS.md`, `state/TASK_QUEUE.md`,
-`AGENT_RULES.md`, `CODING_STANDARDS.md`, `SECURITY_STANDARDS.md`, and
-`ENVIRONMENT_GUIDE.md` before editing. Then read task-specific product,
-architecture, API, operations, and threat-model docs. Verify environment and
-relevant checks before and after changes.
+Read this file, `README.md`, `CONTEXT.md`, current status, and the relevant
+feature files. Add a focused regression test, then run:
+
+```text
+npx --yes pnpm@10.12.4 feature --test-file tests/<regression>.test.ts \
+  --test-name "<focused behavior>" --paths <changed-source> <regression-test>
+```
+
+Start the local bundled app with:
+
+```text
+npx --yes pnpm@10.12.4 dev:bundled
+```
+
+Read the full resume, coding, security, and environment documents only when
+the feature touches their domain or the user requests release verification.
+`release` is the explicit broad-validation path; it is not part of ordinary
+feature work.
 
 ## State and source of truth
 

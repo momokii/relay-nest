@@ -21,15 +21,15 @@ outrank stale state wording; record the discrepancy in live state files.
 
 ## Startup and resume
 
-Read `README.md`, then `.claude/README.md`, `.claude/HOW_TO_RESUME.md`,
-current status, task queue, agent rules, coding/security standards, environment
-guide, and task-specific docs. Confirm branch/worktree, environment, relevant
-services, and existing tests before editing.
+For ordinary feature work, read `README.md`, `.claude/README.md`, `CONTEXT.md`,
+the current status, and only the task-relevant module/docs. Check the worktree
+and active environment, then start implementing; do not read every historical
+evidence file or run release verification first.
 
-At the mandatory state-refresh checkpoint, compare state files with verified
-source, tests, evidence, and worktree status. Select only the next unblocked
-task, and never rewrite protected plan/ledger records to make progress appear
-complete.
+Load `CODING_STANDARDS.md`, `SECURITY_STANDARDS.md`, or the full resume protocol
+when the change touches their domain, crosses a trust boundary, or the user
+explicitly asks for release verification. Never rewrite protected plan/ledger
+records to make progress appear complete.
 
 `.claude/state/` is the live progress/decision record; verified source, tests,
 and evidence outrank stale wording. The approved plan is
@@ -48,18 +48,24 @@ and WAHA's internal network boundary. Make the smallest change, add regression
 coverage, and do not claim a change is committed or pushed.
 
 Before closing a session, record exact verification and remaining blockers in
-`CURRENT_STATUS.md`, update `TASK_QUEUE.md`, and record durable decisions in
-`DECISIONS_LOG.md`. Clean disposable services, ports, temporary files, and
-build/debug artifacts.
+the relevant state file only when work spans sessions, changes a durable
+decision, or leaves a blocker. Clean disposable services, ports, temporary
+files, and build/debug artifacts.
 
 ## Testing and evidence
 
-Every behavior change needs regression coverage. Run the narrowest relevant
-tests first, then the required integration/full suite, lint, typecheck, builds,
-security/dependency checks, and documentation/link checks where available.
-Database and API QA must use isolated disposable resources, capture exact
-redacted outputs in `.omo/evidence/`, and include cleanup proof. Never claim an
-unavailable scanner or a skipped test passed.
+Every behavior change needs regression coverage. The default feature loop is:
+
+```text
+npx --yes pnpm@10.12.4 feature --test-file tests/<regression>.test.ts \
+  --test-name "<focused behavior>" --paths <changed-source> <regression-test>
+```
+
+This runs only the focused test, project typecheck, and scoped Biome. Use
+`npx --yes pnpm@10.12.4 release` only for release/final-gate work or when the
+user explicitly requests broad verification. Database/API QA still uses
+disposable resources and redacted output; never claim an unavailable scanner or
+skipped test passed.
 
 ## Git and delivery
 
