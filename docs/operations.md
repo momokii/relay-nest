@@ -5,34 +5,57 @@
 RelayNest supports the following Compose invocations. Run them from the
 repository root with the required secret files present. The override file is
 explicitly loaded below so the selected files are visible in the command. It
-currently supplies the encryption secret path; it does not publish ports or
-enable development tooling.
+supplies the encryption secret path; the bundled overlay additionally supplies
+the WAHA API-key secret path. Neither mode publishes API or WAHA ports.
 
 ### External WAHA, supported runtime
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.override.yml \
+docker compose -p relaynest -f docker-compose.yml -f docker-compose.override.yml \
   -f docker-compose.external-waha.yml up --build --wait -d
 ```
 
 `WAHA_BASE_URL` must point to the approved external service. The external WAHA
-service is not created or exposed by this project. External mode is the only
-verified operational path in this repository. The verification used a
-placeholder, unavailable provider URL and therefore proves Compose ordering,
-health, proxy, and exposure boundaries, not WhatsApp linking or delivery.
+service is not created or exposed by this project. External mode remains the
+provider-independent operational path. Its verification used a placeholder,
+unavailable provider URL and therefore proves Compose ordering, health, proxy,
+and exposure boundaries, not WhatsApp linking or delivery.
 
-### Bundled WAHA, configuration-only until the image is available
+### Bundled WAHA, digest-pinned local runtime
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.override.yml \
+docker compose -p relaynest -f docker-compose.yml -f docker-compose.override.yml \
   -f docker-compose.bundled-waha.yml --profile waha up --build --wait -d
 ```
 
-The target image is exactly `devlikeapro/waha:2026.8.1`. As of 2026-08-25,
-that image has no registry manifest, so this invocation is blocked before
-service startup. Do not substitute another tag or digest. The merged
-configuration can validate, but that does not prove image pullability, health,
-API-key behavior, container UID, linking, or delivery.
+The same production startup can be run through the deployment alias:
+
+```bash
+npx --yes pnpm@10.12.4 deploy:bundled
+```
+
+The disposable development stack uses a separate project name:
+
+```bash
+npx --yes pnpm@10.12.4 dev:bundled
+```
+
+Set `WAHA_API_KEY_FILE` to a protected file containing the approved WAHA API
+key before running the command. The bundled service builds
+`relaynest-waha:latest-2026.8.1` from `Dockerfile.waha`, whose base is the
+published `devlikeapro/waha:latest-2026.8.1` image pinned to a recorded digest.
+The dated `devlikeapro/waha:2026.8.1` reference has no registry manifest and is
+not used. The repository wrapper reads the mounted secret and hands the value to
+native WAHA startup without putting the key in Compose interpolation, resolved
+configuration, or the healthcheck command.
+
+The bundled smoke path is locally runtime-verified for image startup,
+authenticated WAHA health, API/web readiness, internal-only ports, and session
+volume wiring. It does not prove WhatsApp linking, account safety, or recipient
+delivery. The earlier configuration-only until the image is available,
+fail-closed blocker, and no supported secret-file mechanism statements are
+historical release-gate records from before the published image and wrapper were
+verified; they remain in the dedicated historical evidence files.
 
 ### File and port rules
 
@@ -44,15 +67,17 @@ target to `http://waha:3000`, adds the `waha` health dependency, and enables the
 `waha` profile. `docker-compose.override.yml` supplies the Compose encryption
 secret path for local development.
 
-Only `web` publishes a host port, `${WEB_PORT:-8080}:4173`. `api` exposes
-internal port `3000` only, and bundled `waha` exposes internal port `3000` only.
-There is no host API or WAHA port. Remove any local guidance that sets
-`API_PORT`; the container API port is fixed at `3000` and is not a host setting.
+Only `web` publishes a host port, `${WEB_BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8080}:4173`.
+`api` exposes internal port `3000` only, and bundled `waha` exposes internal port
+`3000` only. There is no host API or WAHA port. Remove any local guidance that
+sets `API_PORT`; the container API port is fixed at `3000` and is not a host
+setting.
 
-Bind the dashboard only to a trusted LAN or VPN boundary. A public deployment
-requires a reverse proxy terminating HTTPS/TLS, strict firewall rules, secure
-cookies and headers, and login rate limiting. Never place WAHA directly on the
-public interface.
+The loopback bind is the safe default. Set `WEB_BIND_ADDRESS` to an explicit
+trusted LAN or VPN address only when that boundary is intentional. A public
+deployment requires a reverse proxy terminating HTTPS/TLS, strict firewall
+rules, secure cookies and headers, and login rate limiting. Never place WAHA
+directly on the public interface.
 
 ## Secrets and precedence
 
@@ -73,13 +98,15 @@ defaults to `.secrets/postgres_password`). The path may be configured, but the
 password value must never appear in environment output, resolved configuration,
 logs, evidence, or documentation.
 
-Bundled Compose intentionally has no WAHA credential injection. Its WAHA
-service is overridden to exit with a bounded failure before the WAHA process
-starts. This is a fail-closed blocker, not a runnable deployment: the exact
-image is unavailable and no supported secret-file mechanism has been verified.
-Do not add `WAHA_API_KEY`, a hash verifier, or an undocumented `_FILE` variable
-to Compose until a supported, runtime-tested boundary keeps the credential out
-of resolved configuration and container inspection.
+Bundled Compose mounts the file named by `WAHA_API_KEY_FILE` at
+`/run/secrets/waha_api_key`. The repository wrapper rejects an unreadable or
+blank file with exit `78`, exports `WAHA_API_KEY` only for the native WAHA child
+process, unsets `WAHA_API_KEY_FILE`, and preserves the native `tini` entrypoint.
+The healthcheck reads the same mounted file locally and sends `X-Api-Key` to
+loopback. The key value must never appear in Compose output, resolved
+configuration, logs, evidence, user-facing responses, or documentation. It is
+necessarily present in the native WAHA child process environment for the
+duration of startup and runtime; restrict runtime inspection access accordingly.
 
 ## Startup, health, and readiness
 
