@@ -95,5 +95,5 @@ export type WahaContactExists = z.infer<typeof wahaContactExistsSchema>
 export type WahaContact = z.infer<typeof wahaContactSchema>
 export type WahaSendTextResponse = z.infer<typeof wahaSendTextResponseSchema>
 
-export const WAHA_IMAGE = "devlikeapro/waha:2026.8.1" as const
+export const WAHA_IMAGE = "devlikeapro/waha:latest-2026.8.1" as const
 export const WAHA_CONTRACT_VERSION = "2026.8.1" as const
