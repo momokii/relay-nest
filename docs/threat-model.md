@@ -31,17 +31,18 @@ evidence, audit records, and retention/deletion metadata.
 
 ### Dashboard exposure
 
-**Threat:** A dashboard bound to `0.0.0.0` is reached by an unintended network
-principal, or public deployment is exposed without transport and perimeter
-hardening. An attacker could attempt authentication, session control, message
-sending, or data access.
+**Threat:** A dashboard is intentionally rebound from its loopback default to an
+untrusted network, or public deployment is exposed without transport and
+perimeter hardening. An attacker could attempt authentication, session control,
+message sending, or data access.
 
-**Controls:** Treat `0.0.0.0` as LAN/VPN convenience only; document the exposure
-warning. Public deployment requires a reverse proxy with HTTPS/TLS, firewall
-restrictions, hardened cookies and security headers, authentication, CSRF
-protection, and login rate limiting. Do not publish bundled WAHA or its API
-port. Verify unauthenticated routes, rate limits, secure cookies, and denial of
-cross-scope requests.
+**Controls:** Bind the dashboard to loopback by default. An explicit
+`WEB_BIND_ADDRESS` override is for a trusted LAN/VPN boundary only.
+Public deployment requires a reverse proxy with HTTPS/TLS, firewall restrictions,
+hardened cookies and security headers, authentication, CSRF protection, and
+login rate limiting. Do not publish bundled WAHA or its API port. Verify
+unauthenticated routes, rate limits, secure cookies, and denial of cross-scope
+requests.
 
 Compose publishes only the web port. API and bundled WAHA use internal
 container ports, so a host firewall and reverse proxy must expose the dashboard
@@ -52,17 +53,19 @@ without bypassing the same-origin API boundary.
 The base Compose file uses a digest-pinned PostgreSQL image and digest-pinned
 Node application images. PostgreSQL must become healthy before the API starts;
 the API applies migrations before listening; and web waits for a healthy API.
-Bundled mode adds a healthy-WAHA dependency, but that mode is currently blocked,
-not verified. Only web publishes the configurable host port. API and bundled
-WAHA expose port `3000` only inside the Compose network.
+Bundled mode adds a healthy-WAHA dependency and uses the digest-pinned
+`latest-2026.8.1` image through the repository-owned secret wrapper. Only web
+publishes the configurable host port. API and bundled WAHA expose port `3000`
+only inside the Compose network.
 
-External mode is the verified operational path, based on disposable placeholder
-provider QA. That evidence proves service ordering, API readiness, same-origin
-proxying, private API exposure, and non-root API/web UIDs. It does not prove
-WhatsApp linking, account health, or recipient delivery. The exact bundled image
-`devlikeapro/waha:2026.8.1` has no registry manifest, and no supported runtime
-secret-file boundary has been verified, so no bundled health or delivery claim
-is made.
+External mode is verified with disposable placeholder-provider QA. That evidence
+proves service ordering, API readiness, same-origin proxying, private API
+exposure, and non-root API/web UIDs. Bundled smoke QA additionally proves
+service startup and authenticated health. Neither mode proves WhatsApp linking,
+account health, or recipient delivery. The dated bundled image reference
+`devlikeapro/waha:2026.8.1` has no registry manifest; the published
+`latest-2026.8.1` image and its runtime secret wrapper are the supported bundled
+deployment boundary.
 
 ### WAHA credentials
 
@@ -79,9 +82,10 @@ log, and browser-network redaction.
 Production Compose reads the encryption master key from the file named by
 `ENCRYPTION_MASTER_KEY_FILE`; direct key injection is for deliberate non-Compose
 use only, and both sources together fail closed. PostgreSQL passwords use a
-Docker secret file. Bundled Compose intentionally injects no WAHA credential and
-exits before the WAHA process starts until a supported, runtime-tested secret
-boundary is available; no `_FILE` convention is assumed.
+Docker secret file. Bundled Compose mounts the WAHA API key as a Docker secret;
+the repository wrapper validates it, exports it only to the native WAHA child
+process, and exits before startup when the file is unreadable or blank. No
+provider key is placed in Compose interpolation or browser-visible state.
 
 ### Webhook spoofing and replay
 

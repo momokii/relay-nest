@@ -35,11 +35,12 @@ unrestricted raw endpoint launcher.
 
 ### Network boundary
 
-**Network:** The dashboard binds to `0.0.0.0` for LAN/VPN convenience. In bundled deployment,
-WAHA remains on an internal network and its API is not published. A public
-deployment is not the default: it requires reverse-proxy HTTPS/TLS, firewall
-restrictions, hardened cookies and headers, and explicit warning documentation.
-WAHA credentials remain server-side and are never browser-visible.
+**Network:** The dashboard binds to loopback by default. Operators may set an
+explicit `WEB_BIND_ADDRESS` for a trusted LAN/VPN boundary. In bundled
+deployment, WAHA remains on an internal network and its API is not published. A
+public deployment is not the default: it requires reverse-proxy HTTPS/TLS,
+firewall restrictions, hardened cookies and headers, and explicit warning
+documentation. WAHA credentials remain server-side and are never browser-visible.
 
 ### Scheduling and delivery boundary
 
