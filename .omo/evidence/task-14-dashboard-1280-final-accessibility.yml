@@ -29,7 +29,7 @@
   - paragraph: Command center · personal
   - heading "Operational overview" [level=1]
   - paragraph: A scoped view of what the system knows, what it cannot verify, and what needs a human.
-  - text: e2e-24164df3-f033-4a8b-8546-0bbf4c5f00ba@example.invalid
+  - text: e2e-980f2041-dae3-46c7-9654-0edc639b14a2@example.invalid
   - strong: admin access
   - region "Personal overview":
     - paragraph: Scoped operating picture
@@ -48,7 +48,7 @@
     - paragraph: Transport
     - heading "Session posture" [level=2]
     - text: 1 visible
-    - strong: e2e-personal-session-bad03896-1cd4-4560-b8d8-6272ee473573
+    - strong: e2e-personal-session-c36869af-2053-492b-8b4a-50ecf377fd1f
     - text: personal scope Session · WORKING Health · unknown Ready · unknown
   - region "AI review posture":
     - paragraph: Human checkpoint
