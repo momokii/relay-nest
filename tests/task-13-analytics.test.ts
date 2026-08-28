@@ -37,6 +37,7 @@ describe("analytics authorization seam", () => {
     // Then no aggregate or unauthorized source records cross the grant seam
     expect(result.sessions).toEqual([])
     expect(result.messageVolume.total).toBe(0)
+    expect(result.uptimeMs).toBeNull()
     expect(readSessionIds).toEqual([])
   })
 

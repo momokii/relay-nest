@@ -82,6 +82,16 @@ export function createAnalyticsSource(
         .from(sessionsTable)
         .where(eq(sessionsTable.accountScope, scope)),
     read: async (scope: AccountScope, window: AnalyticsWindow, sessionIds: readonly string[]) => {
+      if (sessionIds.length === 0) {
+        return {
+          sessions: [],
+          events: [],
+          dispatchAttempts: [],
+          contacts: [],
+          jobs: [],
+          statusHistory: [],
+        }
+      }
       const [events, attempts, contactRows, jobs, sessions] = await Promise.all([
         database.db
           .select()
