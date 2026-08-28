@@ -59,7 +59,7 @@ A temporary Fastify harness used the real route adapter and was deleted after
 the run. Exact HMACs were generated with:
 
 ```sh
-printf '%s' "$body" | openssl dgst -sha512 -hmac 'task8-secret' -hex
+printf '%s' "$body" | openssl dgst -sha512 -hmac '<REDACTED>' -hex
 ```
 
 Observed responses, including WEBJS waiting and malformed JSON:

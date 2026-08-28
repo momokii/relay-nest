@@ -28,12 +28,12 @@ server-only WAHA client boundary before the Todo 10 changes.
 ## Focused verification
 
 ```text
-DATABASE_URL=postgresql://scheduler:scheduler@localhost:55435/waha_command_center \
+DATABASE_URL=<REDACTED_DATABASE_URL> \
   ./node_modules/.bin/vitest run tests/messaging.test.ts tests/messaging-http.test.ts tests/messaging-safety.test.ts tests/scheduler.test.ts tests/waha-adapter.test.ts tests/waha-webhook.test.ts tests/waha-webhook-http.test.ts tests/messaging-postgres.integration.test.ts
 Test Files 8 passed (8)
 Tests 56 passed (56)
 
-DATABASE_URL=postgresql://scheduler:scheduler@localhost:55435/waha_command_center \
+DATABASE_URL=<REDACTED_DATABASE_URL> \
   ./node_modules/.bin/vitest run tests/messaging.test.ts tests/messaging-http.test.ts tests/messaging-safety.test.ts tests/scheduler.test.ts tests/waha-adapter.test.ts tests/waha-webhook.test.ts tests/waha-webhook-http.test.ts tests/messaging-postgres.integration.test.ts
 Test Files 8 passed (8)
 Tests 56 passed (56)
@@ -52,16 +52,16 @@ Started disposable PostgreSQL 16:
 
 ```text
 docker run --rm -d --name task10-final-pg \
-  -e POSTGRES_USER=scheduler -e POSTGRES_PASSWORD=scheduler \
+  -e POSTGRES_USER=<REDACTED> -e POSTGRES_PASSWORD=<REDACTED> \
   -e POSTGRES_DB=waha_command_center -p 55435:5432 postgres:16-alpine
 ```
 
 Exact migration/replay commands:
 
 ```text
-DATABASE_URL=postgresql://scheduler:scheduler@localhost:55435/waha_command_center \
+DATABASE_URL=<REDACTED_DATABASE_URL> \
   ./node_modules/.bin/drizzle-kit migrate --config drizzle.config.ts
-DATABASE_URL=postgresql://scheduler:scheduler@localhost:55435/waha_command_center \
+DATABASE_URL=<REDACTED_DATABASE_URL> \
   ./node_modules/.bin/drizzle-kit migrate --config drizzle.config.ts
 ```
 
@@ -69,7 +69,7 @@ Both passed. The full PostgreSQL-backed suite was then run twice with the same
 result:
 
 ```text
-DATABASE_URL=postgresql://scheduler:scheduler@localhost:55435/waha_command_center \
+DATABASE_URL=<REDACTED_DATABASE_URL> \
   ./node_modules/.bin/vitest run
 Test Files 21 passed | 1 skipped (22)
 Tests 90 passed | 3 skipped (93)
@@ -88,7 +88,7 @@ budget, pacing, burst, duplicate-window, quiet-hours, and cooldown columns.
 ## Mock-WAHA/API manual QA
 
 ```text
-DATABASE_URL=postgresql://scheduler:scheduler@localhost:55435/waha_command_center \
+DATABASE_URL=<REDACTED_DATABASE_URL> \
   ./node_modules/.bin/vitest run tests/messaging.test.ts tests/messaging-http.test.ts tests/messaging-safety.test.ts tests/scheduler.test.ts tests/waha-adapter.test.ts tests/waha-webhook.test.ts tests/waha-webhook-http.test.ts tests/messaging-postgres.integration.test.ts
 ```
 
@@ -131,7 +131,7 @@ deterministic test transport; no live WAHA account was contacted.
 ## Full verification
 
 ```text
-DATABASE_URL=postgresql://scheduler:scheduler@localhost:55435/waha_command_center \
+DATABASE_URL=<REDACTED_DATABASE_URL> \
   ./node_modules/.bin/vitest run
 Test Files 21 passed | 1 skipped (22)
 Tests 90 passed | 3 skipped (93)

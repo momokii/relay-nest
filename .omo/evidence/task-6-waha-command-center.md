@@ -44,8 +44,8 @@ Disposable mock: Node HTTP server on `127.0.0.1:18081`, exact `/health` and `/ap
 Commands:
 
 ```text
-curl -i --fail-with-body --max-time 5 -H 'X-Api-Key: manual-secret' http://127.0.0.1:18081/health
-curl -i --fail-with-body --max-time 5 -H 'X-Api-Key: manual-secret' http://127.0.0.1:18081/api/server/version
+curl -i --fail-with-body --max-time 5 -H 'X-Api-Key: <REDACTED>' http://127.0.0.1:18081/health
+curl -i --fail-with-body --max-time 5 -H 'X-Api-Key: <REDACTED>' http://127.0.0.1:18081/api/server/version
 npx --yes pnpm@10.12.4 exec vitest run tests/waha-adapter.test.ts --reporter=dot
 ```
 

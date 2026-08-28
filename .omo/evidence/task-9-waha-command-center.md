@@ -25,21 +25,21 @@ Checked 88 files in 65ms. No fixes applied.
 ./node_modules/.bin/tsc -b --force --pretty false
 passed (exit 0)
 
-DATABASE_URL=postgresql://scheduler:scheduler@localhost:55432/waha_command_center \
+DATABASE_URL=<REDACTED_DATABASE_URL> \
   ./node_modules/.bin/vitest run
 Test Files 16 passed | 1 skipped (17)
 Tests 65 passed | 3 skipped (68)
 
-DATABASE_URL=postgresql://scheduler:scheduler@localhost:55432/waha_command_center \
+DATABASE_URL=<REDACTED_DATABASE_URL> \
   ./apps/api/node_modules/.bin/drizzle-kit migrate --config drizzle.config.ts
 migrations applied successfully
 
-DATABASE_URL=postgresql://scheduler:scheduler@localhost:55432/waha_command_center \
+DATABASE_URL=<REDACTED_DATABASE_URL> \
   ./node_modules/.bin/vitest run tests/repositories.integration.test.ts
 Test Files 1 passed
 Tests 9 passed
 
-DATABASE_URL=postgresql://scheduler:scheduler@localhost:55432/waha_command_center \
+DATABASE_URL=<REDACTED_DATABASE_URL> \
   ./node_modules/.bin/drizzle-kit check --config drizzle.config.ts
 Everything's fine
 
@@ -88,7 +88,7 @@ Disposable PostgreSQL 16 was started with:
 
 ```text
 docker run --rm -d --name waha-scheduler-pg \
-  -e POSTGRES_USER=scheduler -e POSTGRES_PASSWORD=scheduler \
+  -e POSTGRES_USER=<REDACTED> -e POSTGRES_PASSWORD=<REDACTED> \
   -e POSTGRES_DB=waha_command_center -p 55432:5432 postgres:16-alpine
 ```
 
