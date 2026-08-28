@@ -107,9 +107,11 @@ export function projectAnalytics(input: AnalyticsInput): AnalyticsProjection {
         ? null
         : aggregate.acknowledgments.failed / completed,
     uptimeMs:
-      sessions.length === 0 || sessions.every((session) => session.uptimeMs !== null)
-        ? sessions.reduce((total, session) => total + (session.uptimeMs ?? 0), 0)
-        : null,
+      sessions.length === 0
+        ? null
+        : sessions.every((session) => session.uptimeMs !== null)
+          ? sessions.reduce((total, session) => total + (session.uptimeMs ?? 0), 0)
+          : null,
     statusHistory: sessions
       .flatMap((session) =>
         session.statusHistory.map((entry) => ({ sessionId: session.sessionId, ...entry })),

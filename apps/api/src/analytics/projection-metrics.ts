@@ -14,6 +14,7 @@ const messageEvents = new Set(["message", "message.any", "message.waiting"])
 const timelockEvents = new Set(["safety.timelock"])
 const cappingEvents = new Set(["safety.capping"])
 const directionSchema = z.object({ fromMe: z.boolean() })
+const messageIdentitySchema = z.object({ id: z.string().min(1) })
 
 export function inWindow(date: Date, input: AnalyticsInput): boolean {
   return date >= input.window.from && date < input.window.to
@@ -45,10 +46,16 @@ export function messageRows(input: AnalyticsInput, sessionId: string): readonly 
       return (JSON.stringify(left.payload) ?? "").localeCompare(JSON.stringify(right.payload) ?? "")
     })
     .filter((event) => {
-      if (seen.has(event.providerEventId)) return false
-      seen.add(event.providerEventId)
+      const identity =
+        messageIdentitySchema.safeParse(event.payload).data?.id ?? event.providerEventId
+      if (seen.has(identity)) return false
+      seen.add(identity)
       return true
     })
+}
+
+function messageIdentity(event: AnalyticsEvent): string {
+  return messageIdentitySchema.safeParse(event.payload).data?.id ?? event.providerEventId
 }
 
 function direction(event: AnalyticsEvent): "inbound" | "outbound" | "unknown" {
@@ -97,8 +104,11 @@ export function acknowledgmentBreakdown(
   let acknowledged = 0
   let failed = 0
   let unknown = 0
+  const matched = new Set<string>()
   for (const event of events) {
-    const state = byMessage.get(event.providerEventId)
+    const identity = messageIdentity(event)
+    const state = byMessage.get(identity)
+    if (state && identity !== event.providerEventId) matched.add(identity)
     switch (state) {
       case "submitted":
         submitted += 1
@@ -116,6 +126,32 @@ export function acknowledgmentBreakdown(
         break
       default:
         return assertNever(state)
+    }
+  }
+  for (const attempt of attempts) {
+    const identity = attempt.providerMessageId
+    if (
+      identity &&
+      !matched.has(identity) &&
+      !events.some((event) => messageIdentity(event) === identity)
+    ) {
+      switch (attempt.state) {
+        case "submitted":
+          submitted += 1
+          break
+        case "acknowledged":
+          acknowledged += 1
+          break
+        case "failed":
+          failed += 1
+          break
+        case "attempting":
+        case "unknown":
+          unknown += 1
+          break
+        default:
+          return assertNever(attempt.state)
+      }
     }
   }
   return { submitted, acknowledged, failed, unknown }

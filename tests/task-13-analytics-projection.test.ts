@@ -104,4 +104,48 @@ describe("analytics message projections", () => {
     })
     expect(reverse.messageVolume).toEqual(forward.messageVolume)
   })
+
+  it("correlates dispatch evidence with the payload message id", () => {
+    // Given a WAHA envelope id that differs from its payload message id
+    const fixture = analyticsInput()
+    const result = projectAnalytics({
+      ...fixture,
+      events: fixture.events.map((event) =>
+        event.providerEventId === "message-1"
+          ? { ...event, providerEventId: "webhook-envelope-1" }
+          : event,
+      ),
+    })
+
+    // When the normalized event and dispatch attempt are projected together
+    // Then the acknowledged state follows the message identity, not the envelope identity
+    expect(result.acknowledgments).toEqual({
+      submitted: 0,
+      acknowledged: 1,
+      failed: 0,
+      unknown: 1,
+    })
+  })
+
+  it("includes an orphaned failed attempt in failure evidence", () => {
+    // Given a failed local dispatch attempt whose webhook event is absent
+    const fixture = analyticsInput()
+    const result = projectAnalytics({
+      ...fixture,
+      dispatchAttempts: [
+        ...fixture.dispatchAttempts,
+        {
+          sessionId: fixture.sessions[0]?.id ?? "",
+          accountScope: "personal",
+          providerMessageId: "orphaned-message",
+          state: "failed",
+          attemptedAt: new Date("2026-01-01T03:00:00.000Z"),
+        },
+      ],
+    })
+
+    // When the projection is built
+    // Then failure evidence is not hidden by absent normalized message events
+    expect(result.acknowledgments.failed).toBe(1)
+  })
 })
