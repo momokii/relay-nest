@@ -44,10 +44,10 @@ npx --yes pnpm@10.12.4 exec biome check apps/api/src/backup apps/api/src/retenti
 PASS: checked 11 files, no fixes/errors.
 
 docker run --name todo12-postgres ... postgres:16-alpine
-DATABASE_URL=postgresql://todo12:todo12@127.0.0.1:55439/todo12 pnpm db:migrate
+DATABASE_URL=<REDACTED_DATABASE_URL> pnpm db:migrate
 PASS: fresh migration chain including 0008_todo12_retention applied.
 
-RUN_POSTGRES_TESTS=1 DATABASE_URL=postgresql://todo12:todo12@127.0.0.1:55439/todo12 pnpm exec vitest run tests/task-12-baseline.test.ts tests/task-12-retention.integration.test.ts --reporter=dot
+RUN_POSTGRES_TESTS=1 DATABASE_URL=<REDACTED_DATABASE_URL> pnpm exec vitest run tests/task-12-baseline.test.ts tests/task-12-retention.integration.test.ts --reporter=dot
 PASS: 2 files, 5 passed.
 
 TASK12_DATABASE_URL=... DATABASE_URL=... ENCRYPTION_MASTER_KEY=<valid 32-byte test key> pnpm exec vitest run tests/task-12-http.integration.test.ts --reporter=dot

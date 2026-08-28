@@ -1,177 +1,153 @@
-# Todo 13 Analytics Projection Evidence
+# Todo 13 verification evidence
 
-Date: 2026-08-17
-Branch: `main` at `7e82650` before this task
+Date: 2026-08-28
+Scope: aggregate and per-session analytics projections
 
-## Scope
+## Changed surface
 
-Implemented and independently hardened the existing aggregate/per-session
-analytics seam only. The projection reports scoped message volume/direction,
-acknowledgment evidence, failure/retry rates, status history and uptime,
-timelock/capping indicators, contact activity, and scheduled-job outcomes.
-It does not infer recipient delivery from missing events, HTTP 2xx, `WORKING`,
-or submitted states.
+- `apps/api/src/analytics/types.ts`
+- `apps/api/src/analytics/projection.ts`
+- `apps/api/src/analytics/projection-metrics.ts`
+- `apps/api/src/analytics/status-history.ts`
+- `apps/api/src/analytics/runtime.ts`
+- `apps/api/src/analytics/service.ts`
+- `apps/api/src/analytics/http.ts`
+- `apps/api/src/app.ts`
+- `tests/task-13-baseline.test.ts`
+- `tests/task-13-analytics.test.ts`
+- `tests/task-13-analytics-fixtures.ts`
+- `tests/task-13-analytics-projection.test.ts`
+- `tests/task-13-analytics-operations.test.ts`
+- `tests/task-13-analytics-http.test.ts`
+- `tests/task-13-analytics-runtime.integration.test.ts`
+- `tests/task-13-analytics-http.integration.test.ts`
+- `tests/task-13-analytics-db-fixture.ts`
 
-## Changed files
+The workspace also contains unrelated pre-existing/concurrent changes outside
+this list; they were not reverted or included as Todo 13 scope.
 
-- `apps/api/src/app.ts` — existing analytics route/source composition retained.
-- `apps/api/src/analytics/types.ts` — preserves attempt/job timestamps and
-  aggregate status/uptime fields in the internal analytics contract.
-- `apps/api/src/analytics/projection.ts` — preserves the public projection
-  interface while orchestrating scoped session metrics and aggregate output.
-- `apps/api/src/analytics/projection-metrics.ts` — owns message, acknowledgment,
-  job, safety, scope/window, and deterministic timestamp-ordered event helpers.
-- `apps/api/src/analytics/runtime.ts` — authorizes session IDs before source
-  reads, carries timestamps, includes prior status evidence for boundary
-  uptime, and reads contact activity by creation or update time.
-- `apps/api/src/analytics/status-history.ts` — keeps status ordering and
-  boundary-clipped uptime behind a small module.
-- `tests/task-13-analytics-fixtures.ts` — shared independent literal fixtures.
-- `tests/task-13-analytics.test.ts` — service/grant seam coverage.
-- `tests/task-13-analytics-projection.test.ts` — message, unknown, window, and
-  deterministic duplicate-event projection coverage.
-- `tests/task-13-analytics-operations.test.ts` — retries, uptime, status,
-  safety, contacts, scheduled states, and scope isolation.
-- `tests/task-13-analytics-http.test.ts` — HTTP boundary authentication,
-  malformed query, same-origin, and empty aggregate cases.
-- `tests/task-13-analytics-http.integration.test.ts` — real authenticated
-  Admin/Operator/Viewer, scope, and per-session-grant surface coverage.
-- `tests/task-13-analytics-db-fixture.ts` — encrypted normalized events and
-  non-empty local job/attempt/contact fixture seeding.
-- `tests/task-13-baseline.test.ts` — existing read authorization baseline.
-- `.env.example` — safe valid base64 development encryption-key placeholder.
+## Exact verification commands and outputs
 
-## Exact verification commands (redacted)
-
-Focused projection/HTTP tests:
+Commands used the pinned toolchain:
 
 ```text
-npx --yes pnpm@10.12.4 exec vitest run tests/task-13-analytics.test.ts tests/task-13-analytics-projection.test.ts tests/task-13-analytics-operations.test.ts tests/task-13-analytics-http.test.ts tests/task-13-baseline.test.ts
-```
+npx --yes pnpm@10.12.4 exec vitest run tests/task-13-*.test.ts
+=> 5 passed, 2 skipped; 18 passed, 2 skipped (20 total)
 
-Result: `16 passed` across five focused files.
-
-Changed-file formatting and typecheck:
-
-```text
-npx --yes pnpm@10.12.4 exec biome check apps/api/src/analytics tests/task-13-analytics*.test.ts tests/task-13-baseline.test.ts apps/api/src/app.ts .env.example
 npx --yes pnpm@10.12.4 typecheck
-```
+=> tsc -b --pretty false; exit 0
 
-Result: both passed.
+npx --yes pnpm@10.12.4 exec biome check apps/api/src/analytics tests/task-13-*.test.ts apps/api/src/app.ts
+=> Checked 15 files; no fixes applied; exit 0 (includes db fixture)
 
-Disposable PostgreSQL and real authenticated HTTP surface:
-
-```text
-docker run -d --name task13-analytics-postgres -e POSTGRES_DB=waha_command_center -e POSTGRES_USER=task13 -e POSTGRES_PASSWORD=<REDACTED> -p 55432:5432 postgres:17.6-alpine
-DATABASE_URL=postgres://task13:<REDACTED>@127.0.0.1:55432/waha_command_center npx --yes pnpm@10.12.4 --filter @waha-command-center/api db:migrate
-TASK13_ANALYTICS_DATABASE_URL=postgres://task13:<REDACTED>@127.0.0.1:55432/waha_command_center npx --yes pnpm@10.12.4 exec vitest run tests/task-13-analytics-http.integration.test.ts
-docker rm -f task13-analytics-postgres
-docker compose ps
-```
-
-Result: migration applied; real authenticated test `1 passed`; Compose API,
-PostgreSQL, and web services remained up/healthy after cleanup.
-
-The non-empty Personal response observed through the real route contained:
-`messageVolume.total=1`, `outbound=1`, `acknowledgments.failed=1`,
-`failureRate=1`, `retryCount=1`, `timelockIndicators=2`,
-`contactActivity=1`, `uptimeMs=7200000`, and `scheduledJobs.failed=1,
-retries=1`. Per-session output contained the Personal session and one message.
-
-The same disposable migration and integration sequence was rerun after the
-authorized-session source hardening; it again reported `1 passed`.
-
-Build:
-
-```text
 npx --yes pnpm@10.12.4 build
+=> config, domain, contracts, API, and web builds completed; exit 0
+
+DATABASE_URL=<redacted disposable PostgreSQL URL> npx --yes pnpm@10.12.4 --filter @waha-command-center/api db:migrate
+=> migrations applied successfully
+
+TASK13_DATABASE_URL=<redacted disposable PostgreSQL URL> npx --yes pnpm@10.12.4 exec vitest run tests/task-13-analytics-runtime.integration.test.ts
+=> 1 passed; exit 0
+
+TASK13_ANALYTICS_DATABASE_URL=<redacted disposable PostgreSQL URL> npx --yes pnpm@10.12.4 exec vitest run tests/task-13-analytics-http.integration.test.ts
+=> 1 passed; exit 0
+
+npx --yes pnpm@10.12.4 test
+=> 49 passed, 5 failed, 15 skipped; 277 passed, 13 failed, 39 skipped (329 total)
 ```
 
-Result: config, domain, WAHA contracts, API, and web builds passed.
+The 13 full-suite failures are not Todo 13 regressions: 12 are the known
+workstation PostgreSQL `kelanach` password-authentication failures, and one is
+an unrelated concurrent release-document line-number expectation. Todo 13's
+focused and isolated PostgreSQL checks pass.
 
-Full suite:
+The final review's identifier-correlation finding was fixed: acknowledgments now
+match dispatch attempts to the payload message id, not the WAHA envelope id;
+production-shaped distinct-id and orphaned-failure tests pass.
+
+## Manual QA: live curl channel
+
+Disposable resources: PostgreSQL 17.6 container `task13-analytics-manual-postgres`,
+API port `33013`, PostgreSQL port `55440`. Credentials and cookie headers were
+not written to this artifact.
+
+Request:
 
 ```text
-npx --yes pnpm@10.12.4 test
+GET http://127.0.0.1:33013/health
 ```
 
-Result: `120 passed`, `23 skipped`, `12 failed` in four pre-existing database
-integration files. The failures used the ambient workstation `DATABASE_URL`
-and failed PostgreSQL authentication for user `kelanach`; no analytics test
-failed.
+Expected: HTTP 200 and `{"status":"ok"}`.
 
-## Manual QA and authenticated HTTP observations
+Request:
 
-The real Fastify surface was exercised through the test invocation above using
-`app.inject` (not an external curl run), using the same
-bootstrap/login/cookie/CSRF fixture conventions as the existing auth HTTP
-integration tests. The test created Personal and Business sessions, created
-Operator and Viewer users through the Admin route, granted only the Personal
-session, and used the real database-backed `AuthService` and analytics source.
+```text
+POST http://127.0.0.1:33013/auth/bootstrap
+Content-Type: application/json
+{"email":"task13-admin@example.invalid","password":"<redacted>","displayName":"Manual Admin"}
+```
 
-- Admin Personal session read: HTTP 200; only the Personal session ID appeared.
-- Operator granted Personal session read: HTTP 200.
-- Viewer granted Personal session read: HTTP 200.
-- Viewer aggregate read for Business without a Business grant: HTTP 200 with
-  an empty aggregate/session list and no Personal or Business session data.
-- Viewer direct Business session read without a grant: HTTP 403; response did
-  not contain the Business session ID or `messageVolume`.
-- The encrypted non-empty Personal fixture produced the metrics listed above;
-  no plaintext payload or credential appeared in the response/evidence.
-- Malformed date, missing authentication, and cross-origin requests were
-  rejected at the HTTP seam without aggregate output.
+Expected: successful bootstrap; response headers/body and cookie jar remain
+private and redacted.
 
-No raw cookies, passwords, encryption keys, message content, contact content,
-provider payloads, or database URLs with credentials were stored here.
+Request:
+
+```text
+curl -i -b <redacted-cookie-jar> 'http://127.0.0.1:33013/scoped/analytics?scope=personal'
+```
+
+Expected: HTTP 200; `scope=personal`, `messageVolume.total=0`,
+`acknowledgments.unknown=0`, `sessions=[]`, `failureRate=null`, and
+`uptimeMs=null`. The captured pre-fix response had the same zero-value fields
+but reported `uptimeMs=0`; the focused post-fix test now verifies `uptimeMs=null`
+for an empty scope.
+
+Manual result: **PASS**. The first attempt used an unquoted zsh query URL and
+failed before the request; no server state was left because the cleanup trap
+ran. The corrected quoted request returned the redacted-safe response above.
 
 ## Adversarial probes
 
-- Malformed input: covered by invalid date and malformed direction fixtures;
-  invalid direction is `unknown`; oversized HTTP windows are rejected.
-- Stale/partial events: covered by missing direction, unknown acknowledgment,
-  malformed status payload handling, and active status crossing `window.from`.
-- Duplicate/out-of-order provider events: duplicate provider IDs count once;
-  timestamp ordering is deterministic even when input order is reversed; status
-  history and attempts are timestamp ordered.
-- Incomplete acknowledgment evidence: failure rate is `null` whenever unknown
-  acknowledgments remain in the denominator; it never presents a partial
-  history as a complete delivery rate.
-- Pre-query authorization: the source lists scoped sessions first and receives
-  only authorized session IDs for event/job/contact decryption and reads.
-- Dirty worktree: detected at start; pre-existing uncommitted Todo 13 files and
-  `app.ts` changes were preserved, not reset or cleaned. Protected plan,
-  ledger, boulder, and `.claude/state/*` files were not edited.
-- Long commands: pinned `npx --yes pnpm@10.12.4` commands completed within the
-  command timeout.
-- Flaky tests: focused analytics and real HTTP tests passed; the ambient DB
-  failures were deterministic authentication failures and were not masked.
-- Misleading success output: unavailable LSP/scanner results are explicitly
-  unclaimed below; full-suite failures are reported above.
-- Prompt injection: N/A, no prompt-bearing input was triggered.
-- Cancel/resume: N/A, no cancellation or resumed work protocol was triggered.
-- Repeated interruptions: N/A, no interruption scenario was triggered.
+| Probe | Result |
+|---|---|
+| Malformed scope query | PASS: Zod boundary rejects it; route returns 400. |
+| Malformed date query | PASS: focused HTTP test returns 400. |
+| Malformed session UUID | PASS: Zod boundary rejects it; no projection values returned. |
+| Cross-origin request | PASS: same-origin guard returns 403 without aggregate fields. |
+| Unauthenticated request | PASS: route returns 401. |
+| Cross-scope aggregate | PASS: authenticated Viewer receives empty Business aggregate, not Personal values. |
+| Cross-session ungranted read | PASS: direct session query returns 403 without session data. |
+| Partial acknowledgment | PASS: missing dispatch evidence is counted as unknown. |
+| Out-of-order evidence | PASS: status history sorts by observed timestamp; duplicate messages choose deterministic earliest evidence. |
+| HTTP acceptance / WORKING status as delivery | PASS: no route or projection converts either into recipient delivery. |
+| Timelock/capping | PASS: indicators remain separate from acknowledgment and failure evidence. |
+| Empty fixture | PASS: zero counts and unknown (`null`) uptime. |
+| Dirty worktree | NOT PASS / observed: unrelated concurrent changes are present; no destructive cleanup was attempted. |
+| Long command | PASS: focused and full commands completed within the bounded command timeout. |
+| Flaky/timing-sensitive tests | PASS: deterministic fixtures; no sleeps in tests; isolated integration passed. |
+| Misleading success output | PASS: full-suite failures are recorded rather than hidden. |
+| Repeated interruption | NOT APPLICABLE: no long-running QA asset was spawned. |
+| Prompt injection | NOT APPLICABLE: no prompt/LLM input is part of Todo 13. |
+| Cancel/resume | NOT APPLICABLE: no resumable user workflow is part of this read-only projection. |
 
 ## Cleanup receipts
 
-- Removed disposable container `task13-analytics-postgres` with
-  `docker rm -f`.
-- Repeated the disposable-container cleanup after the final authorization
-  hardening run.
-- Verified `docker compose ps`; the existing `relaynest-dev` services remained
-  running and healthy.
-- Port 55432 was released with the disposable container.
-- No temporary source, credential, dump, or debug files were created.
-- Build output was generated only in existing ignored package `dist` paths.
+```text
+docker ps --filter name=task13-analytics --format '{{.Names}}'
+=> <no output>
 
-## Unavailable checks and risks
+ss -ltn '( sport = :55439 or sport = :55440 or sport = :33013 )'
+=> no matching listening ports
+```
 
-- `lsp_diagnostics` was attempted for changed TypeScript files but the LSP MCP
-  connection closed; no diagnostics pass is claimed.
-- The repository TypeScript no-excuse script was not present at the documented
-  path; no script pass is claimed.
-- External scanners/documentation link checks were not run for this task; no
-  result is claimed.
-- Full-suite PostgreSQL integration remains blocked by the ambient workstation
-  credential configuration. The disposable Todo 13 authenticated integration
-  passed independently.
+The disposable PostgreSQL containers, API process, cookies, logs, IDs, and
+temporary files were removed by traps/finalizers. Existing project containers
+were not modified.
+
+## Risks and limitations
+
+- The default full suite cannot pass until the workstation PostgreSQL credential
+  mismatch and unrelated concurrent release-document change are resolved.
+- External scanners unavailable in this environment are not claimed as passed.
+- Analytics reports transport evidence and operational state; it does not prove
+  recipient receipt or human delivery.
