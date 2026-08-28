@@ -291,3 +291,39 @@ test passed `5/5`. Temporary mutation roots are cleaned in test finally paths;
 no external account, uncontrolled service, or external scanner is part of this
 evidence. Todo 9, Todo 16, and F1-F4 remain open until their later independent
 reconciliation gates are completed.
+
+## Todo 15: digest-pinned bundled WAHA secret bridge
+
+**Date:** 2026-08-28
+
+The published WAHA image is `devlikeapro/waha:latest-2026.8.1`, pinned in
+`Dockerfile.waha` to digest
+`sha256:d52ad4f394d2e48eb92d58e0f04924ff6c7621a883d08ff64176479ecd77c9ca`.
+The dated `2026.8.1` tag has no manifest and is not used. Because the image does
+not provide a native Docker-secret `_FILE` contract, bundled Compose uses a
+repository-owned entrypoint wrapper that reads `/run/secrets/waha_api_key`,
+exports `WAHA_API_KEY` only to the native child process, unsets the file-path
+variable, and preserves `/usr/bin/tini -- /entrypoint.sh` startup.
+
+The wrapper and authenticated internal healthcheck were exercised with a
+disposable bundled Compose project; the focused Compose tests, full PostgreSQL
+matrix, full Playwright suite, typecheck, build, and changed-file Biome checks
+passed. This decision establishes an implementation/runtime boundary, not real
+WhatsApp linking or recipient-delivery proof, and does not close protected plan
+checkboxes or final release gates.
+
+## Development workflow: focused feature mode and explicit release mode
+
+**Date:** 2026-08-28
+
+Ordinary feature work uses a required focused regression test plus the typed
+`feature` command. The command validates `--test-file`, `--test-name`, and
+`--paths`, then runs only focused Vitest, project typecheck, and scoped Biome. It
+does not invoke E2E, full Vitest, repository-wide lint, dependency audit,
+release scanners, scope checks, requirements checks, or documentation checks.
+
+`dev:bundled` is the copyable local startup path for manual testing and uses an
+isolated Compose project with the existing file-backed secret boundary.
+`release` is the explicit aggregate validation path for release/final-gate work.
+This speeds feature iteration without weakening authorization, scope, CSRF,
+encryption, redaction, internal-WAHA, or no-delivery-claim requirements.

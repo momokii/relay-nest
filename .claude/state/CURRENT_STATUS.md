@@ -3,10 +3,11 @@
 ## Repository truth
 
 - Branch: `main`, tracking `origin/main`; local and remote branches are synchronized.
-- Verified implementation and documentation through Todo 6 and Todos 8-14
-  are represented in the synchronized history. Todo 7 remains open pending
-  independent orchestration. Todo 15 Compose deployment and operations, Todo
-  16 release verification, and final gates F1-F4 remain open.
+- Verified implementation and documentation through original Todos 1-14 and
+  next-phases Todo 10 are represented in synchronized history/evidence. The
+  bundled Todo 8/Todo 15 implementation now has a pullable image and a
+  repository-owned runtime secret bridge; protected plan checkboxes, Todo 16,
+  and final gates F1-F4 remain open.
 - The protected plan and execution ledger remain unchanged by this correction;
   they retain their approved-scope and execution-history roles.
 
@@ -18,10 +19,10 @@ AES-256-GCM backup/restore, authenticated metadata, bounded relational transfer,
 key-rotation guidance, WAHA configuration audit events, and the independent
 two-worker scheduler regression coverage.
 
-Todo 12 implementation and verification are current in local history. Next is
-Todo 13,
-followed by Todos 14-16 and final F1 plan compliance, F2 security/quality, F3
-executable QA, and F4 scope/documentation gates.
+Todo 12 implementation and verification are current in synchronized history.
+The Todo 10 release matrix is recorded with explicit blockers and limitations.
+The bundled runtime implementation is now present and locally smoke-verified;
+next work is protected-plan/release-gate reconciliation, not image discovery.
 
 ## Verification snapshot
 
@@ -31,11 +32,16 @@ executable QA, and F4 scope/documentation gates.
 - Current hardening matrix: `33 files, 138 passed` against fresh PostgreSQL
   17.6; focused Todo 12/WAHA matrix: `8 files, 40 passed`.
 - Todo 12 evidence: `.omo/evidence/task-12-waha-command-center.md`.
-- Lint, typecheck, ordered workspace/API/web builds, high-severity dependency
-  audit, three Compose configurations with placeholders, Playwright smoke, and
-  local Markdown-link scan passed.
-- External `gitleaks`, `markdown-link-check`, `lychee`, and `docs:check` were
-  unavailable; no result was claimed for those checks.
+- Typecheck, ordered workspace/API/web builds, high-severity dependency audit,
+  four merged Compose configurations with placeholders, the isolated
+  PostgreSQL/Playwright release matrix, release-scoped Biome, and repository-
+  local requirements/secret/scope/docs checks passed as recorded in the Todo
+  10 evidence.
+- Full lint remains non-clean because the repository command scans host paths and
+  reports the pre-existing analytics fixture formatting plus workstation
+  permission/format diagnostics. Changed TypeScript files pass scoped Biome.
+  External `gitleaks`, `markdown-link-check`, `lychee`, `semgrep`, and
+  `osv-scanner` were not rerun; no result is claimed for them.
 
 ## Security and limitations
 
@@ -542,3 +548,116 @@ Last updated: 2026-08-27
 - Todo 8 remains **BLOCKED** on the exact bundled-WAHA image and supported
   secret-boundary prerequisites. Todo 15, Todo 16, and F1-F4 remain open; no
   bundled completion or release completion is claimed.
+
+## Session update: Todo 10 release matrix, 2026-08-27
+
+- Todo 10 is **VERIFIED WITH BLOCKERS/LIMITATIONS** against clean `main` at
+  `113efd07c91ed828127560e0428528b8cc12f976`; `origin/main` resolved to the
+  same commit. The redacted matrix is recorded in
+`.omo/evidence/task-16-next-phases-release.md`.
+- Fresh PostgreSQL `17.6-alpine` migration exited `0` with 8 records. The final
+  selector-complete run passed `67 files, 321 tests, 0 failed, 0 skipped`.
+  The initial selector omission produced a partial failure/skip result and is
+  superseded by the complete run, not counted as green.
+- Focused and full relevant Playwright E2E each passed `20/20`, and the
+  temporary immediate-send probe passed `1/1`, using disposable PostgreSQL and
+  deterministic in-process mock WAHA. Real WAHA, linking, account safety, and
+  recipient delivery were not exercised. Browser worker restart, dedicated
+  double-submit, real AI approval, and browser backup/restore remain partial or
+  unverified as detailed in the matrix.
+- Workspace and scripts typecheck, release-scoped Biome, ordered build,
+  high-severity audit, repository-local requirements/secret/scope/docs checks,
+  and whitespace checks passed. Full lint remains blocked by six known
+  analytics-fixture/workstation diagnostics. `gitleaks`,
+  `markdown-link-check`, `lychee`, `semgrep`, and `osv-scanner` were unavailable
+  and remain unclaimed.
+- All four merged Compose configuration checks and 11 Compose tests passed.
+  API and WAHA remained internal, with web-only host publication. Release
+  commands passed; the release suite passed `101/101` after two initial default
+  5-second timeouts were rerun with `--testTimeout=15000`.
+- The exact bundled image and supported runtime secret boundary remain
+  unavailable, so bundled startup/health/linking/delivery is not claimed. Todo
+  11 and F1-F4 remain open. Todo 8 and Todo 15 remain blocked on those bundled
+  prerequisites. The whole plan is not complete.
+- Lane cleanup receipts show zero task-owned containers, volumes, and networks
+  where audited, no task-owned processes or temporary artifacts, and clean
+  worktrees at lane closeout. Protected plan and execution ledger remained
+  unchanged by the lanes; later evidence/state corrections are recorded in the
+  2026-08-28 closeout below.
+
+Last updated: 2026-08-27
+
+## Session closeout: F1-F4 final audits, 2026-08-28
+
+- Final audit artifacts are recorded at `.omo/evidence/final-plan-compliance.md`,
+  `.omo/evidence/final-security-quality.md`, `.omo/evidence/final-e2e.md`, and
+  `.omo/evidence/final-scope-docs.md`. F1 is **BLOCKED** despite the original
+  13 Must-have/9 Must-NOT-have verifier passing because protected completion
+  markers remain open and release blockers are unresolved.
+- F2 is **BLOCKED** by six full-lint diagnostics, unavailable exact bundled WAHA
+  image/secret boundary, unavailable external/team scanners, and unverified
+  runtime paths. F3 is **BLOCKED/PARTIAL** because browser worker restart,
+  browser double-submit, browser backup/restore, and real-AI-provider approval
+  were not proven. F4 is **BLOCKED** despite `verify:scope` and `docs:check`
+  passing because bundled/runtime and other release limitations remain.
+- All final audit artifacts and historical evidence corrections are redacted.
+  The final repository-local secret, docs, scope, requirements, and whitespace
+  checks passed. The protected plans and execution ledger remain unchanged.
+- No commit or push was made. The worktree still contains the pre-existing
+  deletion of `.omo/boulder.json`, which remains untouched. Original Todo 15/16,
+  next-phases Todo 8/11, and F1-F4 remain open or blocked; the roadmap is not
+  complete. The next action is to resolve the bundled image/secret boundary and
+  full-lint/scanner limitations before any approval or protected-record update.
+
+Last updated: 2026-08-28
+
+## Session update: fast feature workflow, 2026-08-28
+
+- Added `pnpm feature --test-file ... --test-name ... --paths ...` as the
+  default development verifier. It validates repository-local paths and runs
+  only the named Vitest test, project typecheck, and scoped Biome; missing focus
+  arguments fail with exit `2` before any broad check runs.
+- Added `pnpm dev:bundled` for the fastest manual app path using the isolated
+  `relaynest-dev` Compose project. A disposable-secret smoke run built and
+  started PostgreSQL, WAHA, API, and web; web root and proxied health returned
+  HTTP `200`, then the project was cleaned.
+- Added `pnpm release` as the explicit aggregate release path. Full tests, E2E,
+  audits, scanners, scope, requirements, and docs checks are no longer part of
+  ordinary feature instructions.
+- Workflow contract tests passed `9/9`; the real `feature` command passed its
+  focused test, typecheck, and scoped Biome. `docs:check`, shell syntax, and
+  `git diff --check` passed. The existing repository-wide lint limitation is
+  unchanged and is not part of the fast path.
+- The product security boundaries, protected plans/ledger, and no-commit/no-push
+  rule remain unchanged. No release command was run for this workflow change.
+
+Last updated: 2026-08-28
+
+## Session update: bundled WAHA runtime bridge and verification, 2026-08-28
+
+- The published `devlikeapro/waha:latest-2026.8.1` image was pulled and pinned
+  by digest `sha256:d52ad4f394d2e48eb92d58e0f04924ff6c7621a883d08ff64176479ecd77c9ca`.
+  The dated `2026.8.1` tag remains invalid; the published `latest-2026.8.1`
+  tag is the selected source.
+- `Dockerfile.waha` and `docker/waha-entrypoint.sh` now provide the repository-
+  owned secret boundary: WAHA reads a mounted Docker secret through the wrapper,
+  receives `WAHA_API_KEY` only in the child process environment, and starts
+  through native `/usr/bin/tini -- /entrypoint.sh`. Compose keeps WAHA internal,
+  persists `/app/.sessions`, and authenticates its healthcheck without exposing
+  the key in resolved configuration.
+- Focused Compose coverage passed `10/10`; the bundled runtime smoke check
+  reached healthy PostgreSQL, WAHA, API, and web services, returned HTTP `200`
+  for the web root and health proxy, and cleaned its disposable project. The
+  redacted receipt is `.omo/evidence/task-15-bundled-runtime-2026-08-28.md`.
+- The fresh serialized PostgreSQL matrix passed `67 files, 322 tests, 0 failed,
+  0 skipped`. Full Playwright E2E passed `20/20`. Typecheck, production build,
+  changed-file Biome, and `git diff --check` passed.
+- Repository-wide `pnpm lint` remains non-clean because its `biome check .`
+  traverses host `/etc` and reports workstation diagnostics plus the pre-existing
+  analytics fixture formatting. This was not changed or claimed as green.
+- No real WhatsApp account, linking, recipient delivery, external scanner, or
+  release-gate approval was exercised. The protected plans and execution ledger
+  remain unchanged; no commit or push was made, and `.omo/boulder.json` remains
+  the untouched pre-existing deletion.
+
+Last updated: 2026-08-28

@@ -49,18 +49,18 @@ stable fork-pool full suite passed `33 files, 138 tests`.
 
 | Item | Status | Dependency |
 |---|---|---|
-| Todo 8 bundled-WAHA verification | TODO / BLOCKED on the exact bundled image and supported secret boundary | Todos 4, 6 |
-| Todo 9 repository-local release tooling | IMPLEMENTATION/EVIDENCE VERIFIED; protected plan checkbox OPEN | Todos 2, 4, 6 |
-| Todo 10 release matrix | TODO | Todos 5, 6, 9 |
-| Todo 11 F1-F4 final gates | TODO | Todos 4, 5, 9, 10 |
+| Todo 8 bundled-WAHA verification | IMPLEMENTATION VERIFIED; protected plan checkbox OPEN | Release evidence reconciliation |
+| Todo 9 repository-local release tooling | IMPLEMENTATION/EVIDENCE VERIFIED; protected plan checkbox OPEN | Todos 14-15 implementation outcomes |
+| Todo 10 release matrix | VERIFIED WITH BLOCKERS/LIMITATIONS | Todo 9 verification tooling |
+| Todo 11 F1-F4 final gates | BLOCKED; reports recorded | Todos 14-16 |
 | Todo 13 analytics projections | DONE | Todos 8-12 |
 | Todo 14 dashboard and human-approved AI seam | DONE | Todos 5, 7, 9-13 |
-| Todo 15 Compose deployment and operations | TODO / BLOCKED on the exact bundled image and supported secret boundary | Todos 1, 3, 6, 7 |
-| Todo 16 release verification | TODO | Todos 11-15 |
-| F1 plan compliance | TODO | Todo 16 |
-| F2 security and quality | TODO | Todo 16 |
-| F3 executable end-to-end QA | TODO | Todo 16 |
-| F4 scope/documentation review | TODO | Todo 16 |
+| Todo 15 Compose deployment and operations | IMPLEMENTATION VERIFIED; protected plan checkbox OPEN | Release evidence reconciliation |
+| Todo 16 release verification | VERIFIED WITH BLOCKERS/LIMITATIONS; protected checkbox OPEN | Todos 11-15 |
+| F1 plan compliance | BLOCKED | Todo 11 |
+| F2 security and quality | BLOCKED | Todo 11 |
+| F3 executable end-to-end QA | BLOCKED/PARTIAL | Todo 11 |
+| F4 scope/documentation review | BLOCKED | Todo 11 |
 
 ## Session follow-up
 
@@ -302,7 +302,95 @@ and the package-command manifest test passed `5/5`. Direct CLI boundary probes
 and disposable mutation cleanup are recorded in
 `.omo/evidence/task-16-next-phases-tooling.md`.
 
-Todo 9 remains TODO until the later Todo 10/11 reconciliation permits its plan
+Todo 9 remains evidence-verified until the later Todo 10/11 reconciliation permits its plan
 and ledger treatment. Todo 16 and F1-F4 remain open. The bundled WAHA image and
 supported secret-boundary blockers, full lint analytics-fixture diagnostics, and
 PostgreSQL `28P01` boundary remain unchanged.
+
+## Session update: Todo 10 release matrix, 2026-08-27
+
+Todo 10 is **VERIFIED WITH BLOCKERS/LIMITATIONS**. The complete redacted release
+matrix is `.omo/evidence/task-16-next-phases-release.md`. PostgreSQL,
+Playwright, static, Compose, and release checks were reconciled against clean
+`main` with `HEAD == origin/main ==
+113efd07c91ed828127560e0428528b8cc12f976`.
+
+The final PostgreSQL matrix passed `67 files, 321 tests, 0 failed, 0 skipped`
+after the initial selector omission caused a partial result. Focused and full
+relevant Playwright each passed `20/20`, with the temporary immediate-send probe
+passing `1/1`; the harness used disposable PostgreSQL and deterministic mock
+WAHA, not a real account or provider. Typechecks, release-scoped Biome, ordered
+build, audit, repository-local checks, merged Compose checks, 11 Compose tests,
+and the bounded `101/101` release suite passed. Full lint remains blocked by six
+known diagnostics, and the exact bundled WAHA image and supported secret
+boundary remain unavailable.
+
+Todo 11 and F1-F4 remain **OPEN**. Todo 8 and Todo 15 remain **BLOCKED** on the
+exact bundled image and supported secret boundary. No whole-plan completion,
+real provider delivery, bundled runtime health, real AI approval, browser worker
+recovery, browser backup/restore, or unavailable external scanner result is
+claimed.
+
+## Session closeout: Todo 10 evidence corrections, 2026-08-28
+
+Todo 10 remains **VERIFIED WITH BLOCKERS/LIMITATIONS**. The release artifact now
+matches the approved `.omo/evidence/task-16-next-phases-release.md` path, includes
+the exact command and cleanup records, and has explicit `PARTIAL`, `UNAVAILABLE`,
+and `UNVERIFIED` classifications. Literal disposable credentials were redacted
+from the historical Todo 6/8/9/10/12 evidence, and the capability matrix now
+distinguishes RelayNest dashboard coverage from native-WAHA parity.
+
+The final repository-local checks and final Oracle integrity/security reviews
+passed. The protected plan and execution ledger remain unchanged, and no commit
+or push was made. The pre-existing `.omo/boulder.json` deletion remains
+untouched. Todo 8/Todo 15 remain blocked on the exact bundled image and supported
+secret boundary; full lint, unavailable external scanners, Todo 11, Todo 16, and
+F1-F4 remain open.
+
+## Session closeout: F1-F4 final audits, 2026-08-28
+
+Final audit evidence is recorded in `final-plan-compliance.md`,
+`final-security-quality.md`, `final-e2e.md`, and `final-scope-docs.md`. F1 is
+**BLOCKED** despite the original requirements checker passing because protected
+completion markers and release blockers remain open. F2 is **BLOCKED** by full
+lint, unavailable bundled/runtime and external scanner gates. F3 is
+**BLOCKED/PARTIAL** because browser worker restart, browser double-submit,
+browser backup/restore, and real AI-provider approval were not proven. F4 is
+**BLOCKED** despite passing scope/docs commands because bundled/runtime and
+other release limitations remain.
+
+The final audit artifacts and historical evidence corrections are redacted. The
+protected plans and execution ledger remain unchanged; no commit or push was
+made. Todo 8/Todo 15 implementation is now runtime-verified, while Todo 11,
+Todo 16, and F1-F4 remain open or blocked, so the roadmap is not complete.
+
+## Session update: bundled WAHA runtime implementation, 2026-08-28
+
+Todo 8 and Todo 15 implementation slices are now verified in source and runtime:
+the published `latest-2026.8.1` image is digest-pinned, the repository-owned
+entrypoint bridges a mounted Docker secret to native WAHA startup, WAHA remains
+internal with authenticated health, and session persistence remains on the named
+volume. The protected plan checkboxes remain open because this session did not
+perform release-marker reconciliation or claim whole-plan completion.
+
+Focused Compose tests passed `10/10`; the fresh serialized PostgreSQL matrix
+passed `67 files, 322 tests, 0 failed, 0 skipped`; full Playwright passed `20/20`;
+typecheck, build, changed-file Biome, and whitespace checks passed. Full lint is
+still non-clean from the host-wide Biome traversal and pre-existing analytics
+fixture formatting. Real WhatsApp linking/delivery, external scanners, Todo 11,
+Todo 16, and F1-F4 remain unclaimed or open. No commit or push was made.
+
+## Session update: fast feature workflow, 2026-08-28
+
+The default development loop is now intentionally narrow: add a focused
+regression test, run `pnpm feature --test-file ... --test-name ... --paths ...`,
+then use `pnpm dev:bundled` for manual testing. The feature verifier runs only
+focused Vitest, typecheck, and scoped Biome; it rejects missing focus arguments
+and cannot fall back to release-wide checks. `pnpm release` is the explicit
+aggregate path for final-gate work.
+
+Workflow tests passed `9/9`; the real feature command passed its focused test,
+typecheck, and scoped Biome; docs, shell syntax, and whitespace checks passed.
+The disposable bundled development stack returned HTTP `200` for web root and
+proxied health before cleanup. Product security boundaries and protected records
+remain unchanged; no release audit, commit, or push was performed.
