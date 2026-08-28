@@ -4,19 +4,15 @@ These rules apply to every agent in every session. Treat them as non-negotiable
 operating constraints. When a rule conflicts with an assumption or a shortcut,
 stop and follow the rule.
 
-## Session Start — Mandatory Before Any Action
+## Session Start — Fast Feature Default
 
-- Read `README.md` first; it is the mandatory entry point for every session.
-- Immediately afterward, read `HOW_TO_RESUME.md` before doing anything else.
-- Read `state/CURRENT_STATUS.md` to understand the exact current state.
-- Read `state/TASK_QUEUE.md` to identify the next task.
-- Read `CODING_STANDARDS.md` and internalize its conventions before writing code.
-- Read `SECURITY_STANDARDS.md` and internalize its requirements before writing code.
-- Identify the active environment before running any command; consult `ENVIRONMENT_GUIDE.md` when uncertain.
-- Confirm that the working environment and existing verification commands are functional before writing code.
-- Refresh state before implementation: compare `CURRENT_STATUS.md` and
-  `TASK_QUEUE.md` with verified source, tests, evidence, and worktree status;
-  record any discrepancy instead of silently trusting stale wording.
+- Read `README.md`, `.claude/README.md`, `CONTEXT.md`, current status, and the
+  task-relevant source/tests/docs.
+- Check the worktree and active environment before commands that affect it.
+- Read the full coding, security, environment, queue, and resume documents when
+  the change touches their domain or the user requests release verification.
+- Do not load historical evidence or run broad release checks before ordinary
+  feature implementation.
 
 ## During Implementation
 
@@ -26,7 +22,17 @@ stop and follow the rule.
 - Preserve the zero-regression rule: existing passing tests must remain passing after every change.
 - Follow `CODING_STANDARDS.md`; log any new pattern or convention in `state/DECISIONS_LOG.md` before adopting it broadly.
 - Prefer the smallest change that fully satisfies the acceptance criteria.
-- Keep implementation, documentation, tests, and state files synchronized when behavior changes.
+- Keep implementation, documentation, and tests synchronized when behavior
+  changes; update state files for durable decisions, blockers, or multi-session
+  work rather than every small edit.
+
+## Feature Verification
+
+- Every behavior change gets a focused regression test.
+- Use `pnpm feature` with `--test-file`, `--test-name`, and `--paths`; it runs
+  only focused Vitest, typecheck, and scoped Biome.
+- Use `pnpm release` only for explicit release/final-gate work. It is not a
+  prerequisite for ordinary feature development.
 
 ## Security Rules — Non-Negotiable
 
@@ -47,12 +53,8 @@ stop and follow the rule.
 
 ## Session End — Mandatory Before Closing
 
-- Update `state/CURRENT_STATUS.md` with accurate state and a session summary.
-- Update `state/TASK_QUEUE.md`: mark completed tasks and add newly discovered tasks.
-- Log every significant decision in `state/DECISIONS_LOG.md`.
-- Update `CODING_STANDARDS.md` when new patterns or conventions are established.
-- Update `SECURITY_STANDARDS.md` when new security patterns or stack guidance are established.
-- Update `ENVIRONMENT_GUIDE.md` when environment configuration or commands change.
+- Update the relevant state file with accurate blockers or durable decisions.
+- Update coding/security/environment guidance only when that guidance changes.
 - Update `README.md` when project-level context or orientation changes.
 - Record verification results, including any pre-existing failures that were not caused by the session.
 - Confirm the state refresh is reflected in `CURRENT_STATUS.md`, including

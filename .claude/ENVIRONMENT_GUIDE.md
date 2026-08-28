@@ -1,8 +1,8 @@
 # Environment Guide
 
 This guide defines the environments an agent may encounter and the behavior required
-in each. The initial commands are intentionally generic; replace them with verified
-project commands as the runtime and deployment setup become known.
+in each. Ordinary feature work uses the fast local loop; release validation is
+explicit rather than an automatic session prerequisite.
 
 ## Environment Definitions
 
@@ -46,21 +46,38 @@ project commands as the runtime and deployment setup become known.
 
 ## Docker Compose Pattern
 
-When Docker is adopted, use this separation unless the project documents a safer
-verified alternative:
+When Docker is used, keep this separation:
 
 - `docker-compose.yml` — base, environment-agnostic service definitions.
 - `docker-compose.override.yml` — development-only hot reload, debug ports, and live-code mounts; loaded automatically by the default Compose workflow.
 - `docker-compose.prod.yml` — production-only hardening, resource limits, restart policies, no source mounts, and no debug ports; loaded explicitly.
 
-Illustrative commands, to be replaced with the project's verified commands:
+Fast local bundled startup uses the verified project command:
 
 ```bash
-# Development: the override file is loaded automatically when supported.
-docker-compose up
+npx --yes pnpm@10.12.4 dev:bundled
+```
 
-# Production: use only the base and production override, after confirmation.
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+It requires protected local files at `.secrets/postgres_password`,
+`.secrets/encryption_master_key`, and `.secrets/waha_api_key`. The Compose
+project is isolated as `relaynest-dev`; stop it with:
+
+```bash
+docker compose -p relaynest-dev \
+  -f docker-compose.yml -f docker-compose.override.yml \
+  -f docker-compose.bundled-waha.yml --profile waha down --remove-orphans
+```
+
+For direct hot reload with an already configured local database, use:
+
+```bash
+npx --yes pnpm@10.12.4 dev
+```
+
+Release validation is explicit:
+
+```bash
+npx --yes pnpm@10.12.4 release
 ```
 
 Always ask before running a Compose command that is not clearly development. Confirm
@@ -70,11 +87,11 @@ the selected files, profile, service targets, and environment before execution.
 
 The repository has a base Compose definition and two deployment overlays.
 External mode runs the dashboard, PostgreSQL, and API locally and uses an
-external WAHA URL. Bundled mode adds the pinned
-`devlikeapro/waha:2026.8.1` image on the internal Compose network. The exact
-image currently has no registry manifest, and no supported runtime secret-file
-boundary has been verified, so bundled runtime startup is blocked and no
-bundled health or delivery claim is made.
+external WAHA URL. Bundled mode adds the published, digest-pinned
+`devlikeapro/waha:latest-2026.8.1` image on the internal Compose network and
+bridges its API key from a Docker secret through the repository wrapper. Startup
+and authenticated health are locally verified; no linking or delivery claim is
+made.
 
 Run external mode with:
 
@@ -83,8 +100,8 @@ docker compose -f docker-compose.yml -f docker-compose.override.yml \
   -f docker-compose.external-waha.yml up --build --wait -d
 ```
 
-Run bundled mode only for configuration validation; the service is deliberately
-fail-closed until the exact image and a supported secret boundary are verified:
+Run bundled mode for local application testing after provisioning the three
+protected secret files:
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.override.yml \

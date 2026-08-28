@@ -72,10 +72,12 @@ For this repository, Compose reads PostgreSQL and encryption secrets from
 mode-600 files named by `POSTGRES_PASSWORD_FILE` and
 `ENCRYPTION_MASTER_KEY_FILE`. The direct encryption variable is reserved for
 deliberate non-Compose use, and providing both sources fails closed. Only web
-publishes a host port. External mode is the verified operational path for
-disposable placeholder-provider QA. Bundled mode remains blocked on the exact
-`devlikeapro/waha:2026.8.1` manifest and an unsupported runtime secret boundary;
-never infer bundled health or delivery from configuration validation.
+publishes a host port. External mode is verified for disposable
+placeholder-provider QA, and bundled mode uses the digest-pinned
+`devlikeapro/waha:latest-2026.8.1` image with a repository-owned Docker-secret
+wrapper. The wrapper keeps the key out of resolved Compose configuration and
+fails closed for missing or blank input. Bundled health is still not proof of
+WhatsApp linking or recipient delivery.
 
 ## WAHA Command Center Controls
 
