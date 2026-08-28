@@ -149,7 +149,7 @@ describe("release documentation fenced links", () => {
     expect(result.exitCode).toBe(1)
     expect(result.diagnostics).toContainEqual({
       path: "README.md",
-      line: 105,
+      line: 110,
       rule: "documentation-freshness",
       remediation: expect.any(String),
     })
