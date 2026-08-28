@@ -70,6 +70,15 @@ describe("default Compose API startup", () => {
     expect(webService).toContain("http://127.0.0.1:4173/")
   })
 
+  it("binds the dashboard to loopback unless an operator opts into LAN exposure", async () => {
+    // Given the production web service publishes the dashboard
+    const compose = await readComposeFile("docker-compose.yml")
+    const webService = serviceBlock(compose, "web")
+
+    // Then a public host binding is never the default
+    expect(webService).toContain(`"\${WEB_BIND_ADDRESS:-127.0.0.1}:\${WEB_PORT:-8080}:4173"`)
+  })
+
   it("allows the API migration-before-listen startup window before health failures count", async () => {
     // Given the API cannot listen until its mandatory database migration completes
     const compose = await readComposeFile("docker-compose.yml")
@@ -90,11 +99,32 @@ describe("default Compose API startup", () => {
     expect(wahaService).not.toContain("ports:")
     expect(bundled).toContain("healthcheck:")
     expect(bundled).toContain("/health")
+    expect(bundled).toContain("X-Api-Key")
     expect(bundled).toContain("condition: service_healthy")
-    expect(wahaService).toContain('entrypoint: ["/bin/sh", "-c"]')
-    expect(wahaService).toContain("Bundled WAHA is disabled")
-    expect(wahaService).toContain('restart: "no"')
-    expect(bundled).not.toMatch(/(?:WAHA|WHATSAPP)_API_KEY/)
+    expect(wahaService).toContain("image: relaynest-waha:latest-2026.8.1")
+    expect(wahaService).toContain("restart: unless-stopped")
+    expect(bundled).toContain(
+      'entrypoint: ["/bin/sh", "/usr/local/bin/relaynest-waha-entrypoint.sh"]',
+    )
+    expect(bundled).toContain("waha_api_key")
+    expect(bundled).toContain("WAHA_API_KEY_FILE")
+    expect(bundled).not.toContain("Bundled WAHA is disabled")
+  })
+
+  it("loads the bundled WAHA key through a wrapper before native startup", async () => {
+    // Given the published immutable WAHA image and the repository-owned wrapper
+    const dockerfile = await readComposeFile("Dockerfile.waha")
+    const wrapper = await readComposeFile("docker/waha-entrypoint.sh")
+
+    // Then the wrapper reads only the mounted secret and preserves native startup
+    expect(dockerfile).toContain(
+      "FROM devlikeapro/waha:latest-2026.8.1@sha256:d52ad4f394d2e48eb92d58e0f04924ff6c7621a883d08ff64176479ecd77c9ca",
+    )
+    expect(wrapper).toContain(`secret_file="\${WAHA_API_KEY_FILE:-/run/secrets/waha_api_key}"`)
+    expect(wrapper).toContain('case "$api_key" in')
+    expect(wrapper).toContain('export WAHA_API_KEY="$api_key"')
+    expect(wrapper).toContain('exec /usr/bin/tini -- /entrypoint.sh "$@"')
+    expect(wrapper).not.toContain("printf '%s' \"$api_key\"")
   })
 
   it("persists bundled WAHA sessions without publishing the WAHA port", async () => {
@@ -120,6 +150,7 @@ describe("default Compose API startup", () => {
       "# ENCRYPTION_MASTER_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
     )
     expect(environmentExample).toContain("Uncomment exactly one encryption key source")
+    expect(environmentExample).toContain("WEB_BIND_ADDRESS=127.0.0.1")
     expect(environmentExample).not.toMatch(/^ENCRYPTION_MASTER_KEY(?:_FILE)?=/m)
     expect(environmentExample).not.toMatch(/^WAHA_API_KEY=/m)
   })
