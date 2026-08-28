@@ -6,8 +6,21 @@ services:
       waha:
         condition: service_healthy
   waha:
+    entrypoint: ["/bin/sh", "/usr/local/bin/relaynest-waha-entrypoint.sh"]
+    environment:
+      WAHA_API_KEY_FILE: /run/secrets/waha_api_key
+    secrets:
+      - waha_api_key
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "const fs=require('node:fs'); const key=fs.readFileSync('/run/secrets/waha_api_key','utf8').trim();
+          fetch('http://127.0.0.1:3000/health',{headers:{'X-Api-Key':key}}).then((r)=>process.exit(r.ok ? 0 : 1)).catch(()=>process.exit(1))"
       interval: 10s
       timeout: 5s
       retries: 5
+
+secrets:
+  waha_api_key:
+    file: ${WAHA_API_KEY_FILE:?Set WAHA_API_KEY_FILE to a secret file}

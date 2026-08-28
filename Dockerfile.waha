@@ -1,0 +1,5 @@
+FROM devlikeapro/waha:latest-2026.8.1@sha256:d52ad4f394d2e48eb92d58e0f04924ff6c7621a883d08ff64176479ecd77c9ca
+
+COPY docker/waha-entrypoint.sh /usr/local/bin/relaynest-waha-entrypoint.sh
+
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/relaynest-waha-entrypoint.sh"]
