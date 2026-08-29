@@ -15,6 +15,11 @@ const historySchema = z.array(z.object({ status: z.string(), observedAt: z.strin
 const metadataSchema = z.object({ id: z.string().optional(), pushname: z.string().optional() })
 const qrSchema = z.object({ value: z.string() })
 const acceptedSchema = z.object({ accepted: z.literal(true) })
+const chatSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().nullable(),
+  isGroup: z.boolean(),
+})
 export const createSessionSchema = z.object({
   connectionId: z.string().uuid(),
   name: z.string().min(1),
@@ -28,6 +33,7 @@ export type SessionStatusHistory = z.infer<typeof historySchema>[number]
 export type SessionQr = z.infer<typeof qrSchema>
 export type SessionMetadata = z.infer<typeof metadataSchema>
 export type SessionCreateInput = z.infer<typeof createSessionSchema>
+export type SessionChat = z.infer<typeof chatSchema>
 
 export type DashboardSessionApi = Readonly<{
   create: (scope: AccountScope, input: SessionCreateInput) => Promise<ApiResult<SessionView>>
@@ -49,6 +55,7 @@ export type DashboardSessionApi = Readonly<{
     scope: AccountScope,
     sessionId: string,
   ) => Promise<ApiResult<readonly SessionStatusHistory[]>>
+  chats: (scope: AccountScope, sessionId: string) => Promise<ApiResult<readonly SessionChat[]>>
 }>
 
 export function createDashboardSessionApi(baseUrl = ""): DashboardSessionApi {
@@ -86,6 +93,13 @@ export function createDashboardSessionApi(baseUrl = ""): DashboardSessionApi {
       const result = await requestJson(
         scoped(`/scoped/sessions/${sessionId}/status-history`, scope),
         historySchema,
+      )
+      return result.kind === "ready" ? { kind: "ready", data: result.data } : result
+    },
+    chats: async (scope, sessionId) => {
+      const result = await requestJson(
+        scoped(`/scoped/sessions/${sessionId}/chats`, scope),
+        z.array(chatSchema),
       )
       return result.kind === "ready" ? { kind: "ready", data: result.data } : result
     },

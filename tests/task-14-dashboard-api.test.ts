@@ -302,6 +302,31 @@ describe("Todo 14 authenticated dashboard adapters", () => {
     vi.unstubAllGlobals()
   })
 
+  it("lists a redacted chat directory for the scoped session", async () => {
+    // Given an authenticated chat directory response for the selected session
+    const fetchMock = vi.fn().mockResolvedValue(
+      response([
+        { id: "120363162617804781@g.us", name: "Ops Group", isGroup: true },
+        { id: "239629714329822@lid", name: null, isGroup: false },
+      ]),
+    )
+    vi.stubGlobal("document", { cookie: "waha_csrf=csrf-token" })
+    vi.stubGlobal("fetch", fetchMock)
+
+    // When the dashboard loads the directory
+    const result = await createDashboardSessionApi().chats("personal", sessionId)
+
+    // Then safe directory rows are returned for the picker
+    expect(result).toEqual({
+      kind: "ready",
+      data: [
+        { id: "120363162617804781@g.us", name: "Ops Group", isGroup: true },
+        { id: "239629714329822@lid", name: null, isGroup: false },
+      ],
+    })
+    vi.unstubAllGlobals()
+  })
+
   it("uses authenticated login and leaves cookie storage to the browser", async () => {
     // Given a successful authenticated login response
     const fetchMock = vi.fn().mockResolvedValue(
