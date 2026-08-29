@@ -48,6 +48,10 @@ function isProviderChatId(chatId: string): boolean {
   return PROVIDER_CHAT_SUFFIXES.some((suffix) => chatId.endsWith(suffix))
 }
 
+function isChatAddressRecipient(value: string): boolean {
+  return /^\d+@(c\.us|lid|g\.us)$/.test(value.trim())
+}
+
 export function createMessagingService(options: MessagingServiceOptions) {
   const now = options.now ?? (() => new Date())
   const completed = new Map<string, SendResult>()
@@ -76,6 +80,12 @@ export function createMessagingService(options: MessagingServiceOptions) {
     const session = await authorized(principal, sessionId, accountScope)
     if (!session) return null
     const client = await options.wahaForSession(session)
+    const address = "phoneNumber" in target ? target.phoneNumber.trim() : ""
+    if (isChatAddressRecipient(address)) {
+      const existingAddressed = await options.contacts.find(accountScope, address)
+      if (!existingAddressed || existingAddressed.sessionId !== session.id) return null
+      return existingAddressed
+    }
     if ("phoneNumber" in target) {
       const phone = normalizePhoneNumber(target.phoneNumber)
       const existing = await options.contacts.find(accountScope, phone)

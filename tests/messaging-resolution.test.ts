@@ -63,4 +63,43 @@ describe("individual text contact resolution", () => {
     // Then the LID chat id is accepted as the provider routing address
     expect(result).toEqual({ id: "contact-1", phone: "+628123456789", displayName: "Example" })
   })
+
+  it("rejects an unverified directory chat address", async () => {
+    // Given the operator submits a fabricated group chat address
+    const saved: { phone: string; providerChatId: string; consentGranted: boolean }[] = []
+    const waha = {
+      checkExists: async () => {
+        throw new Error("must not check-exists a chat address")
+      },
+      contact: async () => {
+        throw new Error("must not resolve a chat address")
+      },
+    }
+    const service = createMessagingService(
+      serviceOptions({
+        contacts: {
+          find: async () => null,
+          save: async (input: {
+            phone: string
+            providerChatId: string
+            consentGranted: boolean
+          }) => {
+            saved.push(input)
+            return { ...input, id: "group-contact-1" }
+          },
+        },
+        waha,
+        wahaForSession: async () => waha,
+      }),
+    )
+
+    // When the operator resolves the unverified chat address target
+    // Then no fabricated target is persisted
+    await expect(
+      service.resolveContact(principal, "session-1", "personal", {
+        phoneNumber: "120363162617804781@g.us",
+      }),
+    ).rejects.toThrow("contact was not found")
+    expect(saved).toHaveLength(0)
+  })
 })
