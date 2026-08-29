@@ -138,6 +138,51 @@ describe("WAHA adapter contract", () => {
     await expect(failure).rejects.not.toThrow("master-secret-key")
   })
 
+  it("translates provider rejection reasons into safe typed details", async () => {
+    // Given a provider rejecting a QR read for a session outside the QR-scan state
+    const qrStateServer = await startServer((_request, response) =>
+      json(response, 422, {
+        error: "Session status is not as expected. Try again later or restart the session",
+        session: "personal",
+        status: "STOPPED",
+        expected: ["SCAN_QR_CODE"],
+      }),
+    )
+
+    // When the adapter reads the QR payload
+    const qrFailure = createClient(qrStateServer.url).qr("personal", "image")
+
+    // Then the rejection carries a safe reason instead of raw upstream text
+    await expect(qrFailure).rejects.toMatchObject({
+      status: 422,
+      classification: "http",
+      detail: expect.stringContaining("QR-scan state"),
+    })
+    await expect(qrFailure).rejects.not.toThrow("Session status is not as expected")
+
+    // Given a provider rejecting a duplicate session name
+    const duplicateServer = await startServer((_request, response) =>
+      json(response, 422, {
+        message: "Session 'personal' already exists. Use PUT to update it.",
+        error: "Unprocessable Entity",
+        statusCode: 422,
+      }),
+    )
+
+    // When the adapter creates the session
+    const duplicateFailure = createClient(duplicateServer.url).createSession(
+      JSON.stringify({ name: "personal" }),
+    )
+
+    // Then the rejection carries the safe duplicate reason
+    await expect(duplicateFailure).rejects.toMatchObject({
+      status: 422,
+      classification: "http",
+      detail: expect.stringContaining("already has a session with this name"),
+    })
+    await expect(duplicateFailure).rejects.not.toThrow("Use PUT to update it.")
+  })
+
   it("rejects malformed responses at the HTTP boundary", async () => {
     // Given a service returning a body that is not a PingResponse
     const server = await startServer((_request, response) => json(response, 200, { status: "ok" }))
@@ -147,6 +192,132 @@ describe("WAHA adapter contract", () => {
 
     // Then malformed external data is a typed response error
     await expect(failure).rejects.toBeInstanceOf(WahaResponseError)
+  })
+
+  it("accepts nullable presence and me fields from live session responses", async () => {
+    // Given the live bundled WAHA shape for a newly created stopped session
+    const server = await startServer((_request, response) =>
+      json(response, 201, {
+        name: "personal",
+        presence: null,
+        me: null,
+        timestamps: { activity: null },
+        status: "STOPPED",
+      }),
+    )
+
+    // When the adapter creates the session and parses the response
+    const session = await createClient(server.url).createSession(
+      JSON.stringify({ name: "personal" }),
+    )
+
+    // Then the nullable provider fields are accepted instead of a malformed response
+    expect(session).toEqual({
+      name: "personal",
+      presence: null,
+      me: null,
+      timestamps: { activity: null },
+      status: "STOPPED",
+    })
+  })
+
+  it("preserves live session payloads that omit non-consumed provider fields", async () => {
+    // Given a live session response omitting the provider-only presence field entirely
+    const server = await startServer((_request, response) =>
+      json(response, 201, {
+        name: "personal",
+        me: null,
+        timestamps: { activity: null },
+        status: "STOPPED",
+      }),
+    )
+
+    // When the adapter creates the session and parses the response
+    const session = await createClient(server.url).createSession(
+      JSON.stringify({ name: "personal" }),
+    )
+
+    // Then the provider payload is accepted instead of a malformed-response rejection
+    expect(session).toMatchObject({ name: "personal", status: "STOPPED" })
+  })
+
+  it("accepts live start responses without a timestamp activity value", async () => {
+    // Given the live bundled WAHA shape returned after starting a session
+    const server = await startServer((_request, response) =>
+      json(response, 201, {
+        name: "personal",
+        presence: null,
+        me: null,
+        timestamps: {},
+        status: "STARTING",
+      }),
+    )
+
+    // When the adapter starts the session and parses the response
+    const session = await createClient(server.url).start("personal")
+
+    // Then the absent activity timestamp is accepted without weakening other fields
+    expect(session).toMatchObject({ name: "personal", status: "STARTING", timestamps: {} })
+  })
+
+  it("accepts live WORKING session payloads with string presence and rich me", async () => {
+    // Given the live bundled WAHA body for a linked working session
+    const server = await startServer((_request, response) =>
+      json(response, 200, [
+        {
+          name: "session-test",
+          status: "WORKING",
+          config: {},
+          me: {
+            id: "6285161961804@c.us",
+            lid: "239629714329822@lid",
+            pushName: "Kelana Chandra Helyandika",
+            reachoutTimelock: null,
+            messageCapping: {
+              cappingStatus: "NONE",
+              totalQuota: 0,
+              usedQuota: 0,
+              cycleStart: 0,
+              cycleEnd: 1,
+              mvStatus: "NOT_ELIGIBLE",
+              oteStatus: "NOT_ELIGIBLE",
+            },
+          },
+          presence: "offline",
+          timestamps: { activity: 1788009997452 },
+          assignedWorker: "",
+        },
+      ]),
+    )
+
+    // When the adapter lists sessions
+    const sessions = await createClient(server.url).sessions()
+
+    // Then the provider truth is preserved instead of a malformed-response rejection
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0]).toMatchObject({
+      name: "session-test",
+      status: "WORKING",
+      presence: "offline",
+    })
+  })
+
+  it("sends Content-Type application/json only for body-bearing requests", async () => {
+    // Given a service that records the Content-Type of every request
+    const contentTypes: (string | undefined)[] = []
+    const server = await startServer((request, response) => {
+      contentTypes.push(request.headers["content-type"])
+      response.writeHead(204)
+      response.end()
+    })
+    const client = createClient(server.url)
+
+    // When an operation sends a JSON body and an operation sends none
+    await client.requestPairingCode("personal", "+628123456789")
+    await client.confirmPasskey("personal")
+
+    // Then only the body-bearing request declares a JSON content type
+    expect(contentTypes).toEqual(["application/json", undefined])
   })
 
   it("accepts documented empty-body success responses for delete and linking operations", async () => {

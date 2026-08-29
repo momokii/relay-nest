@@ -2,7 +2,7 @@ import type { FastifyReply, FastifyRequest } from "fastify"
 import { z } from "zod"
 
 import type { AuthPrincipal } from "../auth/service"
-import { WahaCapabilityError } from "./errors"
+import { WahaCapabilityError, WahaHttpError } from "./errors"
 import { type createScopedSessionService, ScopedSessionError } from "./sessions"
 
 export const scopeSchema = z.enum(["personal", "business"])
@@ -55,6 +55,11 @@ export async function sendService(
     }
     if (error instanceof WahaCapabilityError)
       return reply.code(501).send({ error: "unsupported_capability" })
+    if (error instanceof WahaHttpError)
+      return reply.code(502).send({
+        error: "WAHA unavailable",
+        ...(error.detail === undefined ? {} : { detail: error.detail }),
+      })
     return reply.code(502).send({ error: "WAHA unavailable" })
   }
 }

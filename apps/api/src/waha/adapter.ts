@@ -83,6 +83,39 @@ function responseSchemaError(path: string): WahaResponseError {
   return new WahaResponseError(path)
 }
 
+const QR_SCAN_STATE = "SCAN_QR_CODE"
+const QR_STATE_DETAIL =
+  "The WhatsApp provider expects the session to be in the QR-scan state. Start the session and try again."
+const DUPLICATE_NAME_DETAIL =
+  "The WhatsApp provider already has a session with this name. Choose a different name."
+
+async function rejectionDetail(response: Response): Promise<string | undefined> {
+  const text = (await response.text().catch(() => "")).trim()
+  if (text.length === 0) return undefined
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch (error) {
+    if (error instanceof SyntaxError) return undefined
+    throw error
+  }
+  if (parsed === null || typeof parsed !== "object") return undefined
+  if (
+    "expected" in parsed &&
+    Array.isArray(parsed.expected) &&
+    parsed.expected.includes(QR_SCAN_STATE)
+  )
+    return QR_STATE_DETAIL
+  const reason =
+    "message" in parsed && typeof parsed.message === "string"
+      ? parsed.message
+      : "error" in parsed && typeof parsed.error === "string"
+        ? parsed.error
+        : undefined
+  if (reason !== undefined && /already exists/i.test(reason)) return DUPLICATE_NAME_DETAIL
+  return undefined
+}
+
 function isConnected(status: WahaSession["status"]): boolean {
   return status === "WORKING"
 }
@@ -127,12 +160,21 @@ export function createWahaClient(options: WahaClientOptions) {
     try {
       const response = await fetcher(new URL(path, baseUrl), {
         method: requestOptions?.method ?? "GET",
-        headers: { "X-Api-Key": options.apiKey, Accept: "application/json" },
+        headers: {
+          "X-Api-Key": options.apiKey,
+          Accept: "application/json",
+          ...(requestOptions?.body ? { "Content-Type": "application/json" } : {}),
+        },
         ...(requestOptions?.body ? { body: requestOptions.body } : {}),
         signal: controller.signal,
       })
       if (!response.ok)
-        throw new WahaHttpError(response.status, path, classifyHttpStatus(response.status))
+        throw new WahaHttpError(
+          response.status,
+          path,
+          classifyHttpStatus(response.status),
+          await rejectionDetail(response),
+        )
       let payload: unknown
       try {
         const text = await response.text()

@@ -27,6 +27,7 @@ export class WahaHttpError extends WahaError {
       WahaErrorClassification,
       "malformed_response" | "network" | "timeout" | "cancelled" | "unsupported_capability"
     >,
+    readonly detail?: string | undefined,
   ) {
     super(`WAHA request failed: ${classification} (${status})`)
   }
