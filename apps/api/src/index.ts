@@ -4,6 +4,8 @@ import { z } from "zod"
 
 import { createApiApp } from "./app"
 import { createDatabase } from "./db/client"
+import { createTransportRepositories } from "./db/repositories/transport"
+import { seedBundledWahaConnection } from "./waha/bundled-connection-seed"
 
 const port =
   z.object({ PORT: z.coerce.number().int().min(1).max(65_535).optional() }).parse(process.env)
@@ -13,6 +15,12 @@ async function main(): Promise<void> {
   // biome-ignore lint/complexity/useLiteralKeys: required by strict ProcessEnv access.
   const migrationsFolder = process.env["MIGRATIONS_FOLDER"] ?? "drizzle"
   await migrate(database.db, { migrationsFolder })
+  const seedOutcome = await seedBundledWahaConnection({
+    repositories: createTransportRepositories(database.db),
+    baseUrl: workspaceConfig.wahaBaseUrl,
+    environment: process.env,
+  })
+  console.info(`bundled WAHA connection seed: ${seedOutcome}`)
   const allowLoopbackWaha =
     workspaceConfig.appEnv === "test" && process.argv.includes("--allow-loopback-for-tests")
   const app = createApiApp(database, { allowLoopbackWaha })

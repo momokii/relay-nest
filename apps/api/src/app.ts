@@ -31,6 +31,7 @@ import {
   RetentionPolicyMissingError,
 } from "./retention/service"
 import { registerScheduledRoutes } from "./scheduled-http"
+import { registerConnectionRoutes } from "./waha/connection-http"
 import { registerSessionRoutes } from "./waha/session-http"
 import type { createScopedSessionService } from "./waha/sessions"
 import {
@@ -189,6 +190,7 @@ export function createApiApp(
   registerAuthRoutes(app, auth, admin, {
     includeScopedSessionCompatibility: !sessionService,
   })
+  registerConnectionRoutes(app, auth, repositories)
   registerAiApprovalRoutes(app, auth, aiApprovalService)
   if (sessionService) registerSessionRoutes(app, auth, sessionService)
   if (configuredMessagingService) registerMessagingRoutes(app, auth, configuredMessagingService)

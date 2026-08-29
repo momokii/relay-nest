@@ -4,6 +4,15 @@ import { WahaError } from "./errors"
 
 const bundledHosts = new Set(["waha", "waha.internal"])
 
+export function isBundledWahaBaseUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value)
+    return parsed.protocol === "http:" && bundledHosts.has(parsed.hostname.toLowerCase())
+  } catch {
+    return false
+  }
+}
+
 export class WahaConnectionUrlError extends WahaError {
   readonly name = "WahaConnectionUrlError"
 }

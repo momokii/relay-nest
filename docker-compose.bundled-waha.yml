@@ -2,6 +2,9 @@ services:
   api:
     environment:
       WAHA_BASE_URL: http://waha:3000
+      WAHA_API_KEY_FILE: /run/secrets/waha_api_key
+    secrets:
+      - waha_api_key
     depends_on:
       waha:
         condition: service_healthy

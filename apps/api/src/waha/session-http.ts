@@ -49,7 +49,9 @@ export function registerSessionRoutes(
         status: z.string().optional(),
       })
       .parse(body)
-    return sendService(reply, () => service.create(principal, scope, input, JSON.stringify(body)))
+    return sendService(reply, () =>
+      service.create(principal, scope, input, JSON.stringify({ name: input.wahaSessionName })),
+    )
   })
 
   app.get("/scoped/sessions/:sessionId", async (request, reply) => {

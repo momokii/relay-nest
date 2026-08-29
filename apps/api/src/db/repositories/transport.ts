@@ -41,6 +41,14 @@ export function createTransportRepositories(db: PersistenceDatabase) {
           .limit(1)
         return result?.connection ?? null
       },
+      findByName: async (name: string) => {
+        const [connection] = await db
+          .select({ name: wahaConnections.name })
+          .from(wahaConnections)
+          .where(eq(wahaConnections.name, name))
+          .limit(1)
+        return connection ?? null
+      },
       findById: async (id: string) => {
         const [connection] = await db
           .select()
@@ -57,6 +65,15 @@ export function createTransportRepositories(db: PersistenceDatabase) {
           .limit(1)
         return connection ?? null
       },
+      listActive: () =>
+        db
+          .select({
+            id: wahaConnections.id,
+            name: wahaConnections.name,
+            baseUrl: wahaConnections.baseUrl,
+          })
+          .from(wahaConnections)
+          .where(eq(wahaConnections.active, true)),
       update: (id: string, input: Partial<typeof wahaConnections.$inferInsert>) =>
         withPersistenceErrors(
           db

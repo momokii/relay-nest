@@ -1,7 +1,8 @@
 import type * as React from "react"
-import { type FormEvent, useState } from "react"
+import { type FormEvent, useEffect, useMemo, useState } from "react"
 
-import type { SessionView } from "../dashboard-api"
+import { type ConnectionSummary, createDashboardAdminApi } from "../dashboard-admin-api"
+import type { ApiResult, SessionView } from "../dashboard-api"
 import type { AccountScope } from "../dashboard-model"
 import { createSessionSchema, type SessionCreateInput } from "../dashboard-session-api"
 import type { ActionState } from "../dashboard-state"
@@ -16,32 +17,74 @@ export function SessionLinkForm({
   action: ActionState<SessionView>
   onSubmit: (scope: AccountScope, input: SessionCreateInput) => Promise<void>
 }>): React.JSX.Element {
+  const api = useMemo(() => createDashboardAdminApi(import.meta.env.VITE_API_BASE_URL), [])
+  const [connections, setConnections] = useState<ApiResult<readonly ConnectionSummary[]> | null>(
+    null,
+  )
   const [connectionId, setConnectionId] = useState("")
   const [name, setName] = useState("")
   const [wahaSessionName, setWahaSessionName] = useState("")
   const [validationError, setValidationError] = useState<string | undefined>()
 
+  useEffect(() => {
+    let cancelled = false
+    void api.listConnections().then((result) => {
+      if (cancelled) return
+      setConnections(result)
+      if (result.kind === "ready" && result.data.length > 0)
+        setConnectionId(result.data[0]?.id ?? "")
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [api])
+
   const submit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault()
     const parsed = createSessionSchema.safeParse({ connectionId, name, wahaSessionName })
     if (!parsed.success) {
-      setValidationError("Enter a valid connection ID and both session names.")
+      setValidationError("Select a provider connection and enter both session names.")
       return
     }
     setValidationError(undefined)
     void onSubmit(scope, parsed.data)
   }
 
+  if (connections === null || connections.kind !== "ready") {
+    return (
+      <StateNotice
+        title="Provider connections unavailable"
+        message="The server did not provide its provider connections, so a session cannot be linked right now."
+        tone="warning"
+      />
+    )
+  }
+
+  if (connections.data.length === 0) {
+    return (
+      <StateNotice
+        title="No provider connections"
+        message="The server has no active provider connections configured, so a session cannot be linked. In bundled mode the connection is provisioned automatically at startup."
+        tone="warning"
+      />
+    )
+  }
+
   return (
     <form className="operational-form" onSubmit={submit}>
       <label>
-        <span>Connection ID</span>
-        <input
-          type="text"
+        <span>Provider connection</span>
+        <select
           value={connectionId}
           onChange={(event) => setConnectionId(event.target.value)}
           required
-        />
+        >
+          {connections.data.map((connection) => (
+            <option key={connection.id} value={connection.id}>
+              {connection.name} — {connection.baseUrl}
+            </option>
+          ))}
+        </select>
       </label>
       <label>
         <span>Session name</span>
