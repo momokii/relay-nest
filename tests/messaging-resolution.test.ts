@@ -36,4 +36,31 @@ describe("individual text contact resolution", () => {
     expect(result).toEqual({ id: "contact-1", phone: "+628123456789", displayName: "Example" })
     expect(JSON.stringify(result)).not.toContain("secret raw field")
   })
+
+  it("resolves numbers whose provider chat id uses the WhatsApp LID form", async () => {
+    // Given WAHA returning the new linked-identity chat id for a valid number
+    const service = createMessagingService(
+      serviceOptions({
+        waha: {
+          checkExists: async () => ({
+            numberExists: true,
+            chatId: "239629714329822@lid",
+          }),
+          contact: async () => ({ id: "239629714329822@lid", name: "Lid Person" }),
+        },
+        wahaForSession: async () => ({
+          checkExists: async () => ({ numberExists: true, chatId: "239629714329822@lid" }),
+          contact: async () => ({ id: "239629714329822@lid", name: "Lid Person" }),
+        }),
+      }),
+    )
+
+    // When the operator resolves the target
+    const result = await service.resolveContact(principal, "session-1", "personal", {
+      phoneNumber: "+628123456789",
+    })
+
+    // Then the LID chat id is accepted as the provider routing address
+    expect(result).toEqual({ id: "contact-1", phone: "+628123456789", displayName: "Example" })
+  })
 })

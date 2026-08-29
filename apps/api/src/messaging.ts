@@ -42,6 +42,12 @@ export function normalizePhoneNumber(input: string): string {
   return compact
 }
 
+const PROVIDER_CHAT_SUFFIXES = ["@c.us", "@lid"] as const
+
+function isProviderChatId(chatId: string): boolean {
+  return PROVIDER_CHAT_SUFFIXES.some((suffix) => chatId.endsWith(suffix))
+}
+
 export function createMessagingService(options: MessagingServiceOptions) {
   const now = options.now ?? (() => new Date())
   const completed = new Map<string, SendResult>()
@@ -74,7 +80,7 @@ export function createMessagingService(options: MessagingServiceOptions) {
       const phone = normalizePhoneNumber(target.phoneNumber)
       const existing = await options.contacts.find(accountScope, phone)
       const checked = await client.checkExists(session.wahaSessionName, phone)
-      if (!checked.numberExists || !checked.chatId || !checked.chatId.endsWith("@c.us")) return null
+      if (!checked.numberExists || !checked.chatId || !isProviderChatId(checked.chatId)) return null
       const providerContact = await client.contact(session.wahaSessionName, checked.chatId)
       return options.contacts.save({
         id: existing?.id ?? randomUUID(),
@@ -91,7 +97,7 @@ export function createMessagingService(options: MessagingServiceOptions) {
     const existing = options.contacts.findById
       ? await options.contacts.findById(accountScope, target.contactId)
       : null
-    if (!existing || !existing.providerChatId.endsWith("@c.us")) return null
+    if (!existing || !isProviderChatId(existing.providerChatId)) return null
     return existing
   }
 
