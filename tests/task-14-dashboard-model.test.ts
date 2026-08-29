@@ -47,6 +47,24 @@ describe("Todo 14 dashboard model", () => {
     expect(approved.canSendSeparately).toBe(true)
   })
 
+  it("accepts individual provider chat addresses as recipients for directory picks", () => {
+    // Given a recipient chosen from the provider directory as a LID contact
+    const contact = validateMessageInput({
+      recipient: "239629714329822@lid",
+      message: "Consent-first text",
+      hasConsent: true,
+      hasMedia: false,
+      isRecurring: false,
+    })
+
+    // Then the chat address passes validation unchanged
+    expect(contact).toEqual({
+      valid: true,
+      recipient: "239629714329822@lid",
+      message: "Consent-first text",
+    })
+  })
+
   it("rejects media and recurrence at the text-only message boundary", () => {
     // Given a message request that attempts to add excluded MVP capabilities
     const result = validateMessageInput({

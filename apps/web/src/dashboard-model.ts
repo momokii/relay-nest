@@ -113,8 +113,13 @@ export function validateMessageInput(input: MessageInput): MessageValidation {
 
   const recipient = input.recipient.replace(/\s/g, "")
   const message = input.message.trim()
-  if (!/^\+[1-9]\d{7,14}$/.test(recipient)) {
-    return { valid: false, reason: "Use a phone number with country code, such as +15551234567." }
+  const isChatAddress = /^\d+@(c\.us|lid)$/i.test(recipient)
+  if (!/^\+[1-9]\d{7,14}$/.test(recipient) && !isChatAddress) {
+    return {
+      valid: false,
+      reason:
+        "Use a phone number with country code (+15551234567) or pick a chat from the directory.",
+    }
   }
   if (message.length === 0 || message.length > 4096) {
     return { valid: false, reason: "Enter a text message between 1 and 4096 characters." }
