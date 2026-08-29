@@ -87,12 +87,18 @@ export function createScopedSessionService(options: {
     ): Promise<SessionView> {
       if (!isAdmin(principal, scope)) throw new ScopedSessionError("role_denied")
       const client = await options.clientForConnection?.(input.connectionId)
-      if (!client || !options.repository.create) throw new ScopedSessionError("unsupported")
+      if (!client || !options.repository.create || !options.repository.createGrant)
+        throw new ScopedSessionError("unsupported")
       const upstream = await client.createSession(body)
       const stored = await options.repository.create({
         ...input,
         accountScope: scope,
         status: upstream.status,
+      })
+      await options.repository.createGrant({
+        userId: principal.userId,
+        sessionId: stored.id,
+        scope,
       })
       await options.audit?.({
         actorUserId: principal.userId,
@@ -208,7 +214,7 @@ export function createScopedSessionService(options: {
       scope: AccountScope,
     ): Promise<WahaQrResponse> {
       const session = await authorized(principal, sessionId, scope, "command")
-      return (await options.clientFor(session)).qr(session.wahaSessionName, "raw")
+      return (await options.clientFor(session)).qr(session.wahaSessionName, "image")
     },
     async requestPairingCode(
       principal: AuthPrincipal,

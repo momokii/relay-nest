@@ -33,8 +33,8 @@ export const wahaServerStatusSchema = z.object({
 
 export const wahaSessionSchema = z.object({
   name: z.string(),
-  presence: z.record(z.unknown()),
-  timestamps: z.object({ activity: z.number().nullable() }).passthrough(),
+  presence: z.unknown(),
+  timestamps: z.object({ activity: z.number().nullable().optional() }).passthrough(),
   status: z.enum([
     "STOPPED",
     "STARTING",
@@ -44,7 +44,7 @@ export const wahaSessionSchema = z.object({
     "WORKING",
     "FAILED",
   ]),
-  me: z.record(z.unknown()).optional(),
+  me: z.unknown().optional(),
   assignedWorker: z.string().optional(),
   config: z.record(z.unknown()).optional(),
 })

@@ -52,6 +52,11 @@ export type ScopedSessionRepository = {
     scope: AccountScope,
   ) => Promise<readonly SessionStatusHistoryEntry[]>
   readonly create?: (input: Omit<StoredSession, "id">) => Promise<StoredSession>
+  readonly createGrant?: (input: {
+    readonly userId: string
+    readonly sessionId: string
+    readonly scope: AccountScope
+  }) => Promise<void>
   readonly update?: (
     id: string,
     scope: AccountScope,
@@ -70,7 +75,7 @@ export type WahaSessionClient = {
   readonly stop: (name: string) => Promise<WahaSession>
   readonly restart: (name: string) => Promise<WahaSession>
   readonly logout: (name: string) => Promise<WahaSession>
-  readonly qr: (name: string, format: "raw") => Promise<WahaQrResponse>
+  readonly qr: (name: string, format: "image") => Promise<WahaQrResponse>
   readonly requestPairingCode: (name: string, phoneNumber: string) => Promise<unknown>
   readonly passkeyChallenge: (name: string) => Promise<WahaPasskeyChallenge>
   readonly passkeyAssertion: (name: string, body: string) => Promise<unknown>

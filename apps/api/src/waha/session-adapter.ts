@@ -13,7 +13,6 @@ import {
   wahaMetadataSchema,
   wahaPasskeyChallengeSchema,
   wahaPasskeyConfirmationSchema,
-  wahaQrResponseSchema,
   wahaSendTextResponseSchema,
   wahaSessionActionResponseSchema,
   wahaTimelockSchema,
@@ -21,6 +20,9 @@ import {
 import { z } from "zod"
 
 const emptyResponseSchema = z.undefined()
+const wahaQrImageResponseSchema = z
+  .object({ mimetype: z.literal("image/png"), data: z.string().min(1) })
+  .transform(({ data }) => ({ value: `data:image/png;base64,${data}` }))
 
 export type WahaRequestOptions = {
   readonly method?: string
@@ -79,10 +81,10 @@ export function createWahaSessionOperations(request: WahaRequest) {
         method: "POST",
         signal,
       }),
-    qr: (name: string, format: "raw", signal?: AbortSignal): Promise<WahaQrResponse> =>
+    qr: (name: string, format: "image", signal?: AbortSignal): Promise<WahaQrResponse> =>
       request(
         `/api/${encodeURIComponent(name)}/auth/qr?format=${format}`,
-        wahaQrResponseSchema,
+        wahaQrImageResponseSchema,
         signal,
       ),
     requestPairingCode: (name: string, phoneNumber: string, signal?: AbortSignal) =>

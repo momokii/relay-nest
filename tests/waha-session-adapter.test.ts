@@ -13,7 +13,8 @@ describe("WAHA session adapter contract", () => {
         path: `${url.pathname}${url.search}`,
         key: new Headers(init?.headers).get("X-Api-Key") ?? undefined,
       })
-      if (url.pathname.endsWith("/auth/qr")) return Response.json({ value: "qr-value" })
+      if (url.pathname.endsWith("/auth/qr"))
+        return Response.json({ mimetype: "image/png", data: "qr-image-bytes" })
       if (url.pathname.endsWith("/me"))
         return Response.json({ id: "phone-id", pushname: "Safe name" })
       if (url.pathname.endsWith("/timelock")) return Response.json({ locked: true })
@@ -48,7 +49,7 @@ describe("WAHA session adapter contract", () => {
     await waha.restart("personal")
     await waha.logout("personal")
     await waha.remove("personal")
-    await waha.qr("personal", "raw")
+    const qr = await waha.qr("personal", "image")
     await waha.requestPairingCode("personal", "+628123456789")
     await waha.passkeyChallenge("personal")
     await waha.passkeyAssertion("personal", { assertion: "opaque" })
@@ -66,7 +67,7 @@ describe("WAHA session adapter contract", () => {
       "POST /api/sessions/personal/restart",
       "POST /api/sessions/personal/logout",
       "DELETE /api/sessions/personal",
-      "GET /api/personal/auth/qr?format=raw",
+      "GET /api/personal/auth/qr?format=image",
       "POST /api/personal/auth/request-code",
       "GET /api/personal/auth/passkey/challenge",
       "POST /api/personal/auth/passkey",
@@ -77,5 +78,6 @@ describe("WAHA session adapter contract", () => {
       "GET /api/sessions/personal/capping",
     ])
     expect(records.every(({ key }) => key === "server-secret")).toBe(true)
+    expect(qr).toEqual({ value: "data:image/png;base64,qr-image-bytes" })
   })
 })

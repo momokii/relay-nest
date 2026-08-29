@@ -39,8 +39,11 @@ const businessSession = {
   wahaSessionName: "business",
 }
 
-function repository(grants: readonly string[] = ["admin"]): ScopedSessionRepository {
+function repository(grants: readonly string[] = ["admin"]): ScopedSessionRepository & {
+  readonly grantedInputs: { userId: string; sessionId: string; scope: string }[]
+} {
   const sessions = [personalSession, businessSession]
+  const grantedInputs: { userId: string; sessionId: string; scope: string }[] = []
   return {
     list: async (scope) => sessions.filter((session) => session.accountScope === scope),
     find: async (id, scope) =>
@@ -53,6 +56,15 @@ function repository(grants: readonly string[] = ["admin"]): ScopedSessionReposit
       { status: "STARTING", observedAt: "2026-08-16T11:00:00Z" },
       { status: "WORKING", observedAt: "2026-08-16T11:01:00Z" },
     ],
+    create: async (input) => ({
+      ...personalSession,
+      id: "99999999-9999-4999-8999-999999999999",
+      ...input,
+    }),
+    createGrant: async (input) => {
+      grantedInputs.push(input)
+    },
+    grantedInputs,
   }
 }
 
@@ -104,7 +116,7 @@ function client() {
       timestamps: { activity: null },
     }),
     remove: async () => undefined,
-    qr: async () => ({ format: "raw" as const, value: "qr-value" }),
+    qr: async () => ({ value: "data:image/png;base64,qr-image-bytes" }),
     requestPairingCode: async () => undefined,
     passkeyChallenge: async () => ({ challenge: "challenge" }),
     passkeyAssertion: async () => undefined,
@@ -197,9 +209,36 @@ describe("scoped WAHA session lifecycle", () => {
 
     // Then responses are typed, redacted, and do not treat WORKING as unrestricted sending
     expect(metadata).toEqual({ id: "phone-id", pushname: "Safe name" })
-    expect(qr).toEqual({ format: "raw", value: "qr-value" })
+    expect(qr).toEqual({ value: "data:image/png;base64,qr-image-bytes" })
     expect(timelock).toEqual({ locked: true, until: "2026-08-16T12:00:00Z" })
     expect(capping).toEqual({ remaining: 4, resetAt: "2026-08-16T12:00:00Z" })
     expect(history).toHaveLength(2)
+  })
+
+  it("grants the creating Admin the linked session", async () => {
+    // Given an Admin linking a new session through an active connection
+    const repo = repository()
+    const service = createScopedSessionService({
+      repository: repo,
+      clientFor: () => client(),
+      clientForConnection: async () => client(),
+    })
+
+    // When the Admin creates the session
+    const created = await service.create(
+      admin,
+      "personal",
+      {
+        connectionId: "connection-1",
+        name: "New link",
+        wahaSessionName: "new-link",
+      },
+      JSON.stringify({ name: "new-link" }),
+    )
+
+    // Then the creator receives a grant for the created session
+    expect(repo.grantedInputs).toEqual([
+      { userId: "admin", sessionId: created.id, scope: "personal" },
+    ])
   })
 })
