@@ -1,5 +1,5 @@
 import type * as React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 import type { SessionView } from "../dashboard-api"
 import type { AccountScope, DashboardRole } from "../dashboard-model"
@@ -9,6 +9,7 @@ import type {
   SessionStatusHistory,
 } from "../dashboard-session-api"
 import type { ActionState, ResourceState } from "../dashboard-state"
+import { SessionConnectPanel } from "./session-connect-panel"
 import { SessionLinkForm } from "./session-link-form"
 import { Panel, StateNotice, StatusBadge } from "./ui"
 
@@ -72,10 +73,19 @@ export function SessionsPage({
 }>): React.JSX.Element {
   const sessionList = sessions.kind === "ready" ? sessions.data : []
   const [selectedSessionId, setSelectedSessionId] = useState(sessionList[0]?.id ?? "")
+  const [autoLinkSessionId, setAutoLinkSessionId] = useState("")
   const [confirmed, setConfirmed] = useState(false)
   const selectedSession =
     sessionList.find((session) => session.id === selectedSessionId) ?? sessionList[0]
   const activeSessionId = selectedSession?.id ?? ""
+
+  useEffect(() => {
+    if (createAction.kind !== "ready") return
+    const createdId = createAction.data.id
+    if (createdId === autoLinkSessionId) return
+    setSelectedSessionId(createdId)
+    setAutoLinkSessionId(createdId)
+  }, [autoLinkSessionId, createAction])
   const runLifecycle = (action: SessionLifecycleAction): void => {
     if (!selectedSession) return
     void onLifecycle(scope, selectedSession.id, action, confirmed)
@@ -98,7 +108,7 @@ export function SessionsPage({
         {sessionList.length === 0 && sessions.kind !== "loading" && sessions.kind !== "denied" ? (
           <StateNotice
             title="No sessions in scope"
-            message="Link a session through an authorized server route before operational work can begin."
+            message="Link a session in the Admin transport setup panel below. Once it is linked, the Connect WhatsApp panel appears here with the QR code and pairing-code options."
           />
         ) : null}
         {sessionList.length > 0 ? (
@@ -116,6 +126,11 @@ export function SessionsPage({
                 ))}
               </select>
             </label>
+            <div className="status-list">
+              {sessionList.map((entry) => (
+                <StatusBadge key={entry.id} label={`${entry.name} · ${entry.status}`} />
+              ))}
+            </div>
             <div className="status-list">
               <StatusBadge label={`Session · ${selectedSession?.status ?? "Unknown"}`} />
               <StatusBadge
@@ -186,6 +201,13 @@ export function SessionsPage({
           </div>
         ) : null}
       </Panel>
+      {selectedSession ? (
+        <SessionConnectPanel
+          scope={scope}
+          session={selectedSession}
+          autoLinkSessionId={autoLinkSessionId}
+        />
+      ) : null}
       <Panel
         eyebrow="Admin transport setup"
         title="Link a session"
