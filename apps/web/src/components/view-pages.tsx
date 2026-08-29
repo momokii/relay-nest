@@ -24,13 +24,22 @@ export function ContactsPage({
   role,
   sessions,
   action,
+  consentAction,
   onResolve,
+  onSetConsent,
 }: Readonly<{
   scope: AccountScope
   role: DashboardRole
   sessions: ResourceState<readonly SessionView[]>
   action: ActionState<ContactView>
+  consentAction: ActionState<{ readonly updated: boolean }>
   onResolve: (scope: AccountScope, sessionId: string, recipient: string) => Promise<void>
+  onSetConsent: (
+    scope: AccountScope,
+    sessionId: string,
+    contactId: string,
+    input: { readonly consentGranted: boolean; optedOut: boolean },
+  ) => Promise<void>
 }>): React.JSX.Element {
   return (
     <div className="page-grid">
@@ -39,7 +48,9 @@ export function ContactsPage({
         role={role}
         sessions={sessions}
         action={action}
+        consentAction={consentAction}
         onResolve={onResolve}
+        onSetConsent={onSetConsent}
       />
     </div>
   )

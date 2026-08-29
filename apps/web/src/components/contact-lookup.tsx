@@ -11,13 +11,22 @@ export function ContactLookup({
   role,
   sessions,
   action,
+  consentAction,
   onResolve,
+  onSetConsent,
 }: Readonly<{
   scope: AccountScope
   role: DashboardRole
   sessions: ResourceState<readonly SessionView[]>
   action: ActionState<ContactView>
+  consentAction: ActionState<{ readonly updated: boolean }>
   onResolve: (scope: AccountScope, sessionId: string, recipient: string) => Promise<void>
+  onSetConsent: (
+    scope: AccountScope,
+    sessionId: string,
+    contactId: string,
+    input: { readonly consentGranted: boolean; optedOut: boolean },
+  ) => Promise<void>
 }>): React.JSX.Element {
   const [recipient, setRecipient] = useState("")
   const [sessionId, setSessionId] = useState("")
@@ -27,6 +36,15 @@ export function ContactLookup({
       : []
   const activeSession = sessionId || options[0]?.id || ""
   const canOperate = canPerform(role, "operate")
+  const resolved = action.kind === "ready" ? action.data : null
+
+  const grantConsent = (consentGranted: boolean): void => {
+    if (!resolved) return
+    void onSetConsent(scope, activeSession, resolved.id, {
+      consentGranted,
+      optedOut: !consentGranted,
+    })
+  }
   return (
     <Panel
       eyebrow="Scoped lookup"
@@ -79,6 +97,35 @@ export function ContactLookup({
           <StateNotice
             title="Contact resolved"
             message={`${action.data.displayName ?? "Unnamed contact"} · ${action.data.phone}`}
+            live="polite"
+          />
+        ) : null}
+        {resolved ? (
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={consentAction.kind === "ready" && consentAction.data.updated}
+              onChange={(event) => grantConsent(event.target.checked)}
+              disabled={!canOperate || consentAction.kind === "submitting"}
+            />
+            <span>
+              I have a documented consent basis to message this contact. Sends stay blocked until
+              this is granted.
+            </span>
+          </label>
+        ) : null}
+        {consentAction.kind === "ready" && consentAction.data.updated ? (
+          <StateNotice
+            title="Consent recorded"
+            message="This contact can now receive messages through this session."
+            live="polite"
+          />
+        ) : null}
+        {consentAction.kind === "unavailable" || consentAction.kind === "error" ? (
+          <StateNotice
+            title="Consent update failed"
+            message={consentAction.message}
+            tone="error"
             live="polite"
           />
         ) : null}

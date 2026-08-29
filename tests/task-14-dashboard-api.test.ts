@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 
 import { createDashboardAiApi } from "../apps/web/src/dashboard-ai-api"
+import { createDashboardApi } from "../apps/web/src/dashboard-api"
 import { createDashboardAuthApi } from "../apps/web/src/dashboard-auth-api"
 import { createDashboardNotificationApi } from "../apps/web/src/dashboard-notification-api"
 import { createDashboardRetentionApi } from "../apps/web/src/dashboard-retention-api"
@@ -12,7 +13,13 @@ const jobId = "22222222-2222-4222-8222-222222222222"
 const userId = "33333333-3333-4333-8333-333333333333"
 
 function response(body: unknown, status = 200): Response {
-  return { ok: status >= 200 && status < 300, status, json: async () => body } as Response
+  const payload = JSON.stringify(body)
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+    text: async () => payload,
+  } as Response
 }
 
 describe("Todo 14 authenticated dashboard adapters", () => {
@@ -268,6 +275,33 @@ describe("Todo 14 authenticated dashboard adapters", () => {
     vi.unstubAllGlobals()
   })
 
+  it("updates contact consent through the scoped consent route", async () => {
+    // Given an accepted consent update response for a resolved contact
+    const fetchMock = vi.fn().mockResolvedValue(response({ updated: true }))
+    vi.stubGlobal("document", { cookie: "waha_csrf=csrf-token" })
+    vi.stubGlobal("fetch", fetchMock)
+
+    // When the operator grants consent for the contact
+    const result = await createDashboardApi().setContactConsent(
+      "personal",
+      sessionId,
+      "44444444-4444-4444-8444-444444444444",
+      { consentGranted: true, optedOut: false },
+    )
+
+    // Then the consent command is posted with CSRF protection and the outcome is surfaced
+    expect(result).toEqual({ kind: "ready", data: { updated: true } })
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/scoped/sessions/${sessionId}/contacts/44444444-4444-4444-8444-444444444444/consent?scope=personal`,
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ consentGranted: true, optedOut: false }),
+        headers: expect.objectContaining({ "x-csrf-token": "csrf-token" }),
+      }),
+    )
+    vi.unstubAllGlobals()
+  })
+
   it("uses authenticated login and leaves cookie storage to the browser", async () => {
     // Given a successful authenticated login response
     const fetchMock = vi.fn().mockResolvedValue(
@@ -291,6 +325,33 @@ describe("Todo 14 authenticated dashboard adapters", () => {
     // Then the principal is parsed without moving secrets into application state
     expect(result.kind).toBe("ready")
     expect(fetchMock.mock.calls[0]?.[0]).toBe("/auth/login")
+    vi.unstubAllGlobals()
+  })
+
+  it("relays a safe provider rejection detail on unavailable session reads", async () => {
+    // Given the API returned an unavailable QR response with a safe provider reason
+    const fetchMock = vi.fn().mockResolvedValue(
+      response(
+        {
+          error: "WAHA unavailable",
+          detail:
+            "The WhatsApp provider expects the session to be in the QR-scan state. Start the session and try again.",
+        },
+        502,
+      ),
+    )
+    vi.stubGlobal("document", { cookie: "waha_csrf=csrf-token" })
+    vi.stubGlobal("fetch", fetchMock)
+
+    // When the dashboard reads the session QR
+    const result = await createDashboardSessionApi().qr("personal", sessionId)
+
+    // Then the unavailable state shows the actionable reason instead of the generic text
+    expect(result).toEqual({
+      kind: "unavailable",
+      message:
+        "WAHA: The WhatsApp provider expects the session to be in the QR-scan state. Start the session and try again.",
+    })
     vi.unstubAllGlobals()
   })
 })

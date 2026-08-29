@@ -45,6 +45,7 @@ export type DashboardController = Readonly<{
   sendAction: ActionState<SendResult>
   scheduleAction: ActionState<SendResult>
   contactAction: ActionState<ContactView>
+  contactConsentAction: ActionState<{ readonly updated: boolean }>
   purgePreview: ActionState<RetentionPreview>
   purgeAction: ActionState<{ readonly deletedCount: number }>
   clearPurgePreview: () => void
@@ -57,6 +58,12 @@ export type DashboardController = Readonly<{
   send: (input: SendInput) => Promise<void>
   schedule: (input: ScheduleInput) => Promise<void>
   resolveContact: (scope: AccountScope, sessionId: string, recipient: string) => Promise<void>
+  setContactConsent: (
+    scope: AccountScope,
+    sessionId: string,
+    contactId: string,
+    input: { readonly consentGranted: boolean; optedOut: boolean },
+  ) => Promise<void>
   previewPurge: (scope: AccountScope, category: RetentionCategory) => Promise<void>
   purge: (scope: AccountScope, input: Omit<RetentionPurgeInput, "confirmed">) => Promise<void>
 }>
@@ -104,6 +111,9 @@ export function useDashboardController(): DashboardController {
   const [sendAction, setSendAction] = useState<ActionState<SendResult>>({ kind: "idle" })
   const [scheduleAction, setScheduleAction] = useState<ActionState<SendResult>>({ kind: "idle" })
   const [contactAction, setContactAction] = useState<ActionState<ContactView>>({ kind: "idle" })
+  const [contactConsentAction, setContactConsentAction] = useState<
+    ActionState<{ readonly updated: boolean }>
+  >({ kind: "idle" })
   const [purgePreview, setPurgePreview] = useState<ActionState<RetentionPreview>>({ kind: "idle" })
   const [purgeAction, setPurgeAction] = useState<ActionState<{ readonly deletedCount: number }>>({
     kind: "idle",
@@ -140,6 +150,7 @@ export function useDashboardController(): DashboardController {
     setSendAction({ kind: "idle" })
     setScheduleAction({ kind: "idle" })
     setContactAction({ kind: "idle" })
+    setContactConsentAction({ kind: "idle" })
     setPurgePreview({ kind: "idle" })
     setPurgeAction({ kind: "idle" })
   }
@@ -158,6 +169,7 @@ export function useDashboardController(): DashboardController {
     setSendAction({ kind: "idle" })
     setScheduleAction({ kind: "idle" })
     setContactAction({ kind: "idle" })
+    setContactConsentAction({ kind: "idle" })
     setNotifications({ kind: "loading" })
     setRetention({ kind: "loading" })
     setPurgePreview({ kind: "idle" })
@@ -214,6 +226,17 @@ export function useDashboardController(): DashboardController {
       actionFromResult(await api.resolveContact(selectedScope, sessionId, recipient)),
     )
   }
+  const setContactConsent = async (
+    selectedScope: AccountScope,
+    sessionId: string,
+    contactId: string,
+    input: { readonly consentGranted: boolean; optedOut: boolean },
+  ): Promise<void> => {
+    setContactConsentAction({ kind: "submitting" })
+    setContactConsentAction(
+      actionFromResult(await api.setContactConsent(selectedScope, sessionId, contactId, input)),
+    )
+  }
   const previewPurge = async (
     selectedScope: AccountScope,
     category: RetentionCategory,
@@ -261,6 +284,7 @@ export function useDashboardController(): DashboardController {
     sendAction,
     scheduleAction,
     contactAction,
+    contactConsentAction,
     purgePreview,
     purgeAction,
     clearPurgePreview,
@@ -273,6 +297,7 @@ export function useDashboardController(): DashboardController {
     send,
     schedule,
     resolveContact,
+    setContactConsent,
     previewPurge,
     purge,
   }

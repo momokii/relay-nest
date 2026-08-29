@@ -36,6 +36,7 @@ export function App(): React.JSX.Element {
         onSend={dashboard.send}
         onSchedule={dashboard.schedule}
         onResolveContact={dashboard.resolveContact}
+        onSetContactConsent={dashboard.setContactConsent}
         onPreviewPurge={dashboard.previewPurge}
         onPurge={dashboard.purge}
         onCreateUser={admin.createUser}
@@ -50,7 +51,11 @@ export function App(): React.JSX.Element {
           const created = await session.createSession(request.scope, input)
           if (created) await dashboard.refreshSessions(request)
         }}
-        onLifecycle={session.lifecycleSession}
+        onLifecycle={async (scope, sessionId, action, confirmed) => {
+          const request = dashboard.currentScopeRequest
+          await session.lifecycleSession(scope, sessionId, action, confirmed)
+          if (request.scope === scope) await dashboard.refreshSessions(request)
+        }}
         onLoadHistory={session.loadSessionHistory}
       />
     </AppShell>

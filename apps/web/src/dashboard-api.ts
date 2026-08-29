@@ -103,7 +103,7 @@ export type ApiResult<T> =
   | { readonly kind: "ready"; readonly data: T }
   | { readonly kind: "unavailable"; readonly message: string }
   | { readonly kind: "denied"; readonly message: string }
-  | { readonly kind: "error"; readonly message: string }
+  | { readonly kind: "error"; readonly message: string; readonly status?: number }
 
 export type SendInput = Readonly<{
   scope: AccountScope
@@ -128,6 +128,12 @@ export type DashboardApi = Readonly<{
     sessionId: string,
     recipient: string,
   ) => Promise<ApiResult<ContactView>>
+  setContactConsent: (
+    scope: AccountScope,
+    sessionId: string,
+    contactId: string,
+    input: Readonly<{ consentGranted: boolean; optedOut: boolean }>,
+  ) => Promise<ApiResult<{ readonly updated: boolean }>>
   sendImmediate: (input: SendInput) => Promise<ApiResult<SendResult>>
   scheduleMessage: (input: ScheduleInput) => Promise<ApiResult<SendResult>>
   getNotifications: (scope: AccountScope) => Promise<ApiResult<NotificationSettings>>
@@ -150,9 +156,28 @@ class DashboardApiError extends Error {
   constructor(
     readonly status: number,
     readonly classification: DashboardHttpFailure,
+    readonly detail?: string | undefined,
   ) {
     super("Dashboard request failed")
   }
+}
+
+const RESPONSE_DETAIL_LIMIT = 300
+
+async function rejectionDetail(response: Response): Promise<string | undefined> {
+  const text = (await response.text().catch(() => "")).trim()
+  if (text.length === 0) return undefined
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch (error) {
+    if (error instanceof SyntaxError) return undefined
+    throw error
+  }
+  if (parsed === null || typeof parsed !== "object") return undefined
+  if (!("detail" in parsed) || typeof parsed.detail !== "string") return undefined
+  const trimmed = parsed.detail.trim()
+  return trimmed.length === 0 ? undefined : trimmed.slice(0, RESPONSE_DETAIL_LIMIT)
 }
 
 function csrfToken(): string | undefined {
@@ -183,7 +208,11 @@ export async function requestJson<T>(
       },
     })
     if (!response.ok)
-      throw new DashboardApiError(response.status, classifyDashboardHttpStatus(response.status))
+      throw new DashboardApiError(
+        response.status,
+        classifyDashboardHttpStatus(response.status),
+        await rejectionDetail(response),
+      )
     const payload: unknown = response.status === 204 ? null : await response.json()
     return { kind: "ready", data: schema.parse(payload) }
   } catch (error) {
@@ -191,8 +220,18 @@ export async function requestJson<T>(
       if (error.classification === "denied")
         return { kind: "denied", message: "The server denied this scoped request." }
       if (error.classification === "unavailable")
-        return { kind: "unavailable", message: "WAHA or this capability is unavailable." }
-      return { kind: "error", message: "The server could not complete this request." }
+        return {
+          kind: "unavailable",
+          message:
+            error.detail === undefined
+              ? "WAHA or this capability is unavailable."
+              : `WAHA: ${error.detail}`,
+        }
+      return {
+        kind: "error",
+        message: "The server could not complete this request.",
+        status: error.status,
+      }
     }
     if (error instanceof TypeError)
       return { kind: "unavailable", message: "The API is unavailable." }
@@ -220,6 +259,12 @@ export function createDashboardApi(baseUrl = ""): DashboardApi {
         method: "POST",
         body: json({ phoneNumber: recipient }),
       }),
+    setContactConsent: (scope, sessionId, contactId, input) =>
+      requestJson(
+        url(`/scoped/sessions/${sessionId}/contacts/${contactId}/consent?scope=${scope}`),
+        z.object({ updated: z.boolean() }),
+        { method: "POST", body: json(input) },
+      ),
     sendImmediate: (input) =>
       requestJson(
         `${url(`/scoped/sessions/${input.sessionId}/messages/immediate`)}?scope=${input.scope}`,

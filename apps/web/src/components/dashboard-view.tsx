@@ -43,6 +43,7 @@ export type DashboardViewProps = Readonly<
       sendAction: ActionState<SendResult>
       scheduleAction: ActionState<SendResult>
       contactAction: ActionState<ContactView>
+      contactConsentAction: ActionState<{ readonly updated: boolean }>
       purgePreview: ActionState<RetentionPreview>
       purgeAction: ActionState<{ readonly deletedCount: number }>
       clearPurgePreview: () => void
@@ -55,6 +56,12 @@ export type DashboardViewProps = Readonly<
       onSend: (input: SendInput) => Promise<void>
       onSchedule: (input: ScheduleInput) => Promise<void>
       onResolveContact: (scope: AccountScope, sessionId: string, recipient: string) => Promise<void>
+      onSetContactConsent: (
+        scope: AccountScope,
+        sessionId: string,
+        contactId: string,
+        input: { readonly consentGranted: boolean; optedOut: boolean },
+      ) => Promise<void>
       onPreviewPurge: (scope: AccountScope, category: RetentionCategory) => Promise<void>
       onPurge: (scope: AccountScope, input: Omit<RetentionPurgeInput, "confirmed">) => Promise<void>
       onCreateUser: (input: AdminCreateUserInput) => Promise<void>

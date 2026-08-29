@@ -12,6 +12,7 @@ import {
   validateMessageInput,
 } from "../dashboard-model"
 import { type ActionState, actionFromResult, type ResourceState } from "../dashboard-state"
+import { randomUuid } from "../random-uuid"
 import { ActionFeedback } from "./action-feedback"
 import { AiReviewPanel } from "./ai-review-panel"
 import { LoadingRows, Panel, StateNotice } from "./ui"
@@ -79,7 +80,7 @@ export function MessageComposer({
       sessionId,
       recipient: validation.recipient,
       message: validation.message,
-      idempotencyKey: crypto.randomUUID(),
+      idempotencyKey: randomUuid(),
     }
     if (mode === "send") {
       void onSend(common)

@@ -32,6 +32,8 @@ type PageContext = Pick<
   | "onSend"
   | "onSchedule"
   | "onResolveContact"
+  | "contactConsentAction"
+  | "onSetContactConsent"
   | "onPreviewPurge"
   | "onPurge"
   | "createUserAction"
@@ -103,6 +105,8 @@ export function renderDashboardPage(
           sessions={context.sessions}
           action={context.contactAction}
           onResolve={context.onResolveContact}
+          consentAction={context.contactConsentAction}
+          onSetConsent={context.onSetContactConsent}
         />
       )
     case "send":
