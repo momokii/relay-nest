@@ -15,6 +15,7 @@ import { type ActionState, actionFromResult, type ResourceState } from "../dashb
 import { randomUuid } from "../random-uuid"
 import { ActionFeedback } from "./action-feedback"
 import { AiReviewPanel } from "./ai-review-panel"
+import { ChatDirectory } from "./chat-directory"
 import { LoadingRows, Panel, StateNotice } from "./ui"
 
 export function MessageComposer({
@@ -134,19 +135,26 @@ export function MessageComposer({
               {sessions.kind === "loading" ? <LoadingRows count={1} /> : null}
             </label>
             <label>
-              <span>Recipient phone number</span>
+              <span>Recipient phone number or chat address</span>
               <input
                 value={recipient}
                 onChange={(event) => setRecipient(event.target.value)}
-                placeholder="+15551234567"
+                placeholder="+15551234567 or 120363…@g.us"
                 inputMode="tel"
                 disabled={!canOperate}
               />
-              <small>
-                Country code required. The server performs final contact and consent checks.
-              </small>
+              <small>Enter a country-code number or choose a contact/group below.</small>
             </label>
           </div>
+          <ChatDirectory
+            scope={scope}
+            sessionId={sessionId}
+            disabled={!canOperate}
+            onSelect={(chat) => {
+              setRecipient(chat.id)
+              setHasConsent(false)
+            }}
+          />
           <label>
             <span>Text message</span>
             <textarea

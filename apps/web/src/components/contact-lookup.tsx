@@ -4,6 +4,7 @@ import { useState } from "react"
 import type { ContactView, SessionView } from "../dashboard-api"
 import { type AccountScope, canPerform, type DashboardRole } from "../dashboard-model"
 import type { ActionState, ResourceState } from "../dashboard-state"
+import { ChatDirectory } from "./chat-directory"
 import { Panel, StateNotice } from "./ui"
 
 export function ContactLookup({
@@ -146,6 +147,12 @@ export function ContactLookup({
           />
         ) : null}
       </form>
+      <ChatDirectory
+        scope={scope}
+        sessionId={activeSession}
+        disabled={!canOperate}
+        onSelect={(chat) => setRecipient(chat.id)}
+      />
     </Panel>
   )
 }
