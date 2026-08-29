@@ -96,6 +96,13 @@ export function createConfiguredSessionService(
         if (!created) throw new WahaConnectionUnavailableError()
         return created
       },
+      createGrant: async (input) => {
+        await repositories.sessionGrants.create({
+          userId: input.userId,
+          sessionId: input.sessionId,
+          accountScope: input.scope,
+        })
+      },
       update: (id, scope, input) => repositories.sessions.update(id, scope, input),
       remove: (id, scope) => repositories.sessions.remove(id, scope),
       statusHistory,
