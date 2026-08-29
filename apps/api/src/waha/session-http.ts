@@ -104,6 +104,11 @@ export function registerSessionRoutes(
       service.history(principal, sessionId, scope),
     ),
   )
+  app.get("/scoped/sessions/:sessionId/chats", async (request, reply) =>
+    readSurface(auth, request, reply, (principal, sessionId, scope) =>
+      service.chats(principal, sessionId, scope),
+    ),
+  )
   app.get("/scoped/sessions/:sessionId/qr", async (request, reply) =>
     readSurface(auth, request, reply, (principal, sessionId, scope) =>
       service.qr(principal, sessionId, scope),

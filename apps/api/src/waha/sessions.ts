@@ -164,6 +164,21 @@ export function createScopedSessionService(options: {
       const history = await options.repository.statusHistory?.(session.id, scope)
       return history ?? []
     },
+    async chats(
+      principal: AuthPrincipal,
+      sessionId: string,
+      scope: AccountScope,
+    ): Promise<
+      readonly { readonly id: string; readonly name: string | null; readonly isGroup: boolean }[]
+    > {
+      const session = await authorized(principal, sessionId, scope, "read")
+      const chats = await (await options.clientFor(session)).chats(session.wahaSessionName)
+      return chats.map((chat) => ({
+        id: chat.id._serialized,
+        name: chat.name ?? null,
+        isGroup: chat.isGroup ?? false,
+      }))
+    },
     async lifecycle(
       principal: AuthPrincipal,
       sessionId: string,

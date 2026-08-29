@@ -100,6 +100,14 @@ function serviceWithCalls(
       timestamps: { activity: null },
     }),
     qr: overrides.qr ?? (async () => ({ value: "qr" })),
+    chats: async () => [
+      {
+        id: { server: "g.us", user: "120363162617804781", _serialized: "120363162617804781@g.us" },
+        name: "Ops Group",
+        isGroup: true,
+        lastMessage: { _data: { secret: "redact" } },
+      },
+    ],
     requestPairingCode: async () => undefined,
     passkeyChallenge: async () => {
       calls.push("GET /api/personal/auth/passkey/challenge")
@@ -249,6 +257,32 @@ describe("scoped passkey HTTP routes", () => {
       detail:
         "The WhatsApp provider expects the session to be in the QR-scan state. Start the session and try again.",
     })
+    await app.close()
+  })
+
+  it("lists a redacted provider chat directory for the scoped session", async () => {
+    // Given an authenticated Admin with a granted session backed by provider chats
+    const calls: string[] = []
+    const app = Fastify()
+    const auth = {
+      authenticate: async () => principal,
+      verifyCsrf: async () => true,
+    }
+    registerSessionRoutes(app, auth, serviceWithCalls(calls))
+
+    // When the chat directory route is called
+    const response = await app.inject({
+      method: "GET",
+      url: `/scoped/sessions/${sessionId}/chats?scope=personal`,
+      headers: { cookie: "waha_session=session-token" },
+    })
+
+    // Then the directory returns safe fields only
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual([
+      { id: "120363162617804781@g.us", name: "Ops Group", isGroup: true },
+    ])
+    expect(response.body).not.toContain("redact")
     await app.close()
   })
 })

@@ -73,6 +73,18 @@ function client() {
     sessions: async () => [
       { name: "personal", status: "WORKING", presence: {}, timestamps: { activity: null } },
     ],
+    chats: async () => [
+      {
+        id: { server: "g.us", user: "120363162617804781", _serialized: "120363162617804781@g.us" },
+        name: "Ops Group",
+        isGroup: true,
+        lastMessage: { _data: { secret: "redact" } },
+      },
+      {
+        id: { server: "lid", user: "239629714329822", _serialized: "239629714329822@lid" },
+        isGroup: false,
+      },
+    ],
     session: async () => ({
       name: "personal",
       status: "SCAN_QR_CODE",
@@ -240,5 +252,23 @@ describe("scoped WAHA session lifecycle", () => {
     expect(repo.grantedInputs).toEqual([
       { userId: "admin", sessionId: created.id, scope: "personal" },
     ])
+  })
+
+  it("lists provider chats as a redacted safe directory", async () => {
+    // Given a granted Admin session backed by a provider with chats
+    const service = createScopedSessionService({
+      repository: repository(),
+      clientFor: () => client(),
+    })
+
+    // When the dashboard requests the chat directory
+    const chats = await service.chats(admin, personalSession.id, "personal")
+
+    // Then only safe directory fields return and message content never does
+    expect(chats).toEqual([
+      { id: "120363162617804781@g.us", name: "Ops Group", isGroup: true },
+      { id: "239629714329822@lid", name: null, isGroup: false },
+    ])
+    expect(JSON.stringify(chats)).not.toContain("redact")
   })
 })
