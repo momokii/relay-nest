@@ -661,3 +661,108 @@ Last updated: 2026-08-28
   the untouched pre-existing deletion.
 
 Last updated: 2026-08-28
+
+## Session update: QR image-format fix deployed to relaynest-dev, 2026-08-29
+
+- Root cause of the missing browser QR: the API requested WAHA
+  `GET /api/{session}/auth/qr?format=raw` (plain text) while the dashboard
+  `<img>` path only renders `data:image/*` values. Fix: the adapter now
+  requests `format=image`, validates WAHA's `{mimetype: "image/png", data}`
+  Base64File JSON, and transforms it to the unchanged `{value:
+  "data:image/png;base64,..."}` dashboard contract
+  (`apps/api/src/waha/session-adapter.ts`, `session-types.ts`,
+  `apps/api/src/waha/sessions.ts`).
+- Test-first verification passed: adapter/service/HTTP/render suites `9/9`
+  (27/27 including adapter negative and broader suites), workspace typecheck,
+  scoped Biome, and Docker API/web builds. An isolated real-Chromium harness
+  (bundled Playwright 1.55.1, disposable Postgres, local WAHA fixture) proved
+  the success path (`<img>` decoded, `naturalWidth=41`), malformed-payload
+  502/unavailable, raw-text `<code>` fallback, and session HTTP no-regression;
+  screenshots/log evidence in `/tmp/opencode/qr-qa/`. Five-lane review (goal,
+  QA, code quality, security, context) returned PASS; security notes (base64
+  length/format hardening, exact PNG prefix) are non-blocking follow-ups.
+- The stale `relaynest-dev` API image was rebuilt and recreated with the fix
+  (`ENCRYPTION_MASTER_KEY_FILE=./.secrets/encryption_master_key` exported; the
+  web recreation initially reset the binding to the `.env` default
+  `127.0.0.1:38080` and was restored to the prior
+  `WEB_BIND_ADDRESS=100.124.184.116 WEB_PORT=8081`). Deployed API bundle now
+  contains the transform; dashboard returns HTTP `200` at
+  `http://100.124.184.116:8081`; all four services healthy.
+- Remaining follow-up: a live end-to-end QR scan against the bundled WAHA
+  (user scans with a phone) is unverified; all changes remain uncommitted. No
+  secret content was printed or exposed.
+- Live diagnosis against the running stack: the QR image fix is confirmed
+  correct against real bundled WAHA (live `format=image` returns
+  `{mimetype:"image/png",data}` and the started session reached SCAN_QR_CODE).
+  The reported "WAHA or this capability is unavailable" errors had two distinct
+  upstream causes that were flattened to one generic message: duplicate
+  session-name creates (WAHA 422 "already exists") and QR reads on a STOPPED
+  session (WAHA 422, expects SCAN_QR_CODE — Start must be clicked first).
+  Fix deployed after the diagnosis: the adapter derives a safe typed reason
+  from rejection bodies (no raw upstream text; the 401 redaction contract
+  stays green), `sendService` forwards `{error, detail}`, and the dashboard
+  renders `WAHA: <reason>`. Red-green coverage in `tests/waha-adapter.test.ts`,
+  `tests/waha-session-http.test.ts`, and `tests/task-14-dashboard-api.test.ts`
+  (39 focused tests), plus typecheck and scoped Biome; api/web images rebuilt
+  and recreated with the binding preserved. WAHA's `GET /api/sessions` list
+  returning `[]` while individual sessions exist is a provider quirk, not a
+  RelayNest defect.
+- Linking flow automated: a successful create now auto-selects the new session,
+  starts it, polls provider status for up to 30 seconds, and loads the QR image
+  automatically when the provider reaches SCAN_QR_CODE
+  (`apps/web/src/session-auto-link.ts` orchestration with 5 focused tests, wired
+  through `session-page.tsx` and `session-connect-panel.tsx`, which also shows
+  live provider status). The Sessions panel now renders a per-session
+  `name · status` roster. CRUD note: create/read/history/lifecycle/delete
+  exist; session rename has no API route yet. Web image rebuilt and recreated;
+  dashboard 200. Still uncommitted.
+- Root cause of the user-visible "nothing appears" confirmed by live probes:
+  `session_grants` was empty — `service.create` never granted the creator, so
+  every list/get/lifecycle/QR call for self-created sessions was forbidden and
+  the sessions were invisible to their creator. Fix (red-green,
+  `tests/waha-session.test.ts` "grants the creating Admin the linked session"):
+  `service.create` now requires and calls `repository.createGrant` (wired to
+  `repositories.sessionGrants.create` in `app-session-service.ts`); the connect
+  panel treats a denied start as `start_failed` and shows explicit failure
+  notices (`start_failed`, `linking_timeout`). One-time data repair inserted
+  grants for the Admin on all 8 existing sessions. API+web rebuilt/recreated;
+  45 focused tests, typecheck, and scoped Biome pass. Still uncommitted.
+- Two dashboard bugs fixed: the Send/Schedule submit button silently died on
+  plain-HTTP origins because `crypto.randomUUID` is secure-context-only —
+  replaced with `apps/web/src/random-uuid.ts` (getRandomValues-based v4
+  fallback, 3 tests). Session lifecycle commands (delete/start/stop/restart)
+  now refresh the scoped sessions list immediately, so Delete removes the row
+  without a page reload (`app.tsx` wiring). Web rebuilt/recreated, dashboard
+  200. Contacts page intentionally resolves one number at a time (no address
+  -book sync); a contacts/groups roster remains an unbuilt feature request.
+- Post-link list outage fixed: once a session reached WORKING, live WAHA sets
+  `presence` to a string (e.g. "offline"), which the strict
+  `wahaSessionSchema` (`z.record`) rejected — one non-consumed field made
+  every sessions list/get/create 502 ("Sessions unavailable"). Contract
+  relaxed: `presence`/`me` are now provider-truth passthrough (`z.unknown`)
+  since the dashboard never consumes them; the previous absent-presence
+  rejection test was updated to the new contract and a red test pins the
+  exact live WORKING payload (`tests/waha-adapter.test.ts`). 37 focused
+  tests, typecheck, scoped Biome; api rebuilt/recreated; dashboard 200.
+  Confirmed via live probe: WAHA still serves `presence:"offline"` and the
+  schema now accepts it. Delete-time 5s WAHA timeouts observed (2007ms
+  logged) remain a known separate follow-up. Still uncommitted.
+- Send denied as `contact_not_found` for valid numbers fixed: WAHA 2026.8.1
+  returns WhatsApp's new linked-identity chat form (`239...@lid`) from
+  check-exists, and the messaging gate only accepted `@c.us`. Both gates in
+  `apps/api/src/messaging.ts` now accept `@c.us` and `@lid` (red-green test
+  in `tests/messaging-resolution.test.ts`; 15 messaging/scheduler tests,
+  typecheck, scoped Biome). Live proof: real `sendText` to the linked
+  account's own LID chat address returned 201 with a provider message id.
+  Api rebuilt/recreated. Contacts+groups roster (consent-gated) agreed as
+  the next feature. Still uncommitted.
+- Consent control added to the Contacts page: the server-side consent route
+  existed but no UI called it, so every send would have died on
+  `consent_required` after the LID fix. The web client gained
+  `setContactConsent` (red-green test in `tests/task-14-dashboard-api.test.ts`),
+  the controller a `contactConsentAction`, and the resolved-contact view a
+  consent checkbox with recorded/failed feedback threaded through
+  dashboard-view/router/view-pages. 57 focused tests, typecheck, Biome;
+  web rebuilt/recreated; dashboard 200. Still uncommitted.
+
+Last updated: 2026-08-29
