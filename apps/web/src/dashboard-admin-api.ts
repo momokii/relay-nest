@@ -22,10 +22,19 @@ export type AdminGrantInput = Readonly<{
   accountScope: AccountScope
 }>
 
+const connectionSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  baseUrl: z.string(),
+})
+
+export type ConnectionSummary = z.infer<typeof connectionSummarySchema>
+
 export type DashboardAdminApi = Readonly<{
   createUser: (input: AdminCreateUserInput) => Promise<ApiResult<AdminUser>>
   createGrant: (input: AdminGrantInput) => Promise<ApiResult<null>>
   disableUser: (userId: string) => Promise<ApiResult<null>>
+  listConnections: () => Promise<ApiResult<readonly ConnectionSummary[]>>
 }>
 
 export function createDashboardAdminApi(baseUrl = ""): DashboardAdminApi {
@@ -46,5 +55,14 @@ export function createDashboardAdminApi(baseUrl = ""): DashboardAdminApi {
       }),
     disableUser: (userId) =>
       requestJson(url(`/admin/users/${userId}/disable`), z.null(), { method: "POST" }),
+    listConnections: async () => {
+      const result = await requestJson(
+        url("/admin/connections"),
+        z.object({
+          connections: z.array(connectionSummarySchema),
+        }),
+      )
+      return result.kind === "ready" ? { kind: "ready", data: result.data.connections } : result
+    },
   }
 }
