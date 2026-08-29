@@ -1,5 +1,6 @@
 import {
   type WahaCapping,
+  type WahaChat,
   type WahaContact,
   type WahaContactExists,
   type WahaMetadata,
@@ -8,6 +9,7 @@ import {
   type WahaQrResponse,
   type WahaTimelock,
   wahaCappingSchema,
+  wahaChatsSchema,
   wahaContactExistsSchema,
   wahaContactSchema,
   wahaMetadataSchema,
@@ -118,6 +120,8 @@ export function createWahaSessionOperations(request: WahaRequest) {
       }),
     me: (name: string, signal?: AbortSignal): Promise<WahaMetadata> =>
       request(`/api/sessions/${encodeURIComponent(name)}/me`, wahaMetadataSchema, signal),
+    chats: (name: string, signal?: AbortSignal): Promise<WahaChat[]> =>
+      request(`/api/${encodeURIComponent(name)}/chats`, wahaChatsSchema, signal),
     timelock: (name: string, signal?: AbortSignal): Promise<WahaTimelock> =>
       request(`/api/sessions/${encodeURIComponent(name)}/timelock`, wahaTimelockSchema, signal),
     capping: (name: string, signal?: AbortSignal): Promise<WahaCapping> =>

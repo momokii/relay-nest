@@ -1,5 +1,6 @@
 import type {
   WahaCapping,
+  WahaChat,
   WahaMetadata,
   WahaPasskeyChallenge,
   WahaPasskeyConfirmation,
@@ -12,6 +13,7 @@ import type { AccountScope } from "../db/schema/shared"
 
 export type {
   WahaCapping,
+  WahaChat,
   WahaMetadata,
   WahaPasskeyChallenge,
   WahaPasskeyConfirmation,
@@ -82,6 +84,7 @@ export type WahaSessionClient = {
   readonly passkeyConfirmation: (name: string) => Promise<WahaPasskeyConfirmation>
   readonly confirmPasskey: (name: string) => Promise<unknown>
   readonly me: (name: string) => Promise<WahaMetadata>
+  readonly chats: (name: string) => Promise<readonly WahaChat[]>
   readonly timelock: (name: string) => Promise<WahaTimelock>
   readonly capping: (name: string) => Promise<WahaCapping>
   readonly checkExists: (

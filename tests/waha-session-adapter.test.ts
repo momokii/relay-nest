@@ -22,6 +22,24 @@ describe("WAHA session adapter contract", () => {
       if (url.pathname.endsWith("/challenge")) return Response.json({ challenge: "challenge" })
       if (url.pathname.endsWith("/confirmation")) return Response.json({ code: "123456" })
       if (url.pathname === "/api/sessions") return Response.json([])
+      if (url.pathname === "/api/personal/chats")
+        return Response.json([
+          {
+            id: {
+              server: "g.us",
+              user: "120363162617804781",
+              _serialized: "120363162617804781@g.us",
+            },
+            name: "Ops Group",
+            isGroup: true,
+            lastMessage: { _data: { secret: "redact" } },
+          },
+          {
+            id: { server: "lid", user: "239629714329822", _serialized: "239629714329822@lid" },
+            name: "sy byu",
+            isGroup: false,
+          },
+        ])
       if (
         init?.method === "DELETE" ||
         url.pathname.endsWith("/auth/request-code") ||
@@ -58,6 +76,7 @@ describe("WAHA session adapter contract", () => {
     await waha.me("personal")
     await waha.timelock("personal")
     await waha.capping("personal")
+    const chats = await waha.chats("personal")
 
     // Then the exact pinned paths and server-only credential are used
     expect(records.map(({ method, path }) => `${method} ${path}`)).toEqual([
@@ -76,8 +95,22 @@ describe("WAHA session adapter contract", () => {
       "GET /api/sessions/personal/me",
       "GET /api/sessions/personal/timelock",
       "GET /api/sessions/personal/capping",
+      "GET /api/personal/chats",
     ])
     expect(records.every(({ key }) => key === "server-secret")).toBe(true)
     expect(qr).toEqual({ value: "data:image/png;base64,qr-image-bytes" })
+    expect(chats).toEqual([
+      {
+        id: { server: "g.us", user: "120363162617804781", _serialized: "120363162617804781@g.us" },
+        name: "Ops Group",
+        isGroup: true,
+        lastMessage: { _data: { secret: "redact" } },
+      },
+      {
+        id: { server: "lid", user: "239629714329822", _serialized: "239629714329822@lid" },
+        name: "sy byu",
+        isGroup: false,
+      },
+    ])
   })
 })
