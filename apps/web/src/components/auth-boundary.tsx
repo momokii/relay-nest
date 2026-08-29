@@ -6,6 +6,7 @@ import {
   type AuthBootstrapInput,
   type AuthCredentials,
   type AuthPrincipal,
+  authFailureMessage,
   createDashboardAuthApi,
 } from "../dashboard-auth-api"
 import type { ResourceState } from "../dashboard-state"
@@ -28,9 +29,19 @@ export function AuthBoundary({
     event.preventDefault()
     setAction({ kind: "submitting" })
     const finish = (result: ApiResult<AuthPrincipal>): void => {
+      const failureMessage = authFailureMessage(mode, result)
       const next = actionFromResult(result)
-      setAction(next)
-      if (next.kind === "ready") window.location.reload()
+      if (next.kind === "ready") {
+        setAction(next)
+        window.location.reload()
+        return
+      }
+      setAction(
+        failureMessage !== null &&
+          (next.kind === "error" || next.kind === "denied" || next.kind === "unavailable")
+          ? { ...next, message: failureMessage }
+          : next,
+      )
     }
     if (mode === "bootstrap") {
       const input: AuthBootstrapInput = { email, password, displayName }
