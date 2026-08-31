@@ -77,7 +77,7 @@ export function ScheduleJobsPanel({
           emptyMessage="No authenticated schedule records are available for this session."
         />
       )}
-      <div className="operational-form">
+      <div className="form-grid">
         {sessionOptions.length > 0 ? (
           <label>
             <span>Schedule session</span>

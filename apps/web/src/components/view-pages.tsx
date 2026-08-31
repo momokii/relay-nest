@@ -113,7 +113,7 @@ export function SchedulePage(
   }>,
 ): React.JSX.Element {
   return (
-    <div className="page-grid">
+    <div className="page-grid schedule-page">
       <MessageComposer key={props.scope} mode="schedule" {...props} />
       <ScheduleJobsPanel {...props} />
     </div>
