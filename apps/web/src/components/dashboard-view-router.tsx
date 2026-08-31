@@ -116,6 +116,10 @@ export function renderDashboardPage(
           role={context.role}
           sessions={context.sessions}
           action={context.sendAction}
+          contactAction={context.contactAction}
+          consentAction={context.contactConsentAction}
+          onResolve={context.onResolveContact}
+          onSetConsent={context.onSetContactConsent}
           onSend={context.onSend}
           onSchedule={context.onSchedule}
         />
@@ -128,6 +132,10 @@ export function renderDashboardPage(
           sessions={context.sessions}
           selectedSessionId={context.selectedSessionId}
           action={context.scheduleAction}
+          contactAction={context.contactAction}
+          consentAction={context.contactConsentAction}
+          onResolve={context.onResolveContact}
+          onSetConsent={context.onSetContactConsent}
           onSend={context.onSend}
           onSchedule={context.onSchedule}
           schedules={context.schedules}

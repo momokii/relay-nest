@@ -16,7 +16,7 @@ const metadataSchema = z.object({ id: z.string().optional(), pushname: z.string(
 const qrSchema = z.object({ value: z.string() })
 const acceptedSchema = z.object({ accepted: z.literal(true) })
 const chatSchema = z.object({
-  id: z.string().min(1),
+  phone: z.string().nullable(),
   name: z.string().nullable(),
   isGroup: z.boolean(),
 })

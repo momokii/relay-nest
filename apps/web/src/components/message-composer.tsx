@@ -3,7 +3,13 @@ import { type FormEvent, useMemo, useState } from "react"
 
 import type { AiApprovalResult } from "../dashboard-ai-api"
 import { createDashboardAiApi } from "../dashboard-ai-api"
-import type { ScheduleInput, SendInput, SendResult, SessionView } from "../dashboard-api"
+import type {
+  ContactView,
+  ScheduleInput,
+  SendInput,
+  SendResult,
+  SessionView,
+} from "../dashboard-api"
 import {
   type AccountScope,
   type AiSuggestion,
@@ -15,8 +21,14 @@ import { type ActionState, actionFromResult, type ResourceState } from "../dashb
 import { randomUuid } from "../random-uuid"
 import { ActionFeedback } from "./action-feedback"
 import { AiReviewPanel } from "./ai-review-panel"
-import { ChatDirectory } from "./chat-directory"
-import { LoadingRows, Panel, StateNotice } from "./ui"
+import { RecipientSelectorFields } from "./recipient-selector"
+import { canSubmitSelectedDirectoryContact, useRecipientSelector } from "./recipient-selector-state"
+import { Panel, StateNotice } from "./ui"
+
+export {
+  canSubmitSelectedDirectoryContact,
+  isContactResolutionCurrent,
+} from "./recipient-selector-state"
 
 export function MessageComposer({
   mode,
@@ -24,6 +36,10 @@ export function MessageComposer({
   role,
   sessions,
   action,
+  contactAction,
+  consentAction,
+  onResolve,
+  onSetConsent,
   suggestion,
   onSend,
   onSchedule,
@@ -33,33 +49,48 @@ export function MessageComposer({
   role: DashboardRole
   sessions: ResourceState<readonly SessionView[]>
   action: ActionState<SendResult>
+  contactAction: ActionState<ContactView>
+  consentAction: ActionState<{ readonly updated: boolean }>
+  onResolve: (scope: AccountScope, sessionId: string, recipient: string) => Promise<void>
+  onSetConsent: (
+    scope: AccountScope,
+    sessionId: string,
+    contactId: string,
+    input: { readonly consentGranted: boolean; readonly optedOut: boolean },
+  ) => Promise<void>
   suggestion?: AiSuggestion | undefined
   onSend: (input: SendInput) => Promise<void>
   onSchedule: (input: ScheduleInput) => Promise<void>
 }>): React.JSX.Element {
-  const [recipient, setRecipient] = useState("")
   const [message, setMessage] = useState("")
-  const [selectedSession, setSelectedSession] = useState("")
-  const [hasConsent, setHasConsent] = useState(false)
   const [scheduledFor, setScheduledFor] = useState("")
   const [timezone, setTimezone] = useState("UTC")
   const [validationError, setValidationError] = useState<string | undefined>()
   const [aiApproval, setAiApproval] = useState<ActionState<AiApprovalResult>>({ kind: "idle" })
   const aiApi = useMemo(() => createDashboardAiApi(import.meta.env.VITE_API_BASE_URL), [])
-  const sessionOptions =
-    sessions.kind === "ready"
-      ? sessions.data.filter((session) => session.accountScope === scope)
-      : []
-  const selectedSessionIsCurrent = sessionOptions.some((session) => session.id === selectedSession)
-  const sessionId = selectedSessionIsCurrent ? selectedSession : sessionOptions[0]?.id || ""
+  const recipientSelector = useRecipientSelector({
+    scope,
+    role,
+    sessions,
+    action: contactAction,
+    consentAction,
+    onResolve,
+    onSetConsent,
+  })
+  const { selection } = recipientSelector
+  const sessionId = recipientSelector.sessionId
   const canOperate = canPerform(role, "operate")
+  const canSubmitDirectorySelection = canSubmitSelectedDirectoryContact({
+    selectedChatId: selection.selectedDirectoryPhone,
+    contactId: selection.contactId,
+  })
 
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
     const validation = validateMessageInput({
-      recipient,
+      recipient: selection.recipient,
       message,
-      hasConsent,
+      hasConsent: selection.hasServerConsent,
       hasMedia: false,
       isRecurring: false,
     })
@@ -71,6 +102,14 @@ export function MessageComposer({
       setValidationError("Select an authorized session before continuing.")
       return
     }
+    if (!canSubmitDirectorySelection) {
+      setValidationError(
+        selection.resolutionPending
+          ? "The selected contact is still being verified. Wait for resolution to finish."
+          : "The selected contact could not be verified. Edit the recipient manually or choose another contact.",
+      )
+      return
+    }
     if (mode === "schedule" && scheduledFor.length === 0) {
       setValidationError("Choose a one-time date and time before scheduling.")
       return
@@ -80,6 +119,7 @@ export function MessageComposer({
       scope,
       sessionId,
       recipient: validation.recipient,
+      ...(selection.contactId ? { contactId: selection.contactId } : {}),
       message: validation.message,
       idempotencyKey: randomUuid(),
     }
@@ -114,46 +154,10 @@ export function MessageComposer({
           />
         ) : null}
         <form className="operational-form" onSubmit={submit}>
-          <div className="form-grid">
-            <label htmlFor="message-session">
-              <span>Authorized session</span>
-              <select
-                id="message-session"
-                value={sessionId}
-                onChange={(event) => setSelectedSession(event.target.value)}
-                disabled={!canOperate || sessions.kind === "loading"}
-              >
-                <option value="">
-                  {sessions.kind === "loading" ? "Loading sessions…" : "Select a session"}
-                </option>
-                {sessionOptions.map((session) => (
-                  <option value={session.id} key={session.id}>
-                    {session.name}
-                  </option>
-                ))}
-              </select>
-              {sessions.kind === "loading" ? <LoadingRows count={1} /> : null}
-            </label>
-            <label>
-              <span>Recipient phone number or chat address</span>
-              <input
-                value={recipient}
-                onChange={(event) => setRecipient(event.target.value)}
-                placeholder="+15551234567 or 120363…@g.us"
-                inputMode="tel"
-                disabled={!canOperate}
-              />
-              <small>Enter a country-code number or choose a contact/group below.</small>
-            </label>
-          </div>
-          <ChatDirectory
-            scope={scope}
-            sessionId={sessionId}
-            disabled={!canOperate}
-            onSelect={(chat) => {
-              setRecipient(chat.id)
-              setHasConsent(false)
-            }}
+          <RecipientSelectorFields
+            controller={recipientSelector}
+            action={contactAction}
+            consentAction={consentAction}
           />
           <label>
             <span>Text message</span>
@@ -180,25 +184,22 @@ export function MessageComposer({
               </label>
               <label>
                 <span>Timezone</span>
-                <input
+                <select
                   value={timezone}
                   onChange={(event) => setTimezone(event.target.value)}
-                  maxLength={80}
                   disabled={!canOperate}
-                />
+                >
+                  <option value="UTC">UTC</option>
+                  <option value="Asia/Jakarta">Asia/Jakarta</option>
+                  <option value="Asia/Singapore">Asia/Singapore</option>
+                  <option value="Europe/London">Europe/London</option>
+                  <option value="America/New_York">America/New_York</option>
+                  <option value="America/Los_Angeles">America/Los_Angeles</option>
+                </select>
                 <small>Schedules are one-time only; recurrence is not available.</small>
               </label>
             </div>
           ) : null}
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={hasConsent}
-              onChange={(event) => setHasConsent(event.target.checked)}
-              disabled={!canOperate}
-            />
-            <span>I have a valid consent basis for this individual recipient.</span>
-          </label>
           <div className="safety-callout">
             <strong>Safety checkpoint</strong>
             <span>

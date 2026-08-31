@@ -302,12 +302,78 @@ describe("Todo 14 authenticated dashboard adapters", () => {
     vi.unstubAllGlobals()
   })
 
+  it("sends a resolved contact by contact id instead of raw recipient text", async () => {
+    // Given an immediate-send response for a resolved contact
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(response({ state: "submitted", providerMessageId: "provider-message-1" }))
+    vi.stubGlobal("document", { cookie: "waha_csrf=csrf-token" })
+    vi.stubGlobal("fetch", fetchMock)
+
+    // When the operator submits a resolved contact
+    await createDashboardApi().sendImmediate({
+      scope: "personal",
+      sessionId,
+      recipient: "+628123456789",
+      contactId: "44444444-4444-4444-8444-444444444444",
+      message: "Consent-first text",
+      idempotencyKey: "55555555-5555-4555-8555-555555555555",
+    })
+
+    // Then only the opaque contact id crosses the send boundary
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/scoped/sessions/${sessionId}/messages/immediate?scope=personal`,
+      expect.objectContaining({
+        body: JSON.stringify({
+          contactId: "44444444-4444-4444-8444-444444444444",
+          message: "Consent-first text",
+          idempotencyKey: "55555555-5555-4555-8555-555555555555",
+        }),
+      }),
+    )
+    vi.unstubAllGlobals()
+  })
+
+  it("schedules a resolved contact by contact id instead of raw recipient text", async () => {
+    // Given a one-time schedule response for a resolved contact
+    const fetchMock = vi.fn().mockResolvedValue(response({ state: "scheduled", jobId }))
+    vi.stubGlobal("document", { cookie: "waha_csrf=csrf-token" })
+    vi.stubGlobal("fetch", fetchMock)
+
+    // When the operator schedules a resolved contact
+    await createDashboardApi().scheduleMessage({
+      scope: "personal",
+      sessionId,
+      recipient: "+628123456789",
+      contactId: "44444444-4444-4444-8444-444444444444",
+      message: "Consent-first text",
+      idempotencyKey: "66666666-6666-4666-8666-666666666666",
+      scheduledFor: "2026-08-30T10:00:00.000Z",
+      timezone: "UTC",
+    })
+
+    // Then only the opaque contact id crosses the schedule boundary
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/scoped/sessions/${sessionId}/messages/schedule?scope=personal`,
+      expect.objectContaining({
+        body: JSON.stringify({
+          contactId: "44444444-4444-4444-8444-444444444444",
+          message: "Consent-first text",
+          idempotencyKey: "66666666-6666-4666-8666-666666666666",
+          scheduledFor: "2026-08-30T10:00:00.000Z",
+          timezone: "UTC",
+        }),
+      }),
+    )
+    vi.unstubAllGlobals()
+  })
+
   it("lists a redacted chat directory for the scoped session", async () => {
     // Given an authenticated chat directory response for the selected session
     const fetchMock = vi.fn().mockResolvedValue(
       response([
-        { id: "120363162617804781@g.us", name: "Ops Group", isGroup: true },
-        { id: "239629714329822@lid", name: null, isGroup: false },
+        { phone: null, name: "Ops Group", isGroup: true },
+        { phone: null, name: null, isGroup: false },
       ]),
     )
     vi.stubGlobal("document", { cookie: "waha_csrf=csrf-token" })
@@ -320,8 +386,8 @@ describe("Todo 14 authenticated dashboard adapters", () => {
     expect(result).toEqual({
       kind: "ready",
       data: [
-        { id: "120363162617804781@g.us", name: "Ops Group", isGroup: true },
-        { id: "239629714329822@lid", name: null, isGroup: false },
+        { phone: null, name: "Ops Group", isGroup: true },
+        { phone: null, name: null, isGroup: false },
       ],
     })
     vi.unstubAllGlobals()

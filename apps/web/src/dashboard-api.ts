@@ -63,6 +63,8 @@ const contactSchema = z.object({
   id: z.string(),
   phone: z.string(),
   displayName: z.string().nullable(),
+  consentGranted: z.boolean(),
+  optedOut: z.boolean(),
 })
 
 const sendResultSchema = z.discriminatedUnion("state", [
@@ -109,6 +111,7 @@ export type SendInput = Readonly<{
   scope: AccountScope
   sessionId: string
   recipient: string
+  contactId?: string
   message: string
   idempotencyKey: string
 }>
@@ -272,7 +275,9 @@ export function createDashboardApi(baseUrl = ""): DashboardApi {
         {
           method: "POST",
           body: json({
-            phoneNumber: input.recipient,
+            ...(input.contactId
+              ? { contactId: input.contactId }
+              : { phoneNumber: input.recipient }),
             message: input.message,
             idempotencyKey: input.idempotencyKey,
           }),
@@ -285,7 +290,9 @@ export function createDashboardApi(baseUrl = ""): DashboardApi {
         {
           method: "POST",
           body: json({
-            phoneNumber: input.recipient,
+            ...(input.contactId
+              ? { contactId: input.contactId }
+              : { phoneNumber: input.recipient }),
             message: input.message,
             idempotencyKey: input.idempotencyKey,
             scheduledFor: input.scheduledFor,

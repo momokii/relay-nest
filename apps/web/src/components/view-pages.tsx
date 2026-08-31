@@ -62,6 +62,15 @@ export function SendPage(
     role: DashboardRole
     sessions: ResourceState<readonly SessionView[]>
     action: ActionState<SendResult>
+    contactAction: ActionState<ContactView>
+    consentAction: ActionState<{ readonly updated: boolean }>
+    onResolve: (scope: AccountScope, sessionId: string, recipient: string) => Promise<void>
+    onSetConsent: (
+      scope: AccountScope,
+      sessionId: string,
+      contactId: string,
+      input: { readonly consentGranted: boolean; readonly optedOut: boolean },
+    ) => Promise<void>
     onSend: (input: SendInput) => Promise<void>
     onSchedule: (input: ScheduleInput) => Promise<void>
   }>,
@@ -76,6 +85,15 @@ export function SchedulePage(
     sessions: ResourceState<readonly SessionView[]>
     selectedSessionId: string
     action: ActionState<SendResult>
+    contactAction: ActionState<ContactView>
+    consentAction: ActionState<{ readonly updated: boolean }>
+    onResolve: (scope: AccountScope, sessionId: string, recipient: string) => Promise<void>
+    onSetConsent: (
+      scope: AccountScope,
+      sessionId: string,
+      contactId: string,
+      input: { readonly consentGranted: boolean; readonly optedOut: boolean },
+    ) => Promise<void>
     onSend: (input: SendInput) => Promise<void>
     onSchedule: (input: ScheduleInput) => Promise<void>
     schedules: ResourceState<readonly ScheduleView[]>

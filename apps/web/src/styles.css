@@ -718,6 +718,88 @@ a {
     opacity: 1;
   }
 }
+.chat-directory {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-inset);
+}
+.chat-directory-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.chat-directory-heading h3 {
+  margin: var(--space-1) 0 var(--space-1);
+  font-size: var(--type-h3);
+  line-height: 1.4;
+}
+.chat-directory-copy {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--type-small);
+  font-weight: 400;
+}
+.directory-count {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-raised);
+  color: var(--color-muted);
+  font-size: var(--type-caption);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.chat-directory-list {
+  display: grid;
+  gap: var(--space-2);
+  max-height: 18rem;
+  overflow-y: auto;
+}
+.directory-item {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-raised);
+  color: var(--color-ink);
+  text-align: left;
+  transition:
+    transform var(--motion-micro),
+    opacity var(--motion-micro);
+}
+.directory-item:hover:not(:disabled) {
+  transform: translateY(-0.125rem);
+}
+.directory-item.is-selected {
+  border-color: var(--color-amber);
+  background: var(--color-amber-soft);
+}
+.directory-item span {
+  overflow-wrap: anywhere;
+  color: var(--color-muted);
+  font-size: var(--type-caption);
+  font-weight: 400;
+}
+.directory-item .directory-selection {
+  color: var(--color-amber);
+  font-weight: 700;
+}
+.directory-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+.chat-directory input:focus-visible,
+.directory-item:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
@@ -808,6 +890,9 @@ a {
   .demo-banner {
     display: grid;
     gap: var(--space-1);
+  }
+  .chat-directory-heading {
+    display: grid;
   }
 }
 @media (max-width: 30rem) {
