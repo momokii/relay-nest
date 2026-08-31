@@ -431,7 +431,11 @@ describe("WAHA adapter contract", () => {
         return
       }
       if (request.url === "/api/personal/contacts/628123456789%40c.us") {
-        json(response, 200, { id: "628123456789@c.us", name: "Example" })
+        json(response, 200, {
+          id: "628123456789@c.us",
+          name: "Example",
+          number: "628123456789",
+        })
         return
       }
       if (request.url === "/api/sendText") {
@@ -449,7 +453,11 @@ describe("WAHA adapter contract", () => {
 
     // Then only the safe provider identifiers cross the adapter seam
     expect(exists).toEqual({ numberExists: true, chatId: "628123456789@c.us" })
-    expect(contact).toMatchObject({ id: "628123456789@c.us", name: "Example" })
+    expect(contact).toMatchObject({
+      id: "628123456789@c.us",
+      name: "Example",
+      number: "628123456789",
+    })
     expect(sent).toEqual({ id: "provider-message-1" })
     expect(server.records.map((record) => record.path)).toEqual([
       "/api/contacts/check-exists?phone=%2B628123456789&session=personal",

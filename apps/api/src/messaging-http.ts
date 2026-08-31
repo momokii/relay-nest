@@ -4,8 +4,10 @@ import { z } from "zod"
 import {
   MessagingInputError,
   type MessagingPrincipal,
+  type SafeContact,
   type ScheduleInput,
   type SendInput,
+  type SendResult,
 } from "./messaging"
 import {
   authenticate,
@@ -15,15 +17,18 @@ import {
   sessionParamsSchema,
 } from "./waha/session-http-support"
 
-type MessagingRouteService = {
+export type MessagingRouteService = {
   readonly resolveContact: (
     principal: MessagingPrincipal,
     sessionId: string,
     scope: "personal" | "business",
     target: { readonly phoneNumber: string } | { readonly contactId: string },
-  ) => Promise<unknown>
-  readonly sendImmediate: (principal: MessagingPrincipal, input: SendInput) => Promise<unknown>
-  readonly scheduleText: (principal: MessagingPrincipal, input: ScheduleInput) => Promise<unknown>
+  ) => Promise<SafeContact>
+  readonly sendImmediate: (principal: MessagingPrincipal, input: SendInput) => Promise<SendResult>
+  readonly scheduleText: (
+    principal: MessagingPrincipal,
+    input: ScheduleInput,
+  ) => Promise<SendResult>
   readonly setConsent: (
     principal: MessagingPrincipal,
     sessionId: string,
@@ -31,7 +36,7 @@ type MessagingRouteService = {
     contactId: string,
     consentGranted: boolean,
     optedOut: boolean,
-  ) => Promise<unknown>
+  ) => Promise<{ readonly updated: boolean }>
 }
 
 const targetSchema = z.union([

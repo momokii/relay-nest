@@ -113,7 +113,11 @@ export type MessagingServiceOptions = {
     ) => Promise<MessagingSession | null>
   }
   readonly contacts: {
-    readonly find: (accountScope: AccountScope, phone: string) => Promise<MessagingContact | null>
+    readonly find: (
+      accountScope: AccountScope,
+      sessionId: string,
+      phone: string,
+    ) => Promise<MessagingContact | null>
     readonly findById?: (accountScope: AccountScope, id: string) => Promise<MessagingContact | null>
     readonly save: (input: MessagingContact) => Promise<MessagingContact>
     readonly updateConsent?: (
@@ -162,6 +166,8 @@ export type SafeContact = {
   readonly id: string
   readonly phone: string
   readonly displayName: string | null
+  readonly consentGranted: boolean
+  readonly optedOut: boolean
 }
 
 export type SendResult =

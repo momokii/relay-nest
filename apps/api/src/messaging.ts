@@ -42,14 +42,8 @@ export function normalizePhoneNumber(input: string): string {
   return compact
 }
 
-const PROVIDER_CHAT_SUFFIXES = ["@c.us", "@lid"] as const
-
-function isProviderChatId(chatId: string): boolean {
-  return PROVIDER_CHAT_SUFFIXES.some((suffix) => chatId.endsWith(suffix))
-}
-
-function isChatAddressRecipient(value: string): boolean {
-  return /^\d+@(c\.us|lid|g\.us)$/.test(value.trim())
+export function isSupportedProviderChatId(chatId: string): boolean {
+  return /^[1-9]\d{7,14}@(c\.us|lid)$/.test(chatId)
 }
 
 export function createMessagingService(options: MessagingServiceOptions) {
@@ -80,17 +74,12 @@ export function createMessagingService(options: MessagingServiceOptions) {
     const session = await authorized(principal, sessionId, accountScope)
     if (!session) return null
     const client = await options.wahaForSession(session)
-    const address = "phoneNumber" in target ? target.phoneNumber.trim() : ""
-    if (isChatAddressRecipient(address)) {
-      const existingAddressed = await options.contacts.find(accountScope, address)
-      if (!existingAddressed || existingAddressed.sessionId !== session.id) return null
-      return existingAddressed
-    }
     if ("phoneNumber" in target) {
       const phone = normalizePhoneNumber(target.phoneNumber)
-      const existing = await options.contacts.find(accountScope, phone)
+      const existing = await options.contacts.find(accountScope, session.id, phone)
       const checked = await client.checkExists(session.wahaSessionName, phone)
-      if (!checked.numberExists || !checked.chatId || !isProviderChatId(checked.chatId)) return null
+      if (!checked.numberExists || !checked.chatId || !isSupportedProviderChatId(checked.chatId))
+        return null
       const providerContact = await client.contact(session.wahaSessionName, checked.chatId)
       return options.contacts.save({
         id: existing?.id ?? randomUUID(),
@@ -107,7 +96,12 @@ export function createMessagingService(options: MessagingServiceOptions) {
     const existing = options.contacts.findById
       ? await options.contacts.findById(accountScope, target.contactId)
       : null
-    if (!existing || !isProviderChatId(existing.providerChatId)) return null
+    if (
+      !existing ||
+      existing.sessionId !== session.id ||
+      !isSupportedProviderChatId(existing.providerChatId)
+    )
+      return null
     return existing
   }
 
@@ -159,7 +153,13 @@ export function createMessagingService(options: MessagingServiceOptions) {
     ): Promise<SafeContact> {
       const contact = await resolveInternal(principal, sessionId, accountScope, target)
       if (!contact) throw new MessagingInputError("contact was not found")
-      return { id: contact.id, phone: contact.phone, displayName: contact.displayName }
+      return {
+        id: contact.id,
+        phone: contact.phone,
+        displayName: contact.displayName,
+        consentGranted: contact.consentGranted,
+        optedOut: contact.optedOut,
+      }
     },
     async scheduleText(principal: MessagingPrincipal, input: ScheduleInput): Promise<SendResult> {
       const prepared = await prepare(principal, input)

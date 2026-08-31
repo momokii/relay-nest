@@ -1,6 +1,7 @@
 import type {
   WahaCapping,
   WahaChat,
+  WahaContact,
   WahaMetadata,
   WahaPasskeyChallenge,
   WahaPasskeyConfirmation,
@@ -13,13 +14,19 @@ import type { AccountScope } from "../db/schema/shared"
 
 export type {
   WahaCapping,
-  WahaChat,
+  WahaContact,
   WahaMetadata,
   WahaPasskeyChallenge,
   WahaPasskeyConfirmation,
   WahaQrResponse,
   WahaTimelock,
 } from "@waha-command-center/waha-contracts"
+
+export type SessionChatView = {
+  readonly phone: string | null
+  readonly name: string | null
+  readonly isGroup: boolean
+}
 
 export type StoredSession = {
   readonly id: string
@@ -94,14 +101,7 @@ export type WahaSessionClient = {
     readonly numberExists: boolean
     readonly chatId?: string | undefined
   }>
-  readonly contact: (
-    name: string,
-    contactId: string,
-  ) => Promise<{
-    readonly id: string
-    readonly name?: string | undefined
-    readonly pushname?: string | undefined
-  }>
+  readonly contact: (name: string, contactId: string) => Promise<WahaContact>
   readonly sendText: (
     name: string,
     chatId: string,

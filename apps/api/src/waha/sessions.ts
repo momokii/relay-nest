@@ -3,6 +3,7 @@ import type { AccountScope } from "../db/schema/shared"
 import type {
   NewSession,
   ScopedSessionRepository,
+  SessionChatView,
   SessionLifecycleAction,
   SessionStatusHistoryEntry,
   SessionView,
@@ -22,6 +23,7 @@ export {
   ScopedSessionError,
   type ScopedSessionRepository,
   SESSION_LIFECYCLE_ACTIONS,
+  type SessionChatView,
   type SessionLifecycleAction,
   type SessionStatusHistoryEntry,
   type StoredSession,
@@ -46,6 +48,77 @@ function view(session: StoredSession, status: string): SessionView {
     serviceHealth: "unknown",
     sendingReadiness: "unknown",
   }
+}
+
+function normalizePhone(phone: string | null | undefined): string | null {
+  if (!phone) return null
+  return /^\+[1-9]\d{7,14}$/.test(phone)
+    ? phone
+    : /^[1-9]\d{7,14}$/.test(phone)
+      ? `+${phone}`
+      : null
+}
+
+function chatView(
+  chat: {
+    readonly id: { readonly _serialized: string }
+    readonly name?: string | null | undefined
+    readonly isGroup?: boolean | undefined
+  },
+  phone?: string | null,
+): SessionChatView {
+  const serializedId = chat.id._serialized
+  const chatPhone = serializedId.endsWith("@c.us") ? serializedId.slice(0, -"@c.us".length) : phone
+  return {
+    phone: normalizePhone(chatPhone),
+    name: chat.name ?? null,
+    isGroup: chat.isGroup ?? false,
+  }
+}
+
+function contactPhone(
+  contact: { readonly id: string; readonly number?: string | undefined },
+  serializedId: string,
+): string | null {
+  const lidUser = serializedId.endsWith("@lid") ? serializedId.slice(0, -"@lid".length) : null
+  const jidPhone = contact.id.endsWith("@c.us") ? contact.id.slice(0, -"@c.us".length) : null
+  if (jidPhone && jidPhone !== lidUser) return jidPhone
+  if (contact.number && contact.number !== lidUser) return contact.number
+  return null
+}
+
+async function projectChats(
+  client: WahaSessionClient,
+  sessionName: string,
+  chats: readonly {
+    readonly id: { readonly _serialized: string }
+    readonly name?: string | null | undefined
+    readonly isGroup?: boolean | undefined
+  }[],
+): Promise<readonly SessionChatView[]> {
+  const phones = new Map<number, string | null>()
+  const lookups = chats
+    .map((chat, index) => ({ chat, index }))
+    .filter(({ chat }) => chat.isGroup !== true && chat.id._serialized.endsWith("@lid"))
+
+  for (let offset = 0; offset < lookups.length; offset += 8) {
+    const batch = lookups.slice(offset, offset + 8)
+    const results = await Promise.allSettled(
+      batch.map(({ chat }) => client.contact(sessionName, chat.id._serialized)),
+    )
+    results.forEach((result, batchIndex) => {
+      const lookup = batch[batchIndex]
+      if (!lookup) return
+      phones.set(
+        lookup.index,
+        result.status === "fulfilled"
+          ? contactPhone(result.value, lookup.chat.id._serialized)
+          : null,
+      )
+    })
+  }
+
+  return chats.map((chat, index) => chatView(chat, phones.get(index)))
 }
 
 export function createScopedSessionService(options: {
@@ -168,16 +241,11 @@ export function createScopedSessionService(options: {
       principal: AuthPrincipal,
       sessionId: string,
       scope: AccountScope,
-    ): Promise<
-      readonly { readonly id: string; readonly name: string | null; readonly isGroup: boolean }[]
-    > {
+    ): Promise<readonly SessionChatView[]> {
       const session = await authorized(principal, sessionId, scope, "read")
-      const chats = await (await options.clientFor(session)).chats(session.wahaSessionName)
-      return chats.map((chat) => ({
-        id: chat.id._serialized,
-        name: chat.name ?? null,
-        isGroup: chat.isGroup ?? false,
-      }))
+      const client = await options.clientFor(session)
+      const chats = await client.chats(session.wahaSessionName)
+      return projectChats(client, session.wahaSessionName, chats)
     },
     async lifecycle(
       principal: AuthPrincipal,

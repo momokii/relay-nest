@@ -4,14 +4,10 @@ import { authorizeSessionAction } from "./auth/authorization"
 import type { DatabaseHandle } from "./db/client"
 import type { createRepositories } from "./db/repositories"
 import { createMessagingRepositories } from "./db/repositories/messaging"
-import { createMessagingService } from "./messaging"
+import { createMessagingService, isSupportedProviderChatId } from "./messaging"
 import { evaluateMessagingSafety, isQuietHoursActive } from "./messaging-safety"
-import {
-  classifyWahaDispatchError,
-  createEncryptedSchedulerRepository,
-  createSchedulerService,
-  type DispatchResult,
-} from "./scheduler"
+import { createMessagingTransport } from "./messaging-transport"
+import { createEncryptedSchedulerRepository, createSchedulerService } from "./scheduler"
 import { createWahaClient } from "./waha/adapter"
 
 type Repositories = ReturnType<typeof createRepositories>
@@ -56,33 +52,14 @@ export function createConfiguredMessagingService(
     }
   }
 
+  const messagingTransport = createMessagingTransport({
+    clientForSession,
+    contacts: messagingRepositories.contacts,
+  })
   const scheduler = createSchedulerService({
     repository: encryptedScheduler,
     transport: async (job) => {
-      let result: DispatchResult
-      try {
-        const context = await clientForSession(job.sessionId, job.accountScope)
-        const contact = await messagingRepositories.contacts.find(
-          job.accountScope,
-          job.recipientPhone,
-        )
-        if (!contact) {
-          result = {
-            state: "failed",
-            failureCode: "contact_not_found",
-            recoveryCode: "contact_not_found",
-          }
-        } else {
-          const sent = await context.client.sendText(
-            context.session.wahaSessionName,
-            contact.providerChatId,
-            job.message,
-          )
-          result = { state: "submitted", providerMessageId: sent.id }
-        }
-      } catch (error) {
-        result = classifyWahaDispatchError(error)
-      }
+      const result = await messagingTransport(job)
       await repositories.auditEntries.append({
         action: `message.dispatch_${result.state}`,
         subjectType: "dispatch_attempt",
@@ -96,9 +73,12 @@ export function createConfiguredMessagingService(
       const context = await clientForSession(job.sessionId, job.accountScope)
       const contact = await messagingRepositories.contacts.find(
         job.accountScope,
+        job.sessionId,
         job.recipientPhone,
       )
       if (!contact) return { allowed: false, recoveryCode: "contact_not_found" as const }
+      if (!isSupportedProviderChatId(contact.providerChatId))
+        return { allowed: false, recoveryCode: "contact_not_found" as const }
       const safety = await messagingRepositories.safety.find(job.sessionId, job.accountScope)
       const stats = await repositories.scheduledJobs.safetyStats(
         job.sessionId,

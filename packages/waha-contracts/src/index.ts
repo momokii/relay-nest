@@ -82,7 +82,12 @@ export const wahaContactExistsSchema = z.object({
   chatId: z.string().min(1).optional(),
 })
 export const wahaContactSchema = z
-  .object({ id: z.string().min(1), name: z.string().optional(), pushname: z.string().optional() })
+  .object({
+    id: z.string().min(1),
+    name: z.string().optional(),
+    pushname: z.string().optional(),
+    number: z.string().optional(),
+  })
   .passthrough()
 export const wahaSendTextResponseSchema = z
   .object({ id: z.union([z.string().min(1), z.object({ id: z.string().min(1) })]) })

@@ -2,6 +2,7 @@ import { afterAll, describe, expect, it } from "vitest"
 
 import { createDatabase } from "../apps/api/src/db/client"
 import { createRepositories } from "../apps/api/src/db/repositories"
+import { createMessagingRepositories } from "../apps/api/src/db/repositories/messaging"
 import { createMessagingService, type MessagingPrincipal } from "../apps/api/src/messaging"
 import {
   createEncryptedSchedulerRepository,
@@ -17,6 +18,121 @@ const personal = "personal" as const
 const principal: MessagingPrincipal = { userId: "postgres-user", roles: ["operator"] }
 
 describe.skipIf(!repositories)("PostgreSQL messaging idempotency", () => {
+  it("keeps same-phone contacts owned by separate sessions", async () => {
+    // Given two Personal sessions and the same normalized phone number
+    const connection = await repositories.wahaConnections.create({
+      name: `contact-scope-connection-${crypto.randomUUID()}`,
+      baseUrl: "http://waha.internal",
+      apiKeyCiphertext: "opaque-ciphertext",
+      apiKeyNonce: "opaque-nonce",
+      apiKeyAuthTag: "opaque-tag",
+    })
+    const firstSession = await repositories.sessions.create({
+      connectionId: connection.id,
+      accountScope: personal,
+      name: `contact-scope-session-${crypto.randomUUID()}`,
+      wahaSessionName: `contact-scope-waha-${crypto.randomUUID()}`,
+      status: "WORKING",
+    })
+    const secondSession = await repositories.sessions.create({
+      connectionId: connection.id,
+      accountScope: personal,
+      name: `contact-scope-session-${crypto.randomUUID()}`,
+      wahaSessionName: `contact-scope-waha-${crypto.randomUUID()}`,
+      status: "WORKING",
+    })
+    const contacts = createMessagingRepositories(database.db, Buffer.alloc(32, 9)).contacts
+
+    // When each session persists its own contact for that phone
+    const firstContact = await contacts.save({
+      id: crypto.randomUUID(),
+      accountScope: personal,
+      sessionId: firstSession.id,
+      phone: "+628123456789",
+      displayName: "First session contact",
+      providerChatId: "628123456789@c.us",
+      consentGranted: true,
+      optedOut: false,
+    })
+    const secondContact = await contacts.save({
+      id: crypto.randomUUID(),
+      accountScope: personal,
+      sessionId: secondSession.id,
+      phone: "+628123456789",
+      displayName: "Second session contact",
+      providerChatId: "628123456789@c.us",
+      consentGranted: false,
+      optedOut: false,
+    })
+
+    // Then lookup returns each session's identity and consent independently
+    const firstFound = await contacts.find(personal, firstSession.id, "+628123456789")
+    const secondFound = await contacts.find(personal, secondSession.id, "+628123456789")
+    expect(firstContact.id).not.toBe(secondContact.id)
+    expect(firstFound).toMatchObject({
+      id: firstContact.id,
+      sessionId: firstSession.id,
+      consentGranted: true,
+    })
+    expect(secondFound).toMatchObject({
+      id: secondContact.id,
+      sessionId: secondSession.id,
+      consentGranted: false,
+    })
+  })
+
+  it("updates provider identity without resetting consent", async () => {
+    // Given one session and a persisted consented contact
+    const connection = await repositories.wahaConnections.create({
+      name: `contact-upsert-connection-${crypto.randomUUID()}`,
+      baseUrl: "http://waha.internal",
+      apiKeyCiphertext: "opaque-ciphertext",
+      apiKeyNonce: "opaque-nonce",
+      apiKeyAuthTag: "opaque-tag",
+    })
+    const session = await repositories.sessions.create({
+      connectionId: connection.id,
+      accountScope: personal,
+      name: `contact-upsert-session-${crypto.randomUUID()}`,
+      wahaSessionName: `contact-upsert-waha-${crypto.randomUUID()}`,
+      status: "WORKING",
+    })
+    const contacts = createMessagingRepositories(database.db, Buffer.alloc(32, 9)).contacts
+    const id = crypto.randomUUID()
+    await contacts.save({
+      id,
+      accountScope: personal,
+      sessionId: session.id,
+      phone: "+628123456789",
+      displayName: "Original name",
+      providerChatId: "628123456789@c.us",
+      consentGranted: true,
+      optedOut: false,
+    })
+
+    // When the same session persists refreshed provider routing data
+    const updated = await contacts.save({
+      id,
+      accountScope: personal,
+      sessionId: session.id,
+      phone: "+628123456789",
+      displayName: "Original name",
+      providerChatId: "628123456789@c.us",
+      consentGranted: true,
+      optedOut: false,
+    })
+    const found = await contacts.find(personal, session.id, "+628123456789")
+
+    // Then one row remains and its refreshed identity retains consent
+    expect(updated.id).toBe(id)
+    expect(found).toMatchObject({
+      id,
+      displayName: "Original name",
+      consentGranted: true,
+      optedOut: false,
+    })
+  })
+
   it("replays the original encrypted result across fresh services without a provider call", async () => {
     // Given two fresh encrypted repositories sharing one PostgreSQL database and key
     const connection = await repositories.wahaConnections.create({

@@ -25,7 +25,13 @@ describe("scoped messaging HTTP routes", () => {
       verifyCsrf: async () => true,
     }
     registerMessagingRoutes(app, auth, {
-      resolveContact: async () => ({ id: contactId, phone: "+628123456789", displayName: null }),
+      resolveContact: async () => ({
+        id: contactId,
+        phone: "+628123456789",
+        displayName: null,
+        consentGranted: false,
+        optedOut: false,
+      }),
       sendImmediate: async () => ({ state: "submitted", providerMessageId: "provider-1" }),
       scheduleText: async () => ({ state: "scheduled", jobId: "job-1" }),
       setConsent: async () => ({ updated: true }),
@@ -63,7 +69,13 @@ describe("scoped messaging HTTP routes", () => {
     }
     let called = false
     registerMessagingRoutes(app, auth, {
-      resolveContact: async () => ({ id: contactId, phone: "+628123456789", displayName: null }),
+      resolveContact: async () => ({
+        id: contactId,
+        phone: "+628123456789",
+        displayName: null,
+        consentGranted: false,
+        optedOut: false,
+      }),
       sendImmediate: async () => {
         called = true
         return { state: "submitted", providerMessageId: "provider-1" }
@@ -101,7 +113,13 @@ describe("scoped messaging HTTP routes", () => {
     registerMessagingRoutes(app, auth, {
       resolveContact: async () => {
         called = true
-        return { id: contactId, phone: "+628123456789", displayName: null }
+        return {
+          id: contactId,
+          phone: "+628123456789",
+          displayName: null,
+          consentGranted: false,
+          optedOut: false,
+        }
       },
       sendImmediate: async () => ({ state: "submitted", providerMessageId: "provider-1" }),
       scheduleText: async () => ({ state: "scheduled", jobId: "job-1" }),
@@ -131,7 +149,13 @@ describe("scoped messaging HTTP routes", () => {
     }
     let called = false
     registerMessagingRoutes(app, auth, {
-      resolveContact: async () => ({ id: contactId, phone: "+628123456789", displayName: null }),
+      resolveContact: async () => ({
+        id: contactId,
+        phone: "+628123456789",
+        displayName: null,
+        consentGranted: false,
+        optedOut: false,
+      }),
       sendImmediate: async () => {
         called = true
         return { state: "submitted", providerMessageId: "provider-1" }
@@ -171,7 +195,13 @@ describe("scoped messaging HTTP routes", () => {
     }
     let called = false
     registerMessagingRoutes(app, auth, {
-      resolveContact: async () => ({ id: contactId, phone: "+628123456789", displayName: null }),
+      resolveContact: async () => ({
+        id: contactId,
+        phone: "+628123456789",
+        displayName: null,
+        consentGranted: false,
+        optedOut: false,
+      }),
       sendImmediate: async () => ({ state: "submitted", providerMessageId: "provider-1" }),
       scheduleText: async () => {
         called = true

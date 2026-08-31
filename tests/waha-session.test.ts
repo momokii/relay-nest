@@ -84,7 +84,17 @@ function client() {
         id: { server: "lid", user: "239629714329822", _serialized: "239629714329822@lid" },
         isGroup: false,
       },
+      {
+        id: { server: "c.us", user: "628123456789", _serialized: "628123456789@c.us" },
+        name: "Example Contact",
+        isGroup: false,
+      },
     ],
+    contact: async (_name: string, contactId: string) => {
+      if (contactId === "239629714329822@lid")
+        return { id: "628987654321@c.us", number: "239629714329822" }
+      throw new Error("unexpected contact lookup")
+    },
     session: async () => ({
       name: "personal",
       status: "SCAN_QR_CODE",
@@ -264,11 +274,90 @@ describe("scoped WAHA session lifecycle", () => {
     // When the dashboard requests the chat directory
     const chats = await service.chats(admin, personalSession.id, "personal")
 
-    // Then only safe directory fields return and message content never does
+    // Then only safe directory fields return and provider identifiers/content never do
     expect(chats).toEqual([
-      { id: "120363162617804781@g.us", name: "Ops Group", isGroup: true },
-      { id: "239629714329822@lid", name: null, isGroup: false },
+      { phone: null, name: "Ops Group", isGroup: true },
+      { phone: "+628987654321", name: null, isGroup: false },
+      { phone: "+628123456789", name: "Example Contact", isGroup: false },
     ])
     expect(JSON.stringify(chats)).not.toContain("redact")
+    expect(JSON.stringify(chats)).not.toContain("120363162617804781@g.us")
+    expect(JSON.stringify(chats)).not.toContain("239629714329822@lid")
+  })
+
+  it("keeps failed lid lookups unavailable without querying groups or c.us chats", async () => {
+    // Given a directory containing group, c.us, valid lid, malformed lid, and failed lid chats
+    const contactIds: string[] = []
+    const baseClient = client()
+    const directoryClient = {
+      ...baseClient,
+      chats: async () => [
+        {
+          id: { _serialized: "group@g.us" },
+          name: "Group",
+          isGroup: true,
+        },
+        {
+          id: { _serialized: "628123456789@c.us" },
+          name: "C.us contact",
+          isGroup: false,
+        },
+        {
+          id: { _serialized: "valid@lid" },
+          name: "Valid lid",
+          isGroup: false,
+        },
+        {
+          id: { _serialized: "malformed@lid" },
+          name: "Malformed lid",
+          isGroup: false,
+        },
+        {
+          id: { _serialized: "failed@lid" },
+          name: "Failed lid",
+          isGroup: false,
+        },
+        {
+          id: { _serialized: "239629714329822@lid" },
+          name: "Echo lid",
+          isGroup: false,
+        },
+      ],
+      contact: async (_name: string, contactId: string) => {
+        contactIds.push(contactId)
+        if (contactId === "valid@lid")
+          return { id: "628987654321@c.us", number: contactId.slice(0, -4) }
+        if (contactId === "malformed@lid") return { id: contactId, number: "not-a-phone" }
+        if (contactId === "239629714329822@lid")
+          return { id: contactId, number: contactId.slice(0, -4) }
+        throw new Error("lookup failed")
+      },
+    }
+    const service = createScopedSessionService({
+      repository: repository(),
+      clientFor: () => directoryClient,
+    })
+
+    // When the dashboard requests the chat directory
+    const chats = await service.chats(admin, personalSession.id, "personal")
+
+    // Then only valid returned numbers are enabled and the original order is preserved
+    expect(chats).toEqual([
+      { phone: null, name: "Group", isGroup: true },
+      { phone: "+628123456789", name: "C.us contact", isGroup: false },
+      { phone: "+628987654321", name: "Valid lid", isGroup: false },
+      { phone: null, name: "Malformed lid", isGroup: false },
+      { phone: null, name: "Failed lid", isGroup: false },
+      { phone: null, name: "Echo lid", isGroup: false },
+    ])
+    expect(contactIds).toEqual([
+      "valid@lid",
+      "malformed@lid",
+      "failed@lid",
+      "239629714329822@lid",
+    ])
+    expect(JSON.stringify(chats)).not.toContain("@g.us")
+    expect(JSON.stringify(chats)).not.toContain("@c.us")
+    expect(JSON.stringify(chats)).not.toContain("@lid")
   })
 })

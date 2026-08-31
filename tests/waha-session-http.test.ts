@@ -107,7 +107,21 @@ function serviceWithCalls(
         isGroup: true,
         lastMessage: { _data: { secret: "redact" } },
       },
+      {
+        id: { server: "c.us", user: "628123456789", _serialized: "628123456789@c.us" },
+        name: "Alice",
+        isGroup: false,
+      },
+      {
+        id: { server: "lid", user: "987654321", _serialized: "987654321@lid" },
+        name: "Linked identity",
+        isGroup: false,
+      },
     ],
+    contact: async (_name: string, contactId: string) => ({
+      id: "628111111111@c.us",
+      number: contactId.replace(/@.*$/, ""),
+    }),
     requestPairingCode: async () => undefined,
     passkeyChallenge: async () => {
       calls.push("GET /api/personal/auth/passkey/challenge")
@@ -280,8 +294,13 @@ describe("scoped passkey HTTP routes", () => {
     // Then the directory returns safe fields only
     expect(response.statusCode).toBe(200)
     expect(response.json()).toEqual([
-      { id: "120363162617804781@g.us", name: "Ops Group", isGroup: true },
+      { phone: null, name: "Ops Group", isGroup: true },
+      { phone: "+628123456789", name: "Alice", isGroup: false },
+      { phone: "+628111111111", name: "Linked identity", isGroup: false },
     ])
+    expect(JSON.stringify(response.json())).not.toContain("@g.us")
+    expect(JSON.stringify(response.json())).not.toContain("@c.us")
+    expect(JSON.stringify(response.json())).not.toContain("@lid")
     expect(response.body).not.toContain("redact")
     await app.close()
   })
