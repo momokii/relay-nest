@@ -57,6 +57,13 @@
       "when": 1786902000000,
       "tag": "0008_todo12_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": 7,
+      "when": 1786903000000,
+      "tag": "0009_contacts_session_phone_unique",
+      "breakpoints": true
     }
   ]
 }

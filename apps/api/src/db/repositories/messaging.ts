@@ -66,13 +66,14 @@ export function createMessagingRepositories(
 
   return {
     contacts: {
-      find: async (accountScope: AccountScope, phone: string) => {
+      find: async (accountScope: AccountScope, sessionId: string, phone: string) => {
         const [row] = await db
           .select()
           .from(contacts)
           .where(
             and(
               eq(contacts.accountScope, accountScope),
+              eq(contacts.sessionId, sessionId),
               eq(contacts.phoneBlindIndex, createBlindIndex(masterKey, phone)),
             ),
           )
@@ -119,11 +120,14 @@ export function createMessagingRepositories(
               consentUpdatedAt: new Date(),
             })
             .onConflictDoUpdate({
-              target: [contacts.accountScope, contacts.phoneBlindIndex],
+              target: [contacts.accountScope, contacts.sessionId, contacts.phoneBlindIndex],
               set: {
                 providerChatIdCiphertext: chat.ciphertext,
                 providerChatIdNonce: chat.nonce,
                 providerChatIdAuthTag: chat.authTag,
+                displayNameCiphertext: display?.ciphertext ?? null,
+                displayNameNonce: display?.nonce ?? null,
+                displayNameAuthTag: display?.authTag ?? null,
                 updatedAt: new Date(),
               },
             })

@@ -56,5 +56,11 @@ export const contacts = pgTable(
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (table) => [unique("contacts_scope_phone_unique").on(table.accountScope, table.phoneBlindIndex)],
+  (table) => [
+    unique("contacts_scope_session_phone_unique").on(
+      table.accountScope,
+      table.sessionId,
+      table.phoneBlindIndex,
+    ),
+  ],
 )
