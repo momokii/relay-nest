@@ -7,6 +7,29 @@ file as a general progress journal; progress belongs in `CURRENT_STATUS.md`.
 
 ## Current Decisions
 
+### Decision: Live chat directory remains single-target and group-disabled
+
+**Date:** 2026-08-30
+
+The contact/send redesign treats the directory as a live, scoped WAHA chat view,
+not a persisted address-book roster. Group rows remain visible but unavailable,
+with manual E.164 entry as the fallback. This supersedes stale wording
+describing a future contacts+groups roster as a messageable feature.
+
+**Amendment (2026-08-31):** Live WAHA (GOWS) returns linked-identity `@lid`
+JIDs as the canonical chat id for verified individual numbers
+(`checkExists` → `chatId: "<digits>@lid"`), and individual directory rows carry
+their real phone inside the contact lookup's `@c.us` `id`. Individual `@lid`
+rows are therefore selectable: the server derives the phone from the verified
+contact `id`, resolution accepts the provider-verified `@lid` routing address,
+and raw `@lid` or `@g.us` input from the browser is still rejected. The earlier
+"`@lid` rows remain unavailable" rule is superseded by observed provider
+behavior and explicit operator direction.
+
+**Security Implications:** Raw provider chat IDs never authorize a send; the
+existing server-side scope, consent, authorization, and safety gates remain
+authoritative.
+
 ### Decision: Pinned PostgreSQL driver for Drizzle migrations
 
 **Date:** 2026-08-16

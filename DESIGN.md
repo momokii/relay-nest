@@ -140,6 +140,48 @@ All spacing derives from a 4px base unit.
   actions require confirmation, and busy actions expose `aria-busy`.
 - **Motion**: micro transitions use `--motion-micro` on transform/opacity.
 
+### Recipient selector and contact directory
+
+- **Structure**: one labelled recipient region per surface containing the
+  manual E.164 entry field, at most one live directory choice list, the
+  explicit authorized-session selector, and the server-derived consent state.
+  Contacts, Send, and Scheduled surfaces each expose exactly one such region;
+  there is never a second recipient control on a surface.
+- **Contract rules**:
+  - Exactly one selectable target is represented at any time. There is no
+    multi-select, bulk, or group target.
+  - Manual entry accepts a country-code E.164 number only.
+  - Selecting a directory row whose chat ID derives an E.164 number
+    (`@c.us`) resolves the target through the existing server
+    contact-resolution seam and keeps the returned verified `contactId` as the
+    submission value. Raw directory chat IDs are never submitted.
+  - Directory rows whose chat ID does not derive an E.164 number
+    (`@lid` or any other non-derivable individual form) stay visible but
+    unavailable, with guidance to use manual E.164 entry instead. They are
+    never selected, never resolved, and never serialized.
+  - Group rows (`@g.us`) stay visible but disabled with an accessible
+    explanation that groups cannot receive individual text. Submission
+    validation rejects group chat addresses independently.
+- **Variants**: idle, manual-entry focused, directory loading, directory
+  error/unavailable, directory empty, row selected/resolving, resolved,
+  resolution failed, consent granted/denied/opted-out, busy, denied role.
+- **Spacing**: `--space-3`, `--space-4`; rows use `--space-2` gaps and respect
+  the `--control-height` minimum for interactive rows.
+- **States**: the selected session is always explicit and scope-filtered;
+  changing scope or session clears a prior-scope session and any target that
+  depended on it. Consent state is presented as server truth and is never
+  inferred from a resolvable number or a working session; a server
+  `consent_required` denial renders as a visible denied state, not a silent
+  retry. Manual input clears any stale resolved `contactId`.
+- **Accessibility**: the region has a named label; directory rows are real
+  buttons whose disabled state and unavailable reason are exposed to
+  assistive technology as text; resolution, consent, and denial outcomes use
+  polite live-region announcements; keyboard order follows
+  session → manual entry → directory → consent → submit.
+- **Motion**: selection and state swaps use `--motion-micro` on
+  transform/opacity only; disabled rows never animate; reduced motion renders
+  state changes instantly per the motion rules in section 6.
+
 ### AI review checkpoint
 
 - **Structure**: provenance line, suggestion content, review state, reject and
