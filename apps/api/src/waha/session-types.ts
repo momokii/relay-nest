@@ -22,10 +22,17 @@ export type {
   WahaTimelock,
 } from "@waha-command-center/waha-contracts"
 
+export type SessionChatActivityView = {
+  readonly preview: string | null
+  readonly at: string | null
+  readonly fromMe: boolean | null
+}
+
 export type SessionChatView = {
   readonly phone: string | null
   readonly name: string | null
   readonly isGroup: boolean
+  readonly lastActivity: SessionChatActivityView | null
 }
 
 export type StoredSession = {

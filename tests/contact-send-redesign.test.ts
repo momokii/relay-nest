@@ -46,8 +46,8 @@ describe("contact send redesign selector contract baseline", () => {
   it("keeps redacted directory rows uniquely keyed", () => {
     // Given two directory rows whose provider identities are intentionally redacted
     const chats = [
-      { phone: null, name: null, isGroup: false },
-      { phone: null, name: null, isGroup: false },
+      { phone: null, name: null, isGroup: false, lastActivity: null },
+      { phone: null, name: null, isGroup: false, lastActivity: null },
     ] as const
 
     // When the UI derives React keys for the rows

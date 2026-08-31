@@ -26,6 +26,21 @@ function directoryContactDescription(chat: SessionChat): string {
     : `Contact · ${target}`
 }
 
+function directoryActivityLine(chat: SessionChat): string | null {
+  const activity = chat.lastActivity
+  if (!activity || (activity.preview === null && activity.at === null)) return null
+  const prefix = activity.fromMe ? "↩ you: " : ""
+  const preview = activity.preview ?? ""
+  const at =
+    activity.at === null
+      ? ""
+      : ` · ${new Date(activity.at).toLocaleString(undefined, {
+          dateStyle: "short",
+          timeStyle: "short",
+        })}`
+  return `${prefix}${preview}${at}`
+}
+
 export function ChatDirectory({
   scope,
   sessionId,
@@ -110,22 +125,26 @@ export function ChatDirectory({
       ) : null}
       {filtered.length > 0 ? (
         <div className="chat-directory-list">
-          {filtered.map((chat, index) => (
-            <button
-              className={`directory-item${selectedChatId === chat.phone ? " is-selected" : ""}`}
-              type="button"
-              key={directoryChatKey(chat, index)}
-              onClick={() => onSelect?.(chat)}
-              disabled={disabled || directoryContactTarget(chat) === undefined}
-              aria-pressed={selectedChatId === chat.phone}
-            >
-              <strong>{chat.name ?? "Unnamed chat"}</strong>
-              <span>{directoryContactDescription(chat)}</span>
-              {selectedChatId === chat.phone ? (
-                <span className="directory-selection">Selected</span>
-              ) : null}
-            </button>
-          ))}
+          {filtered.map((chat, index) => {
+            const activityLine = directoryActivityLine(chat)
+            return (
+              <button
+                className={`directory-item${selectedChatId === chat.phone ? " is-selected" : ""}`}
+                type="button"
+                key={directoryChatKey(chat, index)}
+                onClick={() => onSelect?.(chat)}
+                disabled={disabled || directoryContactTarget(chat) === undefined}
+                aria-pressed={selectedChatId === chat.phone}
+              >
+                <strong>{chat.name ?? "Unnamed chat"}</strong>
+                <span>{directoryContactDescription(chat)}</span>
+                {activityLine ? <span className="directory-preview">{activityLine}</span> : null}
+                {selectedChatId === chat.phone ? (
+                  <span className="directory-selection">Selected</span>
+                ) : null}
+              </button>
+            )
+          })}
         </div>
       ) : null}
     </section>

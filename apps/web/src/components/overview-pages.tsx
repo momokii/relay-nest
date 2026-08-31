@@ -6,6 +6,17 @@ import type { ResourceState } from "../dashboard-state"
 import { LoadingRows, Metric, Panel, StateNotice, StatusBadge } from "./ui"
 import { ResourceStateBody, SessionRow } from "./view-support"
 
+const WEBHOOK_EVIDENCE_NOTE =
+  "Counts come from signed WhatsApp webhook events; if nothing appears, webhook ingestion is not connected yet or no activity occurred."
+
+function formatDuration(ms: number): string {
+  const minutes = Math.floor(ms / 60000)
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 48) return `${hours} h`
+  return `${Math.floor(hours / 24)} d`
+}
+
 export function OverviewPage({
   scope,
   sessions,
@@ -35,23 +46,31 @@ export function OverviewPage({
           <div className="metric-grid">
             <Metric
               label="Message volume"
-              value={metrics.messageVolume.total === 0 ? "No data yet" : "Available"}
+              value={String(metrics.messageVolume.total)}
               detail="Evidence-backed only"
+              title="Messages counted in this scope, from signed WhatsApp webhook events. Zero means no webhook activity has been ingested yet."
             />
             <Metric
               label="Acknowledgments"
-              value={metrics.acknowledgments.acknowledged === 0 ? "Unknown" : "Available"}
+              value={String(metrics.acknowledgments.acknowledged)}
               detail="Not recipient delivery"
+              title="Messages the WhatsApp device or server acknowledged after submit. Transport evidence, not proof the recipient read the message."
             />
             <Metric
               label="Failure rate"
-              value={metrics.failureRate === null ? "Unknown" : "Available"}
+              value={
+                metrics.failureRate === null
+                  ? "Unknown"
+                  : `${Math.round(metrics.failureRate * 100)}%`
+              }
               detail="Window-scoped"
+              title="Share of completed sends in this window whose dispatch failed. Unknown until at least one send completes in the window."
             />
             <Metric
               label="Session uptime"
-              value={metrics.uptimeMs === null ? "Unknown" : "Available"}
+              value={metrics.uptimeMs === null ? "Unknown" : formatDuration(metrics.uptimeMs)}
               detail="Status history required"
+              title="Time sessions spent in an active status inside the window, reconstructed from recorded status history. Unknown without status history."
             />
           </div>
         ) : null}
@@ -113,7 +132,7 @@ export function AnalyticsPage({
       <Panel
         eyebrow="Scoped projection"
         title="Analytics"
-        description="Window and scope are mandatory at the API boundary."
+        description={`Window and scope are mandatory at the API boundary. ${WEBHOOK_EVIDENCE_NOTE}`}
       >
         <ResourceStateBody
           state={analytics}
@@ -124,34 +143,47 @@ export function AnalyticsPage({
           <div className="metric-grid">
             <Metric
               label="Inbound"
-              value={data.messageVolume.inbound ? "Available" : "No data yet"}
+              value={String(data.messageVolume.inbound)}
+              title="Messages received in this scope, counted from signed WhatsApp webhook events. Requires webhook ingestion to be connected."
             />
             <Metric
               label="Outbound"
-              value={data.messageVolume.outbound ? "Available" : "No data yet"}
+              value={String(data.messageVolume.outbound)}
+              title="Messages you sent in this scope, counted from signed WhatsApp webhook events. Requires webhook ingestion to be connected."
             />
-            <Metric label="Retries" value={data.retryCount ? "Available" : "No data yet"} />
+            <Metric
+              label="Retries"
+              value={String(data.retryCount)}
+              title="Extra delivery attempts after the first try."
+            />
             <Metric
               label="Contact activity"
-              value={data.contactActivity ? "Available" : "No data yet"}
+              value={String(data.contactActivity)}
+              title="New or updated verified contacts in this scope."
             />
           </div>
         ) : null}
       </Panel>
       <Panel eyebrow="Delivery evidence" title="Acknowledgment breakdown" tone="inset">
         <div className="status-list">
-          <StatusBadge label={`Submitted · ${data?.acknowledgments.submitted ?? "Unknown"}`} />
+          <StatusBadge
+            label={`Submitted · ${data?.acknowledgments.submitted ?? "Unknown"}`}
+            title="WhatsApp accepted our submit — transport evidence, not recipient delivery proof."
+          />
           <StatusBadge
             label={`Acknowledged · ${data?.acknowledgments.acknowledged ?? "Unknown"}`}
             tone="success"
+            title="Device/server acknowledged the message; still not read-receipt proof."
           />
           <StatusBadge
             label={`Failed · ${data?.acknowledgments.failed ?? "Unknown"}`}
             tone="error"
+            title="The WhatsApp provider reported this message could not be delivered."
           />
           <StatusBadge
             label={`Unknown · ${data?.acknowledgments.unknown ?? "Unknown"}`}
             tone="warning"
+            title="No delivery evidence exists for this message yet; it is never counted as delivered."
           />
         </div>
         <p className="panel-description">

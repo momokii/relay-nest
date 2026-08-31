@@ -19,6 +19,13 @@ const chatSchema = z.object({
   phone: z.string().nullable(),
   name: z.string().nullable(),
   isGroup: z.boolean(),
+  lastActivity: z
+    .object({
+      preview: z.string().nullable(),
+      at: z.string().nullable(),
+      fromMe: z.boolean().nullable(),
+    })
+    .nullable(),
 })
 export const createSessionSchema = z.object({
   connectionId: z.string().uuid(),

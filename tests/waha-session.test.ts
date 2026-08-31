@@ -264,6 +264,96 @@ describe("scoped WAHA session lifecycle", () => {
     ])
   })
 
+  it("injects a signed webhook config when a webhook base url is configured", async () => {
+    // Given a session service pointed at an API webhook ingest base URL
+    const bodies: string[] = []
+    const baseClient = client()
+    const capturingClient = {
+      ...baseClient,
+      createSession: async (body: string) => {
+        bodies.push(body)
+        return baseClient.createSession(body)
+      },
+      updateSession: async (name: string, body: string) => {
+        bodies.push(body)
+        return baseClient.updateSession(name, body)
+      },
+    }
+    const service = createScopedSessionService({
+      repository: repository(),
+      clientFor: () => capturingClient,
+      clientForConnection: async () => capturingClient,
+      webhookBaseUrl: "http://api:3000",
+    })
+
+    // When the Admin creates and updates sessions
+    await service.create(
+      admin,
+      "personal",
+      {
+        connectionId: "connection-1",
+        name: "Webhook link",
+        wahaSessionName: "webhook-link",
+      },
+      JSON.stringify({ name: "webhook-link" }),
+    )
+    await service.update(
+      admin,
+      personalSession.id,
+      "personal",
+      JSON.stringify({ status: "WORKING" }),
+    )
+
+    // Then each provider body carries the scoped ingest URL for its own session
+    const urls = bodies.map(
+      (body) =>
+        (JSON.parse(body) as { config?: { webhooks?: { url: string }[] } }).config?.webhooks?.[0]
+          ?.url,
+    )
+    expect(urls).toEqual([
+      "http://api:3000/api/webhooks/waha/personal/webhook-link",
+      "http://api:3000/api/webhooks/waha/personal/personal",
+    ])
+    for (const body of bodies) {
+      const events = (JSON.parse(body) as { config?: { webhooks?: { events: string[] }[] } }).config
+        ?.webhooks?.[0]?.events
+      expect(events).toEqual(["message", "message.any", "message.ack", "session.status"])
+    }
+  })
+
+  it("leaves provider bodies untouched without a webhook base url", async () => {
+    // Given a session service without webhook ingestion configured
+    const bodies: string[] = []
+    const baseClient = client()
+    const capturingClient = {
+      ...baseClient,
+      createSession: async (body: string) => {
+        bodies.push(body)
+        return baseClient.createSession(body)
+      },
+    }
+    const service = createScopedSessionService({
+      repository: repository(),
+      clientFor: () => capturingClient,
+      clientForConnection: async () => capturingClient,
+    })
+
+    // When the Admin creates a session
+    await service.create(
+      admin,
+      "personal",
+      {
+        connectionId: "connection-1",
+        name: "Plain link",
+        wahaSessionName: "plain-link",
+      },
+      JSON.stringify({ name: "plain-link" }),
+    )
+
+    // Then the provider body stays exactly as submitted
+    expect(JSON.parse(bodies[0] ?? "{}")).toEqual({ name: "plain-link" })
+  })
+
   it("lists provider chats as a redacted safe directory", async () => {
     // Given a granted Admin session backed by a provider with chats
     const service = createScopedSessionService({
@@ -276,13 +366,63 @@ describe("scoped WAHA session lifecycle", () => {
 
     // Then only safe directory fields return and provider identifiers/content never do
     expect(chats).toEqual([
-      { phone: null, name: "Ops Group", isGroup: true },
-      { phone: "+628987654321", name: null, isGroup: false },
-      { phone: "+628123456789", name: "Example Contact", isGroup: false },
+      {
+        phone: null,
+        name: "Ops Group",
+        isGroup: true,
+        lastActivity: { preview: null, at: null, fromMe: null },
+      },
+      { phone: "+628987654321", name: null, isGroup: false, lastActivity: null },
+      { phone: "+628123456789", name: "Example Contact", isGroup: false, lastActivity: null },
     ])
     expect(JSON.stringify(chats)).not.toContain("redact")
     expect(JSON.stringify(chats)).not.toContain("120363162617804781@g.us")
     expect(JSON.stringify(chats)).not.toContain("239629714329822@lid")
+  })
+
+  it("truncates long multiline previews and keeps missing activity null", async () => {
+    // Given a directory whose chats carry a long multiline body and no activity at all
+    const longBody = `${"A".repeat(200)}\nsecond line that must never leak`
+    const activityClient = {
+      ...client(),
+      chats: async () => [
+        {
+          id: { server: "c.us", user: "628123456789", _serialized: "628123456789@c.us" },
+          name: "Long preview",
+          isGroup: false,
+          lastMessage: { body: longBody, timestamp: 1757000000, fromMe: true },
+        },
+        {
+          id: { server: "c.us", user: "628123456780", _serialized: "628123456780@c.us" },
+          name: "Quiet chat",
+          isGroup: false,
+        },
+      ],
+    }
+    const service = createScopedSessionService({
+      repository: repository(),
+      clientFor: () => activityClient,
+    })
+
+    // When the dashboard requests the chat directory
+    const chats = await service.chats(admin, personalSession.id, "personal")
+
+    // Then the preview is the trimmed first line truncated to 90 chars and absent activity stays null
+    expect(chats).toEqual([
+      {
+        phone: "+628123456789",
+        name: "Long preview",
+        isGroup: false,
+        lastActivity: {
+          preview: `${"A".repeat(90)}…`,
+          at: "2025-09-04T15:33:20.000Z",
+          fromMe: true,
+        },
+      },
+      { phone: "+628123456780", name: "Quiet chat", isGroup: false, lastActivity: null },
+    ])
+    expect(JSON.stringify(chats)).not.toContain("second line")
+    expect(JSON.stringify(chats)).not.toContain("A".repeat(120))
   })
 
   it("keeps failed lid lookups unavailable without querying groups or c.us chats", async () => {
@@ -343,19 +483,14 @@ describe("scoped WAHA session lifecycle", () => {
 
     // Then only valid returned numbers are enabled and the original order is preserved
     expect(chats).toEqual([
-      { phone: null, name: "Group", isGroup: true },
-      { phone: "+628123456789", name: "C.us contact", isGroup: false },
-      { phone: "+628987654321", name: "Valid lid", isGroup: false },
-      { phone: null, name: "Malformed lid", isGroup: false },
-      { phone: null, name: "Failed lid", isGroup: false },
-      { phone: null, name: "Echo lid", isGroup: false },
+      { phone: null, name: "Group", isGroup: true, lastActivity: null },
+      { phone: "+628123456789", name: "C.us contact", isGroup: false, lastActivity: null },
+      { phone: "+628987654321", name: "Valid lid", isGroup: false, lastActivity: null },
+      { phone: null, name: "Malformed lid", isGroup: false, lastActivity: null },
+      { phone: null, name: "Failed lid", isGroup: false, lastActivity: null },
+      { phone: null, name: "Echo lid", isGroup: false, lastActivity: null },
     ])
-    expect(contactIds).toEqual([
-      "valid@lid",
-      "malformed@lid",
-      "failed@lid",
-      "239629714329822@lid",
-    ])
+    expect(contactIds).toEqual(["valid@lid", "malformed@lid", "failed@lid", "239629714329822@lid"])
     expect(JSON.stringify(chats)).not.toContain("@g.us")
     expect(JSON.stringify(chats)).not.toContain("@c.us")
     expect(JSON.stringify(chats)).not.toContain("@lid")

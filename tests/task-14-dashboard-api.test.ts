@@ -372,8 +372,8 @@ describe("Todo 14 authenticated dashboard adapters", () => {
     // Given an authenticated chat directory response for the selected session
     const fetchMock = vi.fn().mockResolvedValue(
       response([
-        { phone: null, name: "Ops Group", isGroup: true },
-        { phone: null, name: null, isGroup: false },
+        { phone: null, name: "Ops Group", isGroup: true, lastActivity: null },
+        { phone: null, name: null, isGroup: false, lastActivity: null },
       ]),
     )
     vi.stubGlobal("document", { cookie: "waha_csrf=csrf-token" })
@@ -386,8 +386,8 @@ describe("Todo 14 authenticated dashboard adapters", () => {
     expect(result).toEqual({
       kind: "ready",
       data: [
-        { phone: null, name: "Ops Group", isGroup: true },
-        { phone: null, name: null, isGroup: false },
+        { phone: null, name: "Ops Group", isGroup: true, lastActivity: null },
+        { phone: null, name: null, isGroup: false, lastActivity: null },
       ],
     })
     vi.unstubAllGlobals()

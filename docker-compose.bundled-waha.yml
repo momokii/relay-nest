@@ -12,8 +12,10 @@ services:
     entrypoint: ["/bin/sh", "/usr/local/bin/relaynest-waha-entrypoint.sh"]
     environment:
       WAHA_API_KEY_FILE: /run/secrets/waha_api_key
+      WAHA_WEBHOOK_SECRET_FILE: /run/secrets/waha_webhook_secret
     secrets:
       - waha_api_key
+      - waha_webhook_secret
     healthcheck:
       test:
         - CMD-SHELL
@@ -27,3 +29,5 @@ services:
 secrets:
   waha_api_key:
     file: ${WAHA_API_KEY_FILE:?Set WAHA_API_KEY_FILE to a secret file}
+  waha_webhook_secret:
+    file: ${WAHA_WEBHOOK_SECRET_FILE:-./.secrets/waha_webhook_secret}

@@ -294,9 +294,14 @@ describe("scoped passkey HTTP routes", () => {
     // Then the directory returns safe fields only
     expect(response.statusCode).toBe(200)
     expect(response.json()).toEqual([
-      { phone: null, name: "Ops Group", isGroup: true },
-      { phone: "+628123456789", name: "Alice", isGroup: false },
-      { phone: "+628111111111", name: "Linked identity", isGroup: false },
+      {
+        phone: null,
+        name: "Ops Group",
+        isGroup: true,
+        lastActivity: { preview: null, at: null, fromMe: null },
+      },
+      { phone: "+628123456789", name: "Alice", isGroup: false, lastActivity: null },
+      { phone: "+628111111111", name: "Linked identity", isGroup: false, lastActivity: null },
     ])
     expect(JSON.stringify(response.json())).not.toContain("@g.us")
     expect(JSON.stringify(response.json())).not.toContain("@c.us")

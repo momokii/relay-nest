@@ -38,6 +38,7 @@ import {
   isMalformedWahaWebhookBodyError,
   isOversizedWahaWebhookBodyError,
   registerWahaWebhookRoutes,
+  resolveWebhookSecret,
 } from "./waha/webhook-http"
 
 type AuditCallback = (input: {
@@ -87,11 +88,7 @@ export function createApiApp(
   const auth = new AuthService({ db: database.db, audit })
   const admin = new AdminService(database.db, audit)
   const loopbackOptions = resolveLoopbackWahaOption(options.allowLoopbackWaha)
-  const webhookEnvironment = z
-    .object({
-      WAHA_WEBHOOK_SECRET: z.string().optional(),
-    })
-    .parse(process.env)
+  const webhookSecret = resolveWebhookSecret(process.env)
   const encryptionMasterKey = resolveEncryptionMasterKey(process.env)
   const configuredMessagingService =
     options.messagingService ??
@@ -118,7 +115,7 @@ export function createApiApp(
   const retention = createRetentionService({ repository: repositories.retentionPolicies, audit })
   const backupRepository = createBackupRepository(database.sql)
   registerWahaWebhookRoutes(app, {
-    secret: webhookEnvironment.WAHA_WEBHOOK_SECRET,
+    secret: webhookSecret,
     encryptionMasterKey,
     store: {
       findSession: (accountScope, sessionName) =>

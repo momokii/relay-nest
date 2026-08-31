@@ -1,3 +1,4 @@
+import type { WahaChat } from "@waha-command-center/waha-contracts"
 import type { AuthPrincipal } from "../auth/service"
 import type { AccountScope } from "../db/schema/shared"
 import type {
@@ -59,20 +60,33 @@ function normalizePhone(phone: string | null | undefined): string | null {
       : null
 }
 
-function chatView(
-  chat: {
-    readonly id: { readonly _serialized: string }
-    readonly name?: string | null | undefined
-    readonly isGroup?: boolean | undefined
-  },
-  phone?: string | null,
-): SessionChatView {
+const LAST_ACTIVITY_PREVIEW_LIMIT = 90
+
+function chatView(chat: WahaChat, phone?: string | null): SessionChatView {
   const serializedId = chat.id._serialized
   const chatPhone = serializedId.endsWith("@c.us") ? serializedId.slice(0, -"@c.us".length) : phone
+  const lastMessage = chat.lastMessage
+  const firstLine = (lastMessage?.body ?? "").split("\n", 1)[0]?.trim() ?? ""
+  let preview: string | null = firstLine.length > 0 ? firstLine : null
+  if (preview === null && lastMessage?.hasMedia === true) preview = "[media]"
+  if (preview !== null && preview.length > LAST_ACTIVITY_PREVIEW_LIMIT) {
+    preview = `${preview.slice(0, LAST_ACTIVITY_PREVIEW_LIMIT)}…`
+  }
+  const at =
+    typeof lastMessage?.timestamp === "number" && Number.isFinite(lastMessage.timestamp)
+      ? new Date(lastMessage.timestamp * 1000).toISOString()
+      : null
   return {
     phone: normalizePhone(chatPhone),
     name: chat.name ?? null,
     isGroup: chat.isGroup ?? false,
+    lastActivity: lastMessage
+      ? {
+          preview,
+          at,
+          fromMe: typeof lastMessage.fromMe === "boolean" ? lastMessage.fromMe : null,
+        }
+      : null,
   }
 }
 
@@ -90,11 +104,7 @@ function contactPhone(
 async function projectChats(
   client: WahaSessionClient,
   sessionName: string,
-  chats: readonly {
-    readonly id: { readonly _serialized: string }
-    readonly name?: string | null | undefined
-    readonly isGroup?: boolean | undefined
-  }[],
+  chats: readonly WahaChat[],
 ): Promise<readonly SessionChatView[]> {
   const phones = new Map<number, string | null>()
   const lookups = chats
@@ -121,12 +131,47 @@ async function projectChats(
   return chats.map((chat, index) => chatView(chat, phones.get(index)))
 }
 
+function webhookConfig(
+  scope: AccountScope,
+  sessionName: string,
+  baseUrl: string,
+): Record<string, unknown> {
+  return {
+    webhooks: [
+      {
+        url: `${baseUrl}/api/webhooks/waha/${scope}/${sessionName}`,
+        events: ["message", "message.any", "message.ack", "session.status"],
+      },
+    ],
+  }
+}
+
+function withWebhookConfig(
+  body: string,
+  scope: AccountScope,
+  sessionName: string,
+  baseUrl: string | undefined,
+): string {
+  if (!baseUrl) return body
+  const parsed: unknown = JSON.parse(body)
+  const record: Record<string, unknown> =
+    typeof parsed === "object" && parsed !== null ? { ...parsed } : {}
+  record["config"] = {
+    ...(typeof record["config"] === "object" && record["config"] !== null
+      ? record["config"]
+      : {}),
+    ...webhookConfig(scope, sessionName, baseUrl),
+  }
+  return JSON.stringify(record)
+}
+
 export function createScopedSessionService(options: {
   readonly repository: ScopedSessionRepository
   readonly clientFor: (session: StoredSession) => WahaSessionClient | Promise<WahaSessionClient>
   readonly clientForConnection?: (
     connectionId: string,
   ) => WahaSessionClient | Promise<WahaSessionClient>
+  readonly webhookBaseUrl?: string | undefined
   readonly audit?: (input: {
     readonly actorUserId: string
     readonly action: string
@@ -162,7 +207,9 @@ export function createScopedSessionService(options: {
       const client = await options.clientForConnection?.(input.connectionId)
       if (!client || !options.repository.create || !options.repository.createGrant)
         throw new ScopedSessionError("unsupported")
-      const upstream = await client.createSession(body)
+      const upstream = await client.createSession(
+        withWebhookConfig(body, scope, input.wahaSessionName, options.webhookBaseUrl),
+      )
       const stored = await options.repository.create({
         ...input,
         accountScope: scope,
@@ -192,7 +239,7 @@ export function createScopedSessionService(options: {
       const session = await authorized(principal, sessionId, scope, "read")
       const upstream = await (await options.clientFor(session)).updateSession(
         session.wahaSessionName,
-        body,
+        withWebhookConfig(body, scope, session.wahaSessionName, options.webhookBaseUrl),
       )
       const stored = await options.repository.update?.(session.id, scope, {
         status: upstream.status,

@@ -56,6 +56,15 @@ export const wahaChatsSchema = z.array(
       id: z.object({ _serialized: z.string().min(1) }).passthrough(),
       name: z.string().nullable().optional(),
       isGroup: z.boolean().optional(),
+      lastMessage: z
+        .object({
+          body: z.string().optional(),
+          timestamp: z.number().optional(),
+          fromMe: z.boolean().optional(),
+          hasMedia: z.boolean().optional(),
+        })
+        .passthrough()
+        .optional(),
     })
     .passthrough(),
 )

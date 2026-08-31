@@ -33,9 +33,12 @@ services:
       DATABASE_PASSWORD_FILE: /run/secrets/postgres_password
       ENCRYPTION_MASTER_KEY_FILE: /run/secrets/encryption_master_key
       WAHA_BASE_URL: ${WAHA_BASE_URL:-https://waha.example.invalid}
+      WAHA_WEBHOOK_BASE_URL: ${WAHA_WEBHOOK_BASE_URL:-http://api:3000}
+      WAHA_WEBHOOK_SECRET_FILE: /run/secrets/waha_webhook_secret
     secrets:
       - postgres_password
       - encryption_master_key
+      - waha_webhook_secret
     depends_on:
       postgres:
         condition: service_healthy
@@ -91,3 +94,5 @@ secrets:
     file: ${POSTGRES_PASSWORD_FILE:-./.secrets/postgres_password}
   encryption_master_key:
     file: ${ENCRYPTION_MASTER_KEY_FILE:?Set ENCRYPTION_MASTER_KEY_FILE to a secret file}
+  waha_webhook_secret:
+    file: ${WAHA_WEBHOOK_SECRET_FILE:-./.secrets/waha_webhook_secret}

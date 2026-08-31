@@ -1,10 +1,14 @@
-import { createHmac } from "node:crypto"
+import { createHmac, randomUUID } from "node:crypto"
+import { rmSync, writeFileSync } from "node:fs"
+import { tmpdir as realTmpdir } from "node:os"
+import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 import Fastify from "../apps/api/node_modules/fastify"
 import type { WahaWebhookStore } from "../apps/api/src/waha/webhook"
 import {
   isMalformedWahaWebhookBodyError,
   registerWahaWebhookRoutes,
+  resolveWebhookSecret,
 } from "../apps/api/src/waha/webhook-http"
 
 const secret = "http-webhook-secret"
@@ -323,5 +327,35 @@ describe("WAHA webhook HTTP endpoint", () => {
     // Then buffering is stopped with a bounded generic response
     expect(response.statusCode).toBe(413)
     expect(response.body).not.toContain("x".repeat(100))
+  })
+})
+
+describe("webhook secret resolution", () => {
+  it("prefers the plain secret and falls back to a secret file", async () => {
+    // Given environment combinations with plain, file, and no secret sources
+    const secretFile = join(realTmpdir(), `waha-webhook-secret-${randomUUID()}.txt`)
+    writeFileSync(secretFile, "file-secret\n")
+    try {
+      // Then the plain secret wins, the file is read and trimmed, and absence stays undefined
+      expect(resolveWebhookSecret({ WAHA_WEBHOOK_SECRET: "plain" })).toBe("plain")
+      expect(resolveWebhookSecret({ WAHA_WEBHOOK_SECRET_FILE: secretFile })).toBe("file-secret")
+      expect(resolveWebhookSecret({})).toBeUndefined()
+    } finally {
+      rmSync(secretFile, { force: true })
+    }
+  })
+
+  it("fails closed on an empty secret file", () => {
+    // Given a secret file containing only whitespace
+    const secretFile = join(realTmpdir(), `waha-webhook-secret-${randomUUID()}.txt`)
+    writeFileSync(secretFile, " \n")
+    try {
+      // Then startup fails instead of silently disabling ingestion
+      expect(() => resolveWebhookSecret({ WAHA_WEBHOOK_SECRET_FILE: secretFile })).toThrow(
+        "webhook secret file is empty",
+      )
+    } finally {
+      rmSync(secretFile, { force: true })
+    }
   })
 })

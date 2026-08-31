@@ -81,17 +81,23 @@ type StatusTone = "success" | "warning" | "error" | "info"
 export function StatusBadge({
   label,
   tone = "info",
-}: Readonly<{ label: string; tone?: StatusTone }>): React.JSX.Element {
-  return <span className={`status-badge status-${tone}`}>{label}</span>
+  title,
+}: Readonly<{ label: string; tone?: StatusTone; title?: string }>): React.JSX.Element {
+  return (
+    <span className={`status-badge status-${tone}`} title={title}>
+      {label}
+    </span>
+  )
 }
 
 export function Metric({
   label,
   value,
   detail,
-}: Readonly<{ label: string; value: string; detail?: string }>): React.JSX.Element {
+  title,
+}: Readonly<{ label: string; value: string; detail?: string; title?: string }>): React.JSX.Element {
   return (
-    <div className="metric">
+    <div className="metric" title={title}>
       <span className="metric-label">{label}</span>
       <strong>{value}</strong>
       {detail ? <span className="metric-detail">{detail}</span> : null}

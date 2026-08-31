@@ -902,6 +902,13 @@ select {
   font-weight: 400;
   line-height: 1.45;
 }
+.directory-item .directory-preview {
+  max-width: 100%;
+  overflow: hidden;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .directory-item .directory-selection {
   color: var(--color-amber);
   font-weight: 700;
