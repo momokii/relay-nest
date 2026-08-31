@@ -5,6 +5,7 @@ import {
   ACCOUNT_SCOPES,
   type AccountScope,
   type DashboardViewId,
+  effectiveRole,
   VIEW_DEFINITIONS,
 } from "../dashboard-model"
 
@@ -33,7 +34,7 @@ export function AppShell({
   onLogout,
   children,
 }: AppShellProps): React.JSX.Element {
-  const role = principal.user.rolesByScope[scope]?.[0] ?? "viewer"
+  const role = effectiveRole(principal.user.rolesByScope[scope] ?? [])
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const wasNavOpen = useRef(isNavOpen)
   const [isMobileViewport, setIsMobileViewport] = useState(

@@ -4,6 +4,7 @@ import {
   buildScopedPath,
   canPerform,
   createAiApproval,
+  effectiveRole,
   validateMessageInput,
 } from "../apps/web/src/dashboard-model"
 
@@ -28,6 +29,22 @@ describe("Todo 14 dashboard model", () => {
     expect(operatorCanOperate).toBe(true)
   })
 
+  it("resolves effective scoped role by strongest role", () => {
+    // Given scoped role assignments in empty, mixed, and elevated combinations
+    const cases = [
+      { roles: [], expected: "viewer" },
+      { roles: ["viewer", "operator"], expected: "operator" },
+      { roles: ["operator", "viewer"], expected: "operator" },
+      { roles: ["viewer", "admin"], expected: "admin" },
+    ] as const
+
+    // When each scoped role set is resolved
+    const resolved = cases.map(({ roles }) => effectiveRole(roles))
+
+    // Then the strongest available role wins and empty scopes fall back to Viewer
+    expect(resolved).toEqual(cases.map(({ expected }) => expected))
+  })
+
   it("keeps an approved AI draft visibly separate from sending", () => {
     // Given an AI draft proposed by a provider-agnostic seam
     const suggestion = createAiApproval({
@@ -47,9 +64,89 @@ describe("Todo 14 dashboard model", () => {
     expect(approved.canSendSeparately).toBe(true)
   })
 
-  it("accepts individual provider chat addresses as recipients for directory picks", () => {
-    // Given a recipient chosen from the provider directory as a LID contact
+  it("validates individual recipient targets", () => {
+    // Given a manual country-code number entry with incidental spacing
+    // When the submission boundary validates the single recipient target
     const contact = validateMessageInput({
+      recipient: " +1 555 123 4567 ",
+      message: "Consent-first text",
+      hasConsent: true,
+      hasMedia: false,
+      isRecurring: false,
+    })
+
+    // Then exactly one normalized E.164 manual target passes validation
+    expect(contact).toEqual({
+      valid: true,
+      recipient: "+15551234567",
+      message: "Consent-first text",
+    })
+  })
+
+  it("accepts formatted E.164 recipient input", () => {
+    // Given a country-code number formatted for human entry
+    const contact = validateMessageInput({
+      recipient: "+1 (555) 123-4567",
+      message: "Consent-first text",
+      hasConsent: true,
+      hasMedia: false,
+      isRecurring: false,
+    })
+
+    // Then the submission boundary removes display punctuation before sending
+    expect(contact).toEqual({
+      valid: true,
+      recipient: "+15551234567",
+      message: "Consent-first text",
+    })
+  })
+
+  it("rejects group chat addresses in submission validation", () => {
+    // Given a raw provider group chat address that can never receive individual text
+    const group = validateMessageInput({
+      recipient: "120363162617804781@g.us",
+      message: "Consent-first text",
+      hasConsent: true,
+      hasMedia: false,
+      isRecurring: false,
+    })
+
+    // Then submission validation refuses the group address before any API call
+    expect(group).toEqual({
+      valid: false,
+      reason:
+        "Use a phone number with country code (+15551234567) or pick a chat from the directory.",
+    })
+  })
+
+  it("requires a consent attestation before a send validates", () => {
+    // Given an otherwise valid individual target without a consent attestation
+    const unconsented = validateMessageInput({
+      recipient: "+15551234567",
+      message: "Consent-first text",
+      hasConsent: false,
+      hasMedia: false,
+      isRecurring: false,
+    })
+
+    // Then the client gate blocks the send before authorization is attempted
+    expect(unconsented).toEqual({
+      valid: false,
+      reason: "Recipient consent is required before a send.",
+    })
+  })
+
+  it("rejects raw provider chat ids as manual submission targets", () => {
+    // Given directory-only provider chat ids: a derivable individual @c.us
+    // row and a non-derivable @lid row
+    const derivable = validateMessageInput({
+      recipient: "628123456789@c.us",
+      message: "Consent-first text",
+      hasConsent: true,
+      hasMedia: false,
+      isRecurring: false,
+    })
+    const nonDerivable = validateMessageInput({
       recipient: "239629714329822@lid",
       message: "Consent-first text",
       hasConsent: true,
@@ -57,11 +154,16 @@ describe("Todo 14 dashboard model", () => {
       isRecurring: false,
     })
 
-    // Then the chat address passes validation unchanged
-    expect(contact).toEqual({
-      valid: true,
-      recipient: "239629714329822@lid",
-      message: "Consent-first text",
+    // Then raw provider addresses are rejected before they can cross submission
+    expect(derivable).toEqual({
+      valid: false,
+      reason:
+        "Use a phone number with country code (+15551234567) or pick a chat from the directory.",
+    })
+    expect(nonDerivable).toEqual({
+      valid: false,
+      reason:
+        "Use a phone number with country code (+15551234567) or pick a chat from the directory.",
     })
   })
 

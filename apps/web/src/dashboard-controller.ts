@@ -11,7 +11,12 @@ import {
   type SessionView,
 } from "./dashboard-api"
 import { createDashboardAuthApi } from "./dashboard-auth-api"
-import type { AccountScope, DashboardRole, DashboardViewId } from "./dashboard-model"
+import {
+  type AccountScope,
+  type DashboardRole,
+  type DashboardViewId,
+  effectiveRole,
+} from "./dashboard-model"
 import {
   createDashboardNotificationApi,
   type NotificationSettings,
@@ -81,6 +86,10 @@ export function scopeRequestIsCurrent(
   return request.scope === currentScope && request.generation === currentGeneration
 }
 
+export function requestTokenIsCurrent(currentToken: number, requestToken: number): boolean {
+  return requestToken === currentToken
+}
+
 export function useDashboardController(): DashboardController {
   const api = useMemo(() => createDashboardApi(import.meta.env.VITE_API_BASE_URL), [])
   const auth = useMemo(() => createDashboardAuthApi(import.meta.env.VITE_API_BASE_URL), [])
@@ -96,6 +105,8 @@ export function useDashboardController(): DashboardController {
   const [scope, setScope] = useState<AccountScope>("personal")
   const scopeRef = useRef<AccountScope>(scope)
   const scopeGenerationRef = useRef(0)
+  const contactResolutionTokenRef = useRef(0)
+  const contactConsentTokenRef = useRef(0)
   const [isNavOpen, setIsNavOpen] = useState(false)
   const [principal, setPrincipal] = useState<ResourceState<Principal>>({ kind: "loading" })
   const [sessions, setSessions] = useState<ResourceState<readonly SessionView[]>>({
@@ -136,12 +147,14 @@ export function useDashboardController(): DashboardController {
   }, [api])
 
   const activePrincipal = principal.kind === "ready" ? principal.data : undefined
-  const role = activePrincipal?.user.rolesByScope[scope]?.[0] ?? "viewer"
+  const role = effectiveRole(activePrincipal?.user.rolesByScope[scope] ?? [])
 
   const setDashboardScope = (nextScope: AccountScope): void => {
     if (scopeRef.current === nextScope) return
     scopeRef.current = nextScope
     scopeGenerationRef.current += 1
+    contactResolutionTokenRef.current += 1
+    contactConsentTokenRef.current += 1
     setScope(nextScope)
     setSessions({ kind: "loading" })
     setAnalytics({ kind: "loading" })
@@ -156,6 +169,8 @@ export function useDashboardController(): DashboardController {
   }
 
   useEffect(() => {
+    contactResolutionTokenRef.current += 1
+    contactConsentTokenRef.current += 1
     let isCurrent = true
     if (!activePrincipal) {
       return () => {
@@ -221,10 +236,16 @@ export function useDashboardController(): DashboardController {
     sessionId: string,
     recipient: string,
   ): Promise<void> => {
+    const requestToken = contactResolutionTokenRef.current + 1
+    contactResolutionTokenRef.current = requestToken
     setContactAction({ kind: "submitting" })
-    setContactAction(
-      actionFromResult(await api.resolveContact(selectedScope, sessionId, recipient)),
+    const result = await api.resolveContact(selectedScope, sessionId, recipient)
+    if (
+      !requestTokenIsCurrent(contactResolutionTokenRef.current, requestToken) ||
+      selectedScope !== scopeRef.current
     )
+      return
+    setContactAction(actionFromResult(result))
   }
   const setContactConsent = async (
     selectedScope: AccountScope,
@@ -232,10 +253,16 @@ export function useDashboardController(): DashboardController {
     contactId: string,
     input: { readonly consentGranted: boolean; optedOut: boolean },
   ): Promise<void> => {
+    const requestToken = contactConsentTokenRef.current + 1
+    contactConsentTokenRef.current = requestToken
     setContactConsentAction({ kind: "submitting" })
-    setContactConsentAction(
-      actionFromResult(await api.setContactConsent(selectedScope, sessionId, contactId, input)),
+    const result = await api.setContactConsent(selectedScope, sessionId, contactId, input)
+    if (
+      !requestTokenIsCurrent(contactConsentTokenRef.current, requestToken) ||
+      selectedScope !== scopeRef.current
     )
+      return
+    setContactConsentAction(actionFromResult(result))
   }
   const previewPurge = async (
     selectedScope: AccountScope,

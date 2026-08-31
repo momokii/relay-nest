@@ -45,6 +45,12 @@ export function canPerform(role: DashboardRole, capability: DashboardCapability)
   return CAPABILITIES_BY_ROLE[role].some((available) => available === capability)
 }
 
+export function effectiveRole(roles: readonly DashboardRole[]): DashboardRole {
+  if (roles.includes("admin")) return "admin"
+  if (roles.includes("operator")) return "operator"
+  return "viewer"
+}
+
 export function assertNever(value: never): never {
   throw new Error(`Unexpected dashboard variant: ${String(value)}`)
 }
@@ -111,10 +117,10 @@ export function validateMessageInput(input: MessageInput): MessageValidation {
     return { valid: false, reason: "Recipient consent is required before a send." }
   }
 
-  const recipient = input.recipient.replace(/\s/g, "")
+  const rawRecipient = input.recipient.trim()
+  const recipient = rawRecipient.replace(/[\s().-]/g, "")
   const message = input.message.trim()
-  const isChatAddress = /^\d+@(c\.us|lid)$/i.test(recipient)
-  if (!/^\+[1-9]\d{7,14}$/.test(recipient) && !isChatAddress) {
+  if (!/^\+[1-9]\d{7,14}$/.test(recipient)) {
     return {
       valid: false,
       reason:
