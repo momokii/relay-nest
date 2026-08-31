@@ -1,5 +1,5 @@
 import type * as React from "react"
-import { useEffect, useId, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import type { AccountScope } from "../dashboard-model"
 import { createDashboardSessionApi, type SessionChat } from "../dashboard-session-api"
@@ -42,7 +42,6 @@ export function ChatDirectory({
   const api = useMemo(() => createDashboardSessionApi(import.meta.env.VITE_API_BASE_URL), [])
   const [chats, setChats] = useState<ResourceState<readonly SessionChat[]>>({ kind: "loading" })
   const [query, setQuery] = useState("")
-  const directoryId = useId()
 
   useEffect(() => {
     let current = true
@@ -76,14 +75,9 @@ export function ChatDirectory({
   return (
     <section className="chat-directory" aria-label="Contact list from WhatsApp chat directory">
       <div className="chat-directory-heading">
-        <div>
-          <p className="overline">Recipient selector</p>
-          <h3 id={`${directoryId}-title`}>Choose a contact</h3>
-          <p className="chat-directory-copy">
-            Select one individual contact. Selecting a contact only fills the recipient; sending
-            still requires your final submit.
-          </p>
-        </div>
+        <p className="chat-directory-copy">
+          Selecting a contact only fills the recipient; sending still requires your final submit.
+        </p>
         {chats.kind === "ready" ? (
           <span className="directory-count">
             {availableCount} {availableCount === 1 ? "contact" : "contacts"} available

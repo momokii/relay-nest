@@ -42,7 +42,7 @@ export function ContactsPage({
   ) => Promise<void>
 }>): React.JSX.Element {
   return (
-    <div className="page-grid">
+    <div className="page-grid contacts-page">
       <ContactLookup
         scope={scope}
         role={role}
