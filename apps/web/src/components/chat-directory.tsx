@@ -92,8 +92,9 @@ export function ChatDirectory({
     const retryTimers: ReturnType<typeof setTimeout>[] = []
     setMessages({ kind: "loading" })
     // WAHA materializes chat history lazily per chat: a cold store answers
-    // 200 with an empty array, and any provider restart re-colds every chat.
-    // Empty results are therefore retried on a ladder before being shown.
+    // 200 with an empty array or blocks for tens of seconds, and any provider
+    // restart re-colds every chat. Empty results are therefore retried on a
+    // ladder before being shown.
     const load = (attempt: number): void => {
       void api.messages(scope, sessionId, history.ref).then((result) => {
         if (!isCurrent) return
@@ -115,6 +116,34 @@ export function ChatDirectory({
       for (const timer of retryTimers) clearTimeout(timer)
     }
   }, [api, scope, sessionId, history])
+
+  useEffect(() => {
+    if (chats.kind !== "ready") return
+    let cancelled = false
+    const warmTimer = setTimeout(() => {
+      const queue = chats.data.filter((chat) => typeof chat.ref === "string")
+      let index = 0
+      const warmNext = (): void => {
+        if (cancelled) return
+        const chat = queue[index]
+        index += 1
+        if (!chat || typeof chat.ref !== "string") return
+        const chatRef = chat.ref
+        void api
+          .messages(scope, sessionId, chatRef)
+          .then(() => undefined)
+          .catch(() => undefined)
+          .then(() => {
+            warmNext()
+          })
+      }
+      warmNext()
+    }, 2000)
+    return () => {
+      cancelled = true
+      clearTimeout(warmTimer)
+    }
+  }, [api, scope, sessionId, chats])
 
   const retryHistory = useCallback(() => {
     if (history === null) return

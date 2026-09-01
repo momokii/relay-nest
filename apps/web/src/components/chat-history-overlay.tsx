@@ -43,7 +43,15 @@ export function ChatHistoryOverlay({
             Close
           </button>
         </div>
-        {messages.kind === "loading" ? <LoadingRows count={3} /> : null}
+        {messages.kind === "loading" ? (
+          <>
+            <LoadingRows count={3} />
+            <p className="chat-history-loading-copy">
+              Fetching history from WhatsApp. First load after a restart can take up to 30
+              seconds — later opens are instant.
+            </p>
+          </>
+        ) : null}
         {messages.kind === "error" ||
         messages.kind === "unavailable" ||
         messages.kind === "denied" ? (
