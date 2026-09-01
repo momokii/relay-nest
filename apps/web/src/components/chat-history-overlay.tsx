@@ -21,10 +21,12 @@ function historyTime(at: string | null): string {
 export function ChatHistoryOverlay({
   chat,
   messages,
+  onRetry,
   onClose,
 }: Readonly<{
   chat: SessionChat
   messages: ResourceState<readonly MessageView[]>
+  onRetry: () => void
   onClose: () => void
 }>): React.JSX.Element {
   return (
@@ -50,8 +52,13 @@ export function ChatHistoryOverlay({
         {messages.kind === "ready" && messages.data.length === 0 ? (
           <StateNotice
             title="No messages yet"
-            message="WhatsApp may still be loading this chat's history. Close this panel and reopen it in a moment."
+            message="WhatsApp may still be loading this chat's history. Try again, or reopen this panel in a moment."
             tone="warning"
+            action={
+              <button className="button button-secondary" type="button" onClick={onRetry}>
+                Try again
+              </button>
+            }
           />
         ) : null}
         {messages.kind === "ready" && messages.data.length > 0 ? (

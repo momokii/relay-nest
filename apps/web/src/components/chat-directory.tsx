@@ -1,5 +1,5 @@
 import type * as React from "react"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import type { AccountScope } from "../dashboard-model"
 import {
@@ -89,17 +89,21 @@ export function ChatDirectory({
   useEffect(() => {
     if (history === null) return
     let isCurrent = true
-    let retryTimer: ReturnType<typeof setTimeout> | undefined
+    const retryTimers: ReturnType<typeof setTimeout>[] = []
     setMessages({ kind: "loading" })
-    // WAHA materializes chat history lazily: a cold store can answer 200 with
-    // an empty array, so a single empty result is retried once before shown.
+    // WAHA materializes chat history lazily per chat: a cold store answers
+    // 200 with an empty array, and any provider restart re-colds every chat.
+    // Empty results are therefore retried on a ladder before being shown.
     const load = (attempt: number): void => {
       void api.messages(scope, sessionId, history.ref).then((result) => {
         if (!isCurrent) return
-        if (attempt < 1 && result.kind === "ready" && result.data.length === 0) {
-          retryTimer = setTimeout(() => {
-            if (isCurrent) load(attempt + 1)
-          }, 1500)
+        const delays = [3000, 6000, 10000]
+        if (attempt < delays.length && result.kind === "ready" && result.data.length === 0) {
+          retryTimers.push(
+            setTimeout(() => {
+              if (isCurrent) load(attempt + 1)
+            }, delays[attempt]),
+          )
           return
         }
         setMessages(resourceFromResult(result))
@@ -108,8 +112,16 @@ export function ChatDirectory({
     load(0)
     return () => {
       isCurrent = false
-      if (retryTimer !== undefined) clearTimeout(retryTimer)
+      for (const timer of retryTimers) clearTimeout(timer)
     }
+  }, [api, scope, sessionId, history])
+
+  const retryHistory = useCallback(() => {
+    if (history === null) return
+    setMessages({ kind: "loading" })
+    void api.messages(scope, sessionId, history.ref).then((result) => {
+      setMessages(resourceFromResult(result))
+    })
   }, [api, scope, sessionId, history])
 
   useEffect(() => {
@@ -213,6 +225,7 @@ export function ChatDirectory({
         <ChatHistoryOverlay
           chat={history.chat}
           messages={messages}
+          onRetry={retryHistory}
           onClose={() => setHistory(null)}
         />
       )}
