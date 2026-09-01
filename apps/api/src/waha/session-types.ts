@@ -2,6 +2,7 @@ import type {
   WahaCapping,
   WahaChat,
   WahaContact,
+  WahaMessage,
   WahaMetadata,
   WahaPasskeyChallenge,
   WahaPasskeyConfirmation,
@@ -15,6 +16,7 @@ import type { AccountScope } from "../db/schema/shared"
 export type {
   WahaCapping,
   WahaContact,
+  WahaMessage,
   WahaMetadata,
   WahaPasskeyChallenge,
   WahaPasskeyConfirmation,
@@ -33,6 +35,18 @@ export type SessionChatView = {
   readonly name: string | null
   readonly isGroup: boolean
   readonly lastActivity: SessionChatActivityView | null
+  readonly ref: string | null
+}
+
+export type SessionChatMessageView = {
+  readonly at: string | null
+  readonly direction: "in" | "out" | "unknown"
+  readonly preview: string | null
+}
+
+export type ChatRefCodec = {
+  readonly seal: (chatId: string, scope: AccountScope) => string
+  readonly open: (ref: string, scope: AccountScope) => string | null
 }
 
 export type StoredSession = {
@@ -99,6 +113,7 @@ export type WahaSessionClient = {
   readonly confirmPasskey: (name: string) => Promise<unknown>
   readonly me: (name: string) => Promise<WahaMetadata>
   readonly chats: (name: string) => Promise<readonly WahaChat[]>
+  readonly messages: (name: string, chatId: string, signal?: AbortSignal) => Promise<WahaMessage[]>
   readonly timelock: (name: string) => Promise<WahaTimelock>
   readonly capping: (name: string) => Promise<WahaCapping>
   readonly checkExists: (

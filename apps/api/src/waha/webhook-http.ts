@@ -1,5 +1,5 @@
-import { Readable } from "node:stream"
 import { readFileSync } from "node:fs"
+import { Readable } from "node:stream"
 import { createEnvelopeCipher } from "@waha-command-center/config"
 import type { FastifyInstance, FastifyRequest } from "fastify"
 import { z } from "zod"

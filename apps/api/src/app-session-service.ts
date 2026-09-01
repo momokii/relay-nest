@@ -5,6 +5,7 @@ import {
 } from "@waha-command-center/config"
 import { z } from "zod"
 
+import type { AccountScope } from "./db/schema/shared"
 import { createWahaClient } from "./waha/adapter"
 import type { SessionStatusHistoryEntry } from "./waha/session-types"
 import {
@@ -23,6 +24,14 @@ type AuditCallback = (input: {
 
 type Repositories = ReturnType<typeof import("./db/repositories").createRepositories>
 type ConfiguredSessionServiceOptions = Readonly<{ allowLoopbackWaha?: boolean }>
+
+const chatEnvelopeSchema = z.object({
+  version: z.literal(1),
+  algorithm: z.literal("aes-256-gcm"),
+  nonce: z.string().min(1),
+  ciphertext: z.string().min(1),
+  authTag: z.string().min(1),
+})
 
 export function createConfiguredSessionService(
   repositories: Repositories,
@@ -52,6 +61,24 @@ export function createConfiguredSessionService(
     })
   }
   const clientFor = (session: StoredSession) => clientForConnection(session.connectionId)
+  const chatRef = {
+    seal: (chatId: string, scope: AccountScope): string =>
+      Buffer.from(JSON.stringify(cipher.encrypt(chatId, { accountScope: scope })), "utf8").toString(
+        "base64url",
+      ),
+    open: (ref: string, scope: AccountScope): string | null => {
+      try {
+        const parsed = chatEnvelopeSchema.safeParse(
+          JSON.parse(Buffer.from(ref, "base64url").toString("utf8")),
+        )
+        if (!parsed.success) return null
+        return cipher.decrypt(parsed.data, { accountScope: scope })
+      } catch (error) {
+        if (error instanceof SyntaxError || error instanceof EnvelopeEncryptionError) return null
+        throw error
+      }
+    },
+  }
   const statusHistory = async (
     sessionId: string,
     accountScope: "personal" | "business",
@@ -110,6 +137,7 @@ export function createConfiguredSessionService(
     },
     clientFor,
     clientForConnection,
+    chatRef,
     audit,
   })
 }

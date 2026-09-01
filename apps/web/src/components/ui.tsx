@@ -1,5 +1,5 @@
 import type * as React from "react"
-import { useId } from "react"
+import { useId, useState } from "react"
 
 export type PanelTone = "standard" | "warning" | "error" | "inset"
 
@@ -78,14 +78,50 @@ export function StateNotice({
 
 type StatusTone = "success" | "warning" | "error" | "info"
 
+export function InfoHint({ message }: Readonly<{ message: string }>): React.JSX.Element {
+  const [hovered, setHovered] = useState(false)
+  const [pinned, setPinned] = useState(false)
+  const open = hovered || pinned
+  const hintId = useId()
+  return (
+    <span className="info-hint">
+      <button
+        type="button"
+        className="info-hint-trigger"
+        aria-label="More information"
+        aria-expanded={open}
+        aria-controls={open ? hintId : undefined}
+        onClick={() => setPinned((current) => !current)}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onFocus={() => setHovered(true)}
+        onBlur={() => setHovered(false)}
+      >
+        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <circle cx="8" cy="8" r="6.6" />
+          <rect x="7.25" y="6.9" width="1.5" height="4.4" rx="0.75" />
+          <circle cx="8" cy="4.9" r="0.95" />
+        </svg>
+      </button>
+      {open ? (
+        <span role="tooltip" id={hintId} className="info-hint-tooltip">
+          {message}
+        </span>
+      ) : null}
+    </span>
+  )
+}
+
 export function StatusBadge({
   label,
   tone = "info",
   title,
-}: Readonly<{ label: string; tone?: StatusTone; title?: string }>): React.JSX.Element {
+  info,
+}: Readonly<{ label: string; tone?: StatusTone; title?: string; info?: string }>): React.JSX.Element {
   return (
     <span className={`status-badge status-${tone}`} title={title}>
       {label}
+      {info ? <InfoHint message={info} /> : null}
     </span>
   )
 }
@@ -95,10 +131,20 @@ export function Metric({
   value,
   detail,
   title,
-}: Readonly<{ label: string; value: string; detail?: string; title?: string }>): React.JSX.Element {
+  info,
+}: Readonly<{
+  label: string
+  value: string
+  detail?: string
+  title?: string
+  info?: string
+}>): React.JSX.Element {
   return (
     <div className="metric" title={title}>
-      <span className="metric-label">{label}</span>
+      <span className="metric-label">
+        {label}
+        {info ? <InfoHint message={info} /> : null}
+      </span>
       <strong>{value}</strong>
       {detail ? <span className="metric-detail">{detail}</span> : null}
     </div>

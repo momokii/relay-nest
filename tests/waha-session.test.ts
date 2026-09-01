@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest"
 import type { UserRole } from "../apps/api/src/auth/authorization"
 import type { AuthPrincipal } from "../apps/api/src/auth/service"
+import type { AccountScope } from "../apps/api/src/db/schema/shared"
 import {
   createScopedSessionService,
   type ScopedSessionRepository,
 } from "../apps/api/src/waha/sessions"
+import { createEnvelopeCipher, EnvelopeEncryptionError } from "../packages/config/src/index"
 
 function principal(userId: string, role: UserRole): AuthPrincipal {
   return {
@@ -145,8 +147,16 @@ function client() {
     passkeyConfirmation: async () => ({ code: "123456" }),
     confirmPasskey: async () => undefined,
     me: async () => ({ id: "phone-id", pushname: "Safe name" }),
+    messages: async () => [],
     timelock: async () => ({ locked: true, until: "2026-08-16T12:00:00Z" }),
     capping: async () => ({ remaining: 4, resetAt: "2026-08-16T12:00:00Z" }),
+  }
+}
+
+function stubChatRef() {
+  return {
+    seal: (chatId: string) => `ref-${chatId}`,
+    open: (ref: string) => (ref.startsWith("ref-") ? ref.slice("ref-".length) : null),
   }
 }
 
@@ -371,9 +381,16 @@ describe("scoped WAHA session lifecycle", () => {
         name: "Ops Group",
         isGroup: true,
         lastActivity: { preview: null, at: null, fromMe: null },
+        ref: null,
       },
-      { phone: "+628987654321", name: null, isGroup: false, lastActivity: null },
-      { phone: "+628123456789", name: "Example Contact", isGroup: false, lastActivity: null },
+      { phone: "+628987654321", name: null, isGroup: false, lastActivity: null, ref: null },
+      {
+        phone: "+628123456789",
+        name: "Example Contact",
+        isGroup: false,
+        lastActivity: null,
+        ref: null,
+      },
     ])
     expect(JSON.stringify(chats)).not.toContain("redact")
     expect(JSON.stringify(chats)).not.toContain("120363162617804781@g.us")
@@ -418,8 +435,9 @@ describe("scoped WAHA session lifecycle", () => {
           at: "2025-09-04T15:33:20.000Z",
           fromMe: true,
         },
+        ref: null,
       },
-      { phone: "+628123456780", name: "Quiet chat", isGroup: false, lastActivity: null },
+      { phone: "+628123456780", name: "Quiet chat", isGroup: false, lastActivity: null, ref: null },
     ])
     expect(JSON.stringify(chats)).not.toContain("second line")
     expect(JSON.stringify(chats)).not.toContain("A".repeat(120))
@@ -483,16 +501,163 @@ describe("scoped WAHA session lifecycle", () => {
 
     // Then only valid returned numbers are enabled and the original order is preserved
     expect(chats).toEqual([
-      { phone: null, name: "Group", isGroup: true, lastActivity: null },
-      { phone: "+628123456789", name: "C.us contact", isGroup: false, lastActivity: null },
-      { phone: "+628987654321", name: "Valid lid", isGroup: false, lastActivity: null },
-      { phone: null, name: "Malformed lid", isGroup: false, lastActivity: null },
-      { phone: null, name: "Failed lid", isGroup: false, lastActivity: null },
-      { phone: null, name: "Echo lid", isGroup: false, lastActivity: null },
+      { phone: null, name: "Group", isGroup: true, lastActivity: null, ref: null },
+      {
+        phone: "+628123456789",
+        name: "C.us contact",
+        isGroup: false,
+        lastActivity: null,
+        ref: null,
+      },
+      { phone: "+628987654321", name: "Valid lid", isGroup: false, lastActivity: null, ref: null },
+      { phone: null, name: "Malformed lid", isGroup: false, lastActivity: null, ref: null },
+      { phone: null, name: "Failed lid", isGroup: false, lastActivity: null, ref: null },
+      { phone: null, name: "Echo lid", isGroup: false, lastActivity: null, ref: null },
     ])
     expect(contactIds).toEqual(["valid@lid", "malformed@lid", "failed@lid", "239629714329822@lid"])
     expect(JSON.stringify(chats)).not.toContain("@g.us")
     expect(JSON.stringify(chats)).not.toContain("@c.us")
     expect(JSON.stringify(chats)).not.toContain("@lid")
+  })
+
+  it("seals an opaque ref into every directory row when a codec is provided", async () => {
+    // Given a granted Admin session whose service carries a chat ref codec
+    const service = createScopedSessionService({
+      repository: repository(),
+      clientFor: () => client(),
+      chatRef: stubChatRef(),
+    })
+
+    // When the dashboard requests the chat directory
+    const chats = await service.chats(admin, personalSession.id, "personal")
+
+    // Then each row carries exactly the codec output for its serialized chat id
+    expect(chats.map((chat) => chat.ref)).toEqual([
+      "ref-120363162617804781@g.us",
+      "ref-239629714329822@lid",
+      "ref-628123456789@c.us",
+    ])
+    expect(JSON.stringify(chats)).not.toContain("redact")
+    expect(JSON.stringify(chats)).not.toContain("_data")
+  })
+
+  it("keeps real sealed refs free of raw provider chat ids and scope-bound", async () => {
+    // Given a codec backed by the production envelope cipher
+    const cipher = createEnvelopeCipher(Buffer.from("0123456789abcdef0123456789abcdef", "utf8"))
+    const chatRef = {
+      seal: (chatId: string, scope: AccountScope): string =>
+        Buffer.from(
+          JSON.stringify(cipher.encrypt(chatId, { accountScope: scope })),
+          "utf8",
+        ).toString("base64url"),
+      open: (ref: string, scope: AccountScope): string | null => {
+        try {
+          return cipher.decrypt(JSON.parse(Buffer.from(ref, "base64url").toString("utf8")), {
+            accountScope: scope,
+          })
+        } catch (error) {
+          if (error instanceof SyntaxError || error instanceof EnvelopeEncryptionError) return null
+          throw error
+        }
+      },
+    }
+    const service = createScopedSessionService({
+      repository: repository(),
+      clientFor: () => client(),
+      chatRef,
+    })
+
+    // When the dashboard requests the chat directory
+    const chats = await service.chats(admin, personalSession.id, "personal")
+    const serialized = JSON.stringify(chats)
+
+    // Then refs are opaque: no raw ids or provider suffixes appear, and opening is scope-bound
+    expect(chats.every((chat) => typeof chat.ref === "string" && chat.ref.length > 0)).toBe(true)
+    expect(serialized).not.toContain("@g.us")
+    expect(serialized).not.toContain("@c.us")
+    expect(serialized).not.toContain("@lid")
+    expect(serialized).not.toContain("120363162617804781")
+    const groupRef = chats[0]?.ref ?? ""
+    expect(chatRef.open(groupRef, "personal")).toBe("120363162617804781@g.us")
+    expect(chatRef.open(groupRef, "business")).toBe(null)
+  })
+
+  it("maps provider chat messages into a redacted bounded preview list", async () => {
+    // Given a granted session whose provider returns varied recent messages
+    const messageCalls: string[] = []
+    const historyClient = {
+      ...client(),
+      messages: async (name: string, chatId: string) => {
+        messageCalls.push(`${name}:${chatId}`)
+        return [
+          { body: "first line\nsecond line secret", timestamp: 1757000000, fromMe: true },
+          { body: "B".repeat(300), timestamp: 1757000001, fromMe: false },
+          { hasMedia: true, timestamp: 1757000002 },
+          { body: "no timestamp message" },
+          { body: "E".repeat(280), timestamp: 1757000003, fromMe: false },
+        ]
+      },
+    }
+    const service = createScopedSessionService({
+      repository: repository(),
+      clientFor: () => historyClient,
+      chatRef: stubChatRef(),
+    })
+
+    // When the sealed ref is opened for the chat history
+    const messages = await service.messages(
+      admin,
+      personalSession.id,
+      "personal",
+      "ref-628123456789@c.us",
+    )
+
+    // Then previews are first-line, media-aware, truncated, and direction/time are safe
+    expect(messages).toEqual([
+      { at: "2025-09-04T15:33:20.000Z", direction: "out", preview: "first line" },
+      { at: "2025-09-04T15:33:21.000Z", direction: "in", preview: `${"B".repeat(280)}…` },
+      { at: "2025-09-04T15:33:22.000Z", direction: "unknown", preview: "[media]" },
+      { at: null, direction: "unknown", preview: "no timestamp message" },
+      { at: "2025-09-04T15:33:23.000Z", direction: "in", preview: "E".repeat(280) },
+    ])
+    expect(messageCalls).toEqual(["personal:628123456789@c.us"])
+    expect(JSON.stringify(messages)).not.toContain("second line secret")
+    expect(JSON.stringify(messages)).not.toContain("@c.us")
+  })
+
+  it("rejects unknown or tampered chat refs as forbidden", async () => {
+    // Given a service whose codec cannot open the presented ref
+    const service = createScopedSessionService({
+      repository: repository(),
+      clientFor: () => client(),
+      chatRef: { seal: (chatId) => `ref-${chatId}`, open: () => null },
+    })
+    const withoutCodec = createScopedSessionService({
+      repository: repository(),
+      clientFor: () => client(),
+    })
+
+    // When chat history is requested with a tampered ref, or no codec exists at all
+    const tampered = service.messages(admin, personalSession.id, "personal", "tampered-ref")
+    const unopened = withoutCodec.messages(admin, personalSession.id, "personal", "ref-anything")
+
+    // Then both requests are denied before any provider call
+    await expect(tampered).rejects.toMatchObject({ code: "forbidden" })
+    await expect(unopened).rejects.toMatchObject({ code: "forbidden" })
+  })
+
+  it("denies an ungranted viewer from chat history", async () => {
+    // Given a Viewer without a session grant but a codec that would open any ref
+    const service = createScopedSessionService({
+      repository: repository([]),
+      clientFor: () => client(),
+      chatRef: { seal: (chatId) => `ref-${chatId}`, open: () => "628123456789@c.us" },
+    })
+
+    // When the Viewer requests chat history
+    const denied = service.messages(viewer, personalSession.id, "personal", "ref-anything")
+
+    // Then authorization runs before the ref is ever opened
+    await expect(denied).rejects.toMatchObject({ code: "forbidden" })
   })
 })

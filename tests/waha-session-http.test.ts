@@ -23,7 +23,10 @@ const principal: AuthPrincipal = {
   csrfToken: "csrf-token",
 }
 
-function repository(createdInputs: Array<Omit<StoredSession, "id">> = []): ScopedSessionRepository {
+function repository(
+  createdInputs: Array<Omit<StoredSession, "id">> = [],
+  granted = true,
+): ScopedSessionRepository {
   const session = {
     id: sessionId,
     connectionId: "connection-1",
@@ -35,7 +38,7 @@ function repository(createdInputs: Array<Omit<StoredSession, "id">> = []): Scope
   return {
     list: async () => [session],
     find: async () => session,
-    hasGrant: async () => true,
+    hasGrant: async () => granted,
     saveStatus: async () => undefined,
     create: async (input) => {
       createdInputs.push(input)
@@ -48,8 +51,15 @@ function repository(createdInputs: Array<Omit<StoredSession, "id">> = []): Scope
 function serviceWithCalls(
   calls: string[],
   providerBodies: string[] = [],
-  createdInputs = [],
-  overrides: Partial<Pick<WahaSessionClient, "qr">> = {},
+  createdInputs: Array<Omit<StoredSession, "id">> = [],
+  overrides: Partial<Pick<WahaSessionClient, "qr" | "messages">> = {},
+  options: {
+    readonly granted?: boolean
+    readonly chatRef?: {
+      readonly seal: (chatId: string, scope: "personal" | "business") => string
+      readonly open: (ref: string, scope: "personal" | "business") => string | null
+    }
+  } = {},
 ) {
   const client = {
     sessions: async () => [],
@@ -138,13 +148,20 @@ function serviceWithCalls(
       calls.push("POST /api/personal/auth/passkey/confirm")
     },
     me: async () => ({ id: "phone" }),
+    messages:
+      overrides.messages ??
+      (async (name: string, chatId: string) => {
+        calls.push(`GET /api/${name}/chats/${chatId}/messages`)
+        return []
+      }),
     timelock: async () => ({ locked: false }),
     capping: async () => ({ remaining: 4 }),
   }
   return createScopedSessionService({
-    repository: repository(createdInputs),
+    repository: repository(createdInputs, options.granted ?? true),
     clientFor: () => client,
     clientForConnection: () => client,
+    chatRef: options.chatRef,
   })
 }
 
@@ -299,14 +316,93 @@ describe("scoped passkey HTTP routes", () => {
         name: "Ops Group",
         isGroup: true,
         lastActivity: { preview: null, at: null, fromMe: null },
+        ref: null,
       },
-      { phone: "+628123456789", name: "Alice", isGroup: false, lastActivity: null },
-      { phone: "+628111111111", name: "Linked identity", isGroup: false, lastActivity: null },
+      { phone: "+628123456789", name: "Alice", isGroup: false, lastActivity: null, ref: null },
+      {
+        phone: "+628111111111",
+        name: "Linked identity",
+        isGroup: false,
+        lastActivity: null,
+        ref: null,
+      },
     ])
     expect(JSON.stringify(response.json())).not.toContain("@g.us")
     expect(JSON.stringify(response.json())).not.toContain("@c.us")
     expect(JSON.stringify(response.json())).not.toContain("@lid")
     expect(response.body).not.toContain("redact")
     await app.close()
+  })
+
+  it("serves chat history through an opaque chat ref and denies ungranted viewers", async () => {
+    // Given an authenticated Admin whose service seals provider chat ids behind a codec
+    const calls: string[] = []
+    const requestedChatIds: string[] = []
+    const sealedAlice = Buffer.from("628123456789@c.us", "utf8").toString("base64url")
+    const chatRef = {
+      seal: (chatId: string) => Buffer.from(chatId, "utf8").toString("base64url"),
+      open: (ref: string) => (ref === sealedAlice ? "628123456789@c.us" : null),
+    }
+    const app = Fastify()
+    const auth = {
+      authenticate: async () => principal,
+      verifyCsrf: async () => true,
+    }
+    registerSessionRoutes(
+      app,
+      auth,
+      serviceWithCalls(
+        calls,
+        [],
+        [],
+        {
+          messages: async (_name, chatId) => {
+            requestedChatIds.push(chatId)
+            return [
+              { body: "hello there\nsecond line secret", timestamp: 1757000000, fromMe: true },
+              { hasMedia: true },
+            ]
+          },
+        },
+        { chatRef },
+      ),
+    )
+
+    // When the messages route is called with the sealed ref for the granted session
+    const response = await app.inject({
+      method: "GET",
+      url: `/scoped/sessions/${sessionId}/chats/${encodeURIComponent(sealedAlice)}/messages?scope=personal`,
+      headers: { cookie: "waha_session=session-token" },
+    })
+
+    // Then the provider only ever receives the opened chat id and the body stays redacted
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual([
+      { at: "2025-09-04T15:33:20.000Z", direction: "out", preview: "hello there" },
+      { at: null, direction: "unknown", preview: "[media]" },
+    ])
+    expect(requestedChatIds).toEqual(["628123456789@c.us"])
+    expect(response.body).not.toContain("@c.us")
+    expect(response.body).not.toContain("second line secret")
+    await app.close()
+
+    // When an ungranted principal requests the same history
+    const deniedApp = Fastify()
+    registerSessionRoutes(
+      deniedApp,
+      auth,
+      serviceWithCalls([], [], [], {}, { chatRef, granted: false }),
+    )
+    const denied = await deniedApp.inject({
+      method: "GET",
+      url: `/scoped/sessions/${sessionId}/chats/${encodeURIComponent(sealedAlice)}/messages?scope=personal`,
+      headers: { cookie: "waha_session=session-token" },
+    })
+
+    // Then the route refuses before any provider call
+    expect(denied.statusCode).toBe(403)
+    expect(denied.json()).toEqual({ error: "forbidden" })
+    expect(requestedChatIds).toEqual(["628123456789@c.us"])
+    await deniedApp.close()
   })
 })

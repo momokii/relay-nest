@@ -145,12 +145,13 @@ export function createWahaClient(options: WahaClientOptions) {
   ): Promise<T> {
     const requestOptions = config instanceof AbortSignal ? { signal: config } : config
     const signal = requestOptions?.signal
+    const effectiveTimeoutMs = requestOptions?.timeoutMs ?? timeoutMs
     const controller = new AbortController()
     let timedOut = false
     const timeout = setTimeout(() => {
       timedOut = true
       controller.abort()
-    }, timeoutMs)
+    }, effectiveTimeoutMs)
     const onAbort = (): void => controller.abort()
     if (signal?.aborted) {
       clearTimeout(timeout)
@@ -188,7 +189,7 @@ export function createWahaClient(options: WahaClientOptions) {
       return parsed.data
     } catch (error) {
       if (error instanceof WahaHttpError || error instanceof WahaResponseError) throw error
-      if (timedOut) throw new WahaRequestTimeoutError(path, timeoutMs)
+      if (timedOut) throw new WahaRequestTimeoutError(path, effectiveTimeoutMs)
       if (signal?.aborted) throw new WahaRequestCancelledError(path)
       if (error instanceof TypeError) throw new WahaNetworkError(path)
       throw error

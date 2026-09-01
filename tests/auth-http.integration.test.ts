@@ -53,6 +53,7 @@ function createWahaFixtureClient(): WahaSessionClient {
     passkeyConfirmation: async () => ({ code: "fixture-code" }),
     confirmPasskey: async () => undefined,
     me: async () => ({ id: "fixture-id", pushname: "Fixture" }),
+    messages: async () => [],
     timelock: async () => ({ locked: false }),
     capping: async () => ({ remaining: 100 }),
     checkExists: async () => ({ numberExists: false }),

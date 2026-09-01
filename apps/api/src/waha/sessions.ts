@@ -1,9 +1,11 @@
-import type { WahaChat } from "@waha-command-center/waha-contracts"
+import type { WahaChat, WahaMessage } from "@waha-command-center/waha-contracts"
 import type { AuthPrincipal } from "../auth/service"
 import type { AccountScope } from "../db/schema/shared"
 import type {
+  ChatRefCodec,
   NewSession,
   ScopedSessionRepository,
+  SessionChatMessageView,
   SessionChatView,
   SessionLifecycleAction,
   SessionStatusHistoryEntry,
@@ -20,10 +22,12 @@ import type {
 import { ScopedSessionError } from "./session-types"
 
 export {
+  type ChatRefCodec,
   type NewSession,
   ScopedSessionError,
   type ScopedSessionRepository,
   SESSION_LIFECYCLE_ACTIONS,
+  type SessionChatMessageView,
   type SessionChatView,
   type SessionLifecycleAction,
   type SessionStatusHistoryEntry,
@@ -61,8 +65,14 @@ function normalizePhone(phone: string | null | undefined): string | null {
 }
 
 const LAST_ACTIVITY_PREVIEW_LIMIT = 90
+const CHAT_MESSAGE_PREVIEW_LIMIT = 280
 
-function chatView(chat: WahaChat, phone?: string | null): SessionChatView {
+function chatView(
+  chat: WahaChat,
+  phone: string | null | undefined,
+  scope: AccountScope,
+  chatRef: ChatRefCodec | undefined,
+): SessionChatView {
   const serializedId = chat.id._serialized
   const chatPhone = serializedId.endsWith("@c.us") ? serializedId.slice(0, -"@c.us".length) : phone
   const lastMessage = chat.lastMessage
@@ -87,6 +97,24 @@ function chatView(chat: WahaChat, phone?: string | null): SessionChatView {
           fromMe: typeof lastMessage.fromMe === "boolean" ? lastMessage.fromMe : null,
         }
       : null,
+    ref: chatRef ? chatRef.seal(serializedId, scope) : null,
+  }
+}
+
+function chatMessageView(message: WahaMessage): SessionChatMessageView {
+  const firstLine = (message.body ?? "").split("\n", 1)[0]?.trim() ?? ""
+  let preview: string | null = firstLine.length > 0 ? firstLine : null
+  if (preview === null && message.hasMedia === true) preview = "[media]"
+  if (preview !== null && preview.length > CHAT_MESSAGE_PREVIEW_LIMIT) {
+    preview = `${preview.slice(0, CHAT_MESSAGE_PREVIEW_LIMIT)}…`
+  }
+  return {
+    at:
+      typeof message.timestamp === "number" && Number.isFinite(message.timestamp)
+        ? new Date(message.timestamp * 1000).toISOString()
+        : null,
+    direction: message.fromMe === true ? "out" : message.fromMe === false ? "in" : "unknown",
+    preview,
   }
 }
 
@@ -105,6 +133,8 @@ async function projectChats(
   client: WahaSessionClient,
   sessionName: string,
   chats: readonly WahaChat[],
+  scope: AccountScope,
+  chatRef: ChatRefCodec | undefined,
 ): Promise<readonly SessionChatView[]> {
   const phones = new Map<number, string | null>()
   const lookups = chats
@@ -128,7 +158,7 @@ async function projectChats(
     })
   }
 
-  return chats.map((chat, index) => chatView(chat, phones.get(index)))
+  return chats.map((chat, index) => chatView(chat, phones.get(index), scope, chatRef))
 }
 
 function webhookConfig(
@@ -157,9 +187,7 @@ function withWebhookConfig(
   const record: Record<string, unknown> =
     typeof parsed === "object" && parsed !== null ? { ...parsed } : {}
   record["config"] = {
-    ...(typeof record["config"] === "object" && record["config"] !== null
-      ? record["config"]
-      : {}),
+    ...(typeof record["config"] === "object" && record["config"] !== null ? record["config"] : {}),
     ...webhookConfig(scope, sessionName, baseUrl),
   }
   return JSON.stringify(record)
@@ -172,6 +200,7 @@ export function createScopedSessionService(options: {
     connectionId: string,
   ) => WahaSessionClient | Promise<WahaSessionClient>
   readonly webhookBaseUrl?: string | undefined
+  readonly chatRef?: ChatRefCodec
   readonly audit?: (input: {
     readonly actorUserId: string
     readonly action: string
@@ -292,7 +321,21 @@ export function createScopedSessionService(options: {
       const session = await authorized(principal, sessionId, scope, "read")
       const client = await options.clientFor(session)
       const chats = await client.chats(session.wahaSessionName)
-      return projectChats(client, session.wahaSessionName, chats)
+      return projectChats(client, session.wahaSessionName, chats, scope, options.chatRef)
+    },
+    async messages(
+      principal: AuthPrincipal,
+      sessionId: string,
+      scope: AccountScope,
+      ref: string,
+      limit = 50,
+    ): Promise<readonly SessionChatMessageView[]> {
+      const session = await authorized(principal, sessionId, scope, "read")
+      const chatId = options.chatRef?.open(ref, scope) ?? null
+      if (chatId === null) throw new ScopedSessionError("forbidden")
+      const client = await options.clientFor(session)
+      const messages = await client.messages(session.wahaSessionName, chatId)
+      return messages.slice(0, Math.max(0, limit)).map(chatMessageView)
     },
     async lifecycle(
       principal: AuthPrincipal,

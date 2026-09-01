@@ -48,13 +48,13 @@ export function OverviewPage({
               label="Message volume"
               value={String(metrics.messageVolume.total)}
               detail="Evidence-backed only"
-              title="Messages counted in this scope, from signed WhatsApp webhook events. Zero means no webhook activity has been ingested yet."
+      info="Messages counted in this scope, from signed WhatsApp webhook events. Zero means no webhook activity has been ingested yet."
             />
             <Metric
               label="Acknowledgments"
               value={String(metrics.acknowledgments.acknowledged)}
               detail="Not recipient delivery"
-              title="Messages the WhatsApp device or server acknowledged after submit. Transport evidence, not proof the recipient read the message."
+      info="Messages the WhatsApp device or server acknowledged after submit. Transport evidence, not proof the recipient read the message."
             />
             <Metric
               label="Failure rate"
@@ -64,13 +64,13 @@ export function OverviewPage({
                   : `${Math.round(metrics.failureRate * 100)}%`
               }
               detail="Window-scoped"
-              title="Share of completed sends in this window whose dispatch failed. Unknown until at least one send completes in the window."
+      info="Share of completed sends in this window whose dispatch failed. Unknown until at least one send completes in the window."
             />
             <Metric
               label="Session uptime"
               value={metrics.uptimeMs === null ? "Unknown" : formatDuration(metrics.uptimeMs)}
               detail="Status history required"
-              title="Time sessions spent in an active status inside the window, reconstructed from recorded status history. Unknown without status history."
+      info="Time sessions spent in an active status inside the window, reconstructed from recorded status history. Unknown without status history."
             />
           </div>
         ) : null}
@@ -144,22 +144,22 @@ export function AnalyticsPage({
             <Metric
               label="Inbound"
               value={String(data.messageVolume.inbound)}
-              title="Messages received in this scope, counted from signed WhatsApp webhook events. Requires webhook ingestion to be connected."
+      info="Messages received in this scope, counted from signed WhatsApp webhook events. Requires webhook ingestion to be connected."
             />
             <Metric
               label="Outbound"
               value={String(data.messageVolume.outbound)}
-              title="Messages you sent in this scope, counted from signed WhatsApp webhook events. Requires webhook ingestion to be connected."
+      info="Messages you sent in this scope, counted from signed WhatsApp webhook events. Requires webhook ingestion to be connected."
             />
             <Metric
               label="Retries"
               value={String(data.retryCount)}
-              title="Extra delivery attempts after the first try."
+      info="Extra delivery attempts after the first try."
             />
             <Metric
               label="Contact activity"
               value={String(data.contactActivity)}
-              title="New or updated verified contacts in this scope."
+      info="New or updated verified contacts in this scope."
             />
           </div>
         ) : null}
@@ -168,22 +168,22 @@ export function AnalyticsPage({
         <div className="status-list">
           <StatusBadge
             label={`Submitted · ${data?.acknowledgments.submitted ?? "Unknown"}`}
-            title="WhatsApp accepted our submit — transport evidence, not recipient delivery proof."
+          info="WhatsApp accepted our submit — transport evidence, not recipient delivery proof."
           />
           <StatusBadge
             label={`Acknowledged · ${data?.acknowledgments.acknowledged ?? "Unknown"}`}
             tone="success"
-            title="Device/server acknowledged the message; still not read-receipt proof."
+          info="Device/server acknowledged the message; still not read-receipt proof."
           />
           <StatusBadge
             label={`Failed · ${data?.acknowledgments.failed ?? "Unknown"}`}
             tone="error"
-            title="The WhatsApp provider reported this message could not be delivered."
+          info="The WhatsApp provider reported this message could not be delivered."
           />
           <StatusBadge
             label={`Unknown · ${data?.acknowledgments.unknown ?? "Unknown"}`}
             tone="warning"
-            title="No delivery evidence exists for this message yet; it is never counted as delivered."
+          info="No delivery evidence exists for this message yet; it is never counted as delivered."
           />
         </div>
         <p className="panel-description">

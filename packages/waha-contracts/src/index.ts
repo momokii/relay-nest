@@ -58,13 +58,23 @@ export const wahaChatsSchema = z.array(
       isGroup: z.boolean().optional(),
       lastMessage: z
         .object({
-          body: z.string().optional(),
-          timestamp: z.number().optional(),
-          fromMe: z.boolean().optional(),
-          hasMedia: z.boolean().optional(),
+          body: z.string().nullable().optional(),
+          timestamp: z.number().nullable().optional(),
+          fromMe: z.boolean().nullable().optional(),
+          hasMedia: z.boolean().nullable().optional(),
         })
         .passthrough()
         .optional(),
+    })
+    .passthrough(),
+)
+export const wahaMessagesSchema = z.array(
+  z
+    .object({
+      body: z.string().nullable().optional(),
+      timestamp: z.number().nullable().optional(),
+      fromMe: z.boolean().nullable().optional(),
+      hasMedia: z.boolean().nullable().optional(),
     })
     .passthrough(),
 )
@@ -109,6 +119,7 @@ export type WahaEnvironment = z.infer<typeof wahaEnvironmentSchema>
 export type WahaServerStatus = z.infer<typeof wahaServerStatusSchema>
 export type WahaSession = z.infer<typeof wahaSessionSchema>
 export type WahaChat = z.infer<typeof wahaChatsSchema>[number]
+export type WahaMessage = z.infer<typeof wahaMessagesSchema>[number]
 export type WahaQrResponse = z.infer<typeof wahaQrResponseSchema>
 export type WahaMetadata = z.infer<typeof wahaMetadataSchema>
 export type WahaTimelock = z.infer<typeof wahaTimelockSchema>

@@ -80,7 +80,7 @@ export function createApiApp(
     readonly allowLoopbackWaha?: boolean
   } = {},
 ): FastifyInstance {
-  const app = Fastify({ logger: true })
+  const app = Fastify({ logger: true, maxParamLength: 512 })
   const repositories = createRepositories(database.db)
   const audit: AuditCallback = async (input) => {
     await repositories.auditEntries.append(input)

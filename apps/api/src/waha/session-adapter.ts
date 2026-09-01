@@ -3,6 +3,7 @@ import {
   type WahaChat,
   type WahaContact,
   type WahaContactExists,
+  type WahaMessage,
   type WahaMetadata,
   type WahaPasskeyChallenge,
   type WahaPasskeyConfirmation,
@@ -12,6 +13,7 @@ import {
   wahaChatsSchema,
   wahaContactExistsSchema,
   wahaContactSchema,
+  wahaMessagesSchema,
   wahaMetadataSchema,
   wahaPasskeyChallengeSchema,
   wahaPasskeyConfirmationSchema,
@@ -30,6 +32,7 @@ export type WahaRequestOptions = {
   readonly method?: string
   readonly body?: string
   readonly signal?: AbortSignal | undefined
+  readonly timeoutMs?: number
 }
 
 type WahaRequest = <T>(
@@ -122,6 +125,13 @@ export function createWahaSessionOperations(request: WahaRequest) {
       request(`/api/sessions/${encodeURIComponent(name)}/me`, wahaMetadataSchema, signal),
     chats: (name: string, signal?: AbortSignal): Promise<WahaChat[]> =>
       request(`/api/${encodeURIComponent(name)}/chats`, wahaChatsSchema, signal),
+    messages: (name: string, chatId: string, signal?: AbortSignal): Promise<WahaMessage[]> =>
+      request(
+        `/api/${encodeURIComponent(name)}/chats/${encodeURIComponent(chatId)}/messages?limit=50`,
+        wahaMessagesSchema,
+        // Message history materializes lazily upstream and can exceed the default budget.
+        { signal, timeoutMs: 20_000 },
+      ),
     timelock: (name: string, signal?: AbortSignal): Promise<WahaTimelock> =>
       request(`/api/sessions/${encodeURIComponent(name)}/timelock`, wahaTimelockSchema, signal),
     capping: (name: string, signal?: AbortSignal): Promise<WahaCapping> =>

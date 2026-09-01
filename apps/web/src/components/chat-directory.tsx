@@ -2,8 +2,13 @@ import type * as React from "react"
 import { useEffect, useMemo, useState } from "react"
 
 import type { AccountScope } from "../dashboard-model"
-import { createDashboardSessionApi, type SessionChat } from "../dashboard-session-api"
-import type { ResourceState } from "../dashboard-state"
+import {
+  createDashboardSessionApi,
+  type MessageView,
+  type SessionChat,
+} from "../dashboard-session-api"
+import { type ResourceState, resourceFromResult } from "../dashboard-state"
+import { ChatHistoryOverlay, historyChatLabel } from "./chat-history-overlay"
 import { LoadingRows, StateNotice } from "./ui"
 
 export function directoryContactTarget(
@@ -41,6 +46,8 @@ function directoryActivityLine(chat: SessionChat): string | null {
   return `${prefix}${preview}${at}`
 }
 
+type ChatHistoryTarget = Readonly<{ chat: SessionChat; ref: string }>
+
 export function ChatDirectory({
   scope,
   sessionId,
@@ -57,6 +64,10 @@ export function ChatDirectory({
   const api = useMemo(() => createDashboardSessionApi(import.meta.env.VITE_API_BASE_URL), [])
   const [chats, setChats] = useState<ResourceState<readonly SessionChat[]>>({ kind: "loading" })
   const [query, setQuery] = useState("")
+  const [history, setHistory] = useState<ChatHistoryTarget | null>(null)
+  const [messages, setMessages] = useState<ResourceState<readonly MessageView[]>>({
+    kind: "loading",
+  })
 
   useEffect(() => {
     let current = true
@@ -74,6 +85,27 @@ export function ChatDirectory({
       current = false
     }
   }, [api, scope, sessionId])
+
+  useEffect(() => {
+    if (history === null) return
+    let isCurrent = true
+    setMessages({ kind: "loading" })
+    void api.messages(scope, sessionId, history.ref).then((result) => {
+      if (isCurrent) setMessages(resourceFromResult(result))
+    })
+    return () => {
+      isCurrent = false
+    }
+  }, [api, scope, sessionId, history])
+
+  useEffect(() => {
+    if (history === null) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setHistory(null)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [history])
 
   const filtered =
     chats.kind === "ready"
@@ -127,26 +159,49 @@ export function ChatDirectory({
         <div className="chat-directory-list">
           {filtered.map((chat, index) => {
             const activityLine = directoryActivityLine(chat)
+            const chatRef = chat.ref
+            const selected = selectedChatId === chat.phone
             return (
-              <button
-                className={`directory-item${selectedChatId === chat.phone ? " is-selected" : ""}`}
-                type="button"
-                key={directoryChatKey(chat, index)}
-                onClick={() => onSelect?.(chat)}
-                disabled={disabled || directoryContactTarget(chat) === undefined}
-                aria-pressed={selectedChatId === chat.phone}
-              >
-                <strong>{chat.name ?? "Unnamed chat"}</strong>
-                <span>{directoryContactDescription(chat)}</span>
-                {activityLine ? <span className="directory-preview">{activityLine}</span> : null}
-                {selectedChatId === chat.phone ? (
-                  <span className="directory-selection">Selected</span>
+              <div className="directory-row" key={directoryChatKey(chat, index)}>
+                <button
+                  className={`directory-item${selected ? " is-selected" : ""}`}
+                  type="button"
+                  onClick={() => onSelect?.(chat)}
+                  disabled={disabled || directoryContactTarget(chat) === undefined}
+                  aria-pressed={selected}
+                >
+                  <strong>{chat.name ?? "Unnamed chat"}</strong>
+                  <span>{directoryContactDescription(chat)}</span>
+                  {activityLine ? <span className="directory-preview">{activityLine}</span> : null}
+                  {selected ? <span className="directory-selection">Selected</span> : null}
+                </button>
+                {typeof chatRef === "string" ? (
+                  <button
+                    className="button button-secondary directory-chat-button"
+                    type="button"
+                    aria-label={`View chat history for ${historyChatLabel(chat)}`}
+                    disabled={disabled}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      event.preventDefault()
+                      setHistory({ chat, ref: chatRef })
+                    }}
+                  >
+                    Chat
+                  </button>
                 ) : null}
-              </button>
+              </div>
             )
           })}
         </div>
       ) : null}
+      {history === null ? null : (
+        <ChatHistoryOverlay
+          chat={history.chat}
+          messages={messages}
+          onClose={() => setHistory(null)}
+        />
+      )}
     </section>
   )
 }

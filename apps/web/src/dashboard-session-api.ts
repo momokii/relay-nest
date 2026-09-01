@@ -26,6 +26,12 @@ const chatSchema = z.object({
       fromMe: z.boolean().nullable(),
     })
     .nullable(),
+  ref: z.string().nullable().optional(),
+})
+const messageSchema = z.object({
+  at: z.string().nullable(),
+  direction: z.enum(["in", "out", "unknown"]),
+  preview: z.string().nullable(),
 })
 export const createSessionSchema = z.object({
   connectionId: z.string().uuid(),
@@ -41,6 +47,7 @@ export type SessionQr = z.infer<typeof qrSchema>
 export type SessionMetadata = z.infer<typeof metadataSchema>
 export type SessionCreateInput = z.infer<typeof createSessionSchema>
 export type SessionChat = z.infer<typeof chatSchema>
+export type MessageView = z.infer<typeof messageSchema>
 
 export type DashboardSessionApi = Readonly<{
   create: (scope: AccountScope, input: SessionCreateInput) => Promise<ApiResult<SessionView>>
@@ -63,6 +70,11 @@ export type DashboardSessionApi = Readonly<{
     sessionId: string,
   ) => Promise<ApiResult<readonly SessionStatusHistory[]>>
   chats: (scope: AccountScope, sessionId: string) => Promise<ApiResult<readonly SessionChat[]>>
+  messages: (
+    scope: AccountScope,
+    sessionId: string,
+    ref: string,
+  ) => Promise<ApiResult<readonly MessageView[]>>
 }>
 
 export function createDashboardSessionApi(baseUrl = ""): DashboardSessionApi {
@@ -107,6 +119,13 @@ export function createDashboardSessionApi(baseUrl = ""): DashboardSessionApi {
       const result = await requestJson(
         scoped(`/scoped/sessions/${sessionId}/chats`, scope),
         z.array(chatSchema),
+      )
+      return result.kind === "ready" ? { kind: "ready", data: result.data } : result
+    },
+    messages: async (scope, sessionId, ref) => {
+      const result = await requestJson(
+        scoped(`/scoped/sessions/${sessionId}/chats/${encodeURIComponent(ref)}/messages`, scope),
+        z.array(messageSchema),
       )
       return result.kind === "ready" ? { kind: "ready", data: result.data } : result
     },
