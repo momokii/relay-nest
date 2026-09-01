@@ -129,8 +129,9 @@ export function createWahaSessionOperations(request: WahaRequest) {
       request(
         `/api/${encodeURIComponent(name)}/chats/${encodeURIComponent(chatId)}/messages?limit=50`,
         wahaMessagesSchema,
-        // Message history materializes lazily upstream and can exceed the default budget.
-        { signal, timeoutMs: 20_000 },
+        // Message history materializes lazily upstream; a cold provider store
+        // after a restart can exceed 20s, so this op carries its own budget.
+        { signal, timeoutMs: 30_000 },
       ),
     timelock: (name: string, signal?: AbortSignal): Promise<WahaTimelock> =>
       request(`/api/sessions/${encodeURIComponent(name)}/timelock`, wahaTimelockSchema, signal),
