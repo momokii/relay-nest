@@ -89,12 +89,26 @@ export function ChatDirectory({
   useEffect(() => {
     if (history === null) return
     let isCurrent = true
+    let retryTimer: ReturnType<typeof setTimeout> | undefined
     setMessages({ kind: "loading" })
-    void api.messages(scope, sessionId, history.ref).then((result) => {
-      if (isCurrent) setMessages(resourceFromResult(result))
-    })
+    // WAHA materializes chat history lazily: a cold store can answer 200 with
+    // an empty array, so a single empty result is retried once before shown.
+    const load = (attempt: number): void => {
+      void api.messages(scope, sessionId, history.ref).then((result) => {
+        if (!isCurrent) return
+        if (attempt < 1 && result.kind === "ready" && result.data.length === 0) {
+          retryTimer = setTimeout(() => {
+            if (isCurrent) load(attempt + 1)
+          }, 1500)
+          return
+        }
+        setMessages(resourceFromResult(result))
+      })
+    }
+    load(0)
     return () => {
       isCurrent = false
+      if (retryTimer !== undefined) clearTimeout(retryTimer)
     }
   }, [api, scope, sessionId, history])
 

@@ -49,8 +49,8 @@ export function ChatHistoryOverlay({
         ) : null}
         {messages.kind === "ready" && messages.data.length === 0 ? (
           <StateNotice
-            title="No messages"
-            message="This chat has no recent messages to show."
+            title="No messages yet"
+            message="WhatsApp may still be loading this chat's history. Close this panel and reopen it in a moment."
             tone="warning"
           />
         ) : null}
