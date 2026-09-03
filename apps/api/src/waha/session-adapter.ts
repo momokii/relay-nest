@@ -8,6 +8,7 @@ import {
   type WahaPasskeyChallenge,
   type WahaPasskeyConfirmation,
   type WahaQrResponse,
+  type WahaSingleMessage,
   type WahaTimelock,
   wahaCappingSchema,
   wahaChatsSchema,
@@ -19,6 +20,7 @@ import {
   wahaPasskeyConfirmationSchema,
   wahaSendTextResponseSchema,
   wahaSessionActionResponseSchema,
+  wahaSingleMessageSchema,
   wahaTimelockSchema,
 } from "@waha-command-center/waha-contracts"
 import { z } from "zod"
@@ -132,6 +134,17 @@ export function createWahaSessionOperations(request: WahaRequest) {
         // Message history materializes lazily upstream; a cold provider store
         // after a restart can exceed 20s, so this op carries its own budget.
         { signal, timeoutMs: 30_000 },
+      ),
+    message: (
+      name: string,
+      chatId: string,
+      messageId: string,
+      signal?: AbortSignal,
+    ): Promise<WahaSingleMessage> =>
+      request(
+        `/api/${encodeURIComponent(name)}/chats/${encodeURIComponent(chatId)}/messages/${encodeURIComponent(messageId)}`,
+        wahaSingleMessageSchema,
+        { signal, timeoutMs: 15_000 },
       ),
     timelock: (name: string, signal?: AbortSignal): Promise<WahaTimelock> =>
       request(`/api/sessions/${encodeURIComponent(name)}/timelock`, wahaTimelockSchema, signal),

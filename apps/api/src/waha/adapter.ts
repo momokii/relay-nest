@@ -199,6 +199,49 @@ export function createWahaClient(options: WahaClientOptions) {
     }
   }
 
+  async function downloadFile(
+    path: string,
+    signal?: AbortSignal,
+  ): Promise<{ buffer: ArrayBuffer; contentType: string | null }> {
+    const controller = new AbortController()
+    let timedOut = false
+    const timeout = setTimeout(() => {
+      timedOut = true
+      controller.abort()
+    }, timeoutMs)
+    const onAbort = (): void => controller.abort()
+    if (signal?.aborted) {
+      clearTimeout(timeout)
+      throw new WahaRequestCancelledError(path)
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
+    try {
+      const response = await fetcher(new URL(path, baseUrl), {
+        method: "GET",
+        headers: { "X-Api-Key": options.apiKey },
+        signal: controller.signal,
+      })
+      if (!response.ok)
+        throw new WahaHttpError(
+          response.status,
+          path,
+          classifyHttpStatus(response.status),
+          await rejectionDetail(response),
+        )
+      const buffer = await response.arrayBuffer()
+      return { buffer, contentType: response.headers.get("content-type") }
+    } catch (error) {
+      if (error instanceof WahaHttpError) throw error
+      if (timedOut) throw new WahaRequestTimeoutError(path, timeoutMs)
+      if (signal?.aborted) throw new WahaRequestCancelledError(path)
+      if (error instanceof TypeError) throw new WahaNetworkError(path)
+      throw error
+    } finally {
+      clearTimeout(timeout)
+      signal?.removeEventListener("abort", onAbort)
+    }
+  }
+
   return {
     ping: (signal?: AbortSignal) => request("/ping", wahaPingSchema, signal),
     health: (signal?: AbortSignal) => request("/health", wahaHealthSchema, signal),
@@ -216,6 +259,7 @@ export function createWahaClient(options: WahaClientOptions) {
       request("/api/server/status", wahaServerStatusSchema, signal),
     sessions: (signal?: AbortSignal) => request("/api/sessions", wahaSessionsSchema, signal),
     ...createWahaSessionOperations(request),
+    downloadFile,
     async checkHealth(signal?: AbortSignal): Promise<WahaHealthReport> {
       const [ping, health, version, environment, serverStatus, sessions] = await Promise.all([
         request("/ping", wahaPingSchema, signal),
