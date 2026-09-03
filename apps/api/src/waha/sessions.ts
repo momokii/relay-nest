@@ -400,7 +400,53 @@ export function createScopedSessionService(options: {
       if (chatId === null) throw new ScopedSessionError("forbidden")
       const client = await options.clientFor(session)
       const messages = await client.messages(session.wahaSessionName, chatId)
-      return messages.slice(0, Math.max(0, limit)).map(chatMessageView)
+      const sliced = messages.slice(0, Math.max(0, limit))
+      const mentionLids = new Set<string>()
+      for (const message of sliced) {
+        const body = (message.body ?? "") as string
+        for (const match of body.matchAll(/@(\d{8,})/g)) {
+          const lid = match[1]
+          if (lid) mentionLids.add(lid)
+        }
+      }
+      const mentionMap = new Map<string, string>()
+      if (mentionLids.size > 0) {
+        const lids = [...mentionLids]
+        for (let offset = 0; offset < lids.length; offset += 8) {
+          const batch = lids.slice(offset, offset + 8)
+          const results = await Promise.allSettled(
+            batch.map((lid) => client.contact(session.wahaSessionName, `${lid}@lid`)),
+          )
+          results.forEach((result, index) => {
+            const lid = batch[index]
+            if (!lid) return
+            if (result.status === "fulfilled") {
+              const contact = result.value
+              const displayName =
+                contact.name && !isPhoneLikeName(contact.name)
+                  ? contact.name
+                  : contact.pushname && !isPhoneLikeName(contact.pushname)
+                    ? contact.pushname
+                    : null
+              const phone = contactPhone(contact, `${lid}@lid`)
+              const normalized = phone ? normalizePhone(phone) : null
+              const label = displayName ?? normalized ?? lid
+              mentionMap.set(lid, label)
+            } else {
+              mentionMap.set(lid, lid)
+            }
+          })
+        }
+      }
+      return sliced.map((message) => {
+        const view = chatMessageView(message)
+        if (mentionMap.size === 0 || view.preview === null) return view
+        let enriched = view.preview
+        for (const [lid, label] of mentionMap) {
+          enriched = enriched.split(`@${lid}`).join(`@${label}`)
+        }
+        return enriched === view.preview ? view : { ...view, preview: enriched }
+      })
     },
     async messageMedia(
       principal: AuthPrincipal,
