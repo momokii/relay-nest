@@ -29,9 +29,12 @@ const chatSchema = z.object({
   ref: z.string().nullable().optional(),
 })
 const messageSchema = z.object({
+  id: z.string().nullable(),
   at: z.string().nullable(),
   direction: z.enum(["in", "out", "unknown"]),
   preview: z.string().nullable(),
+  hasMedia: z.boolean(),
+  mimetype: z.string().nullable(),
 })
 export const createSessionSchema = z.object({
   connectionId: z.string().uuid(),
@@ -75,6 +78,12 @@ export type DashboardSessionApi = Readonly<{
     sessionId: string,
     ref: string,
   ) => Promise<ApiResult<readonly MessageView[]>>
+  messageMediaUrl: (
+    scope: AccountScope,
+    sessionId: string,
+    ref: string,
+    messageId: string,
+  ) => string
 }>
 
 export function createDashboardSessionApi(baseUrl = ""): DashboardSessionApi {
@@ -129,5 +138,10 @@ export function createDashboardSessionApi(baseUrl = ""): DashboardSessionApi {
       )
       return result.kind === "ready" ? { kind: "ready", data: result.data } : result
     },
+    messageMediaUrl: (scope, sessionId, ref, messageId) =>
+      scoped(
+        `/scoped/sessions/${sessionId}/chats/${encodeURIComponent(ref)}/messages/${encodeURIComponent(messageId)}/media`,
+        scope,
+      ),
   }
 }

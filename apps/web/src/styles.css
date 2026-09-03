@@ -1064,6 +1064,13 @@ select {
   font-size: var(--type-small);
   white-space: pre-wrap;
 }
+.chat-history-media {
+  width: 100%;
+  max-height: 18rem;
+  border-radius: var(--radius-control);
+  object-fit: contain;
+  background: var(--color-inset);
+}
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;

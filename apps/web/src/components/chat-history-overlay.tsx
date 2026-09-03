@@ -2,7 +2,9 @@ import type * as React from "react"
 import { useEffect, useRef } from "react"
 import { createPortal } from "react-dom"
 
+import type { AccountScope } from "../dashboard-model"
 import type { MessageView, SessionChat } from "../dashboard-session-api"
+import { createDashboardSessionApi } from "../dashboard-session-api"
 import type { ResourceState } from "../dashboard-state"
 import { LoadingRows, StateNotice } from "./ui"
 
@@ -23,15 +25,22 @@ function historyTime(at: string | null): string {
 export function ChatHistoryOverlay({
   chat,
   messages,
+  scope,
+  sessionId,
+  chatRef,
   onRetry,
   onClose,
 }: Readonly<{
   chat: SessionChat
   messages: ResourceState<readonly MessageView[]>
+  scope: AccountScope
+  sessionId: string
+  chatRef: string
   onRetry: () => void
   onClose: () => void
 }>): React.JSX.Element {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const api = createDashboardSessionApi(import.meta.env.VITE_API_BASE_URL)
 
   useEffect(() => {
     closeButtonRef.current?.focus()
@@ -84,22 +93,36 @@ export function ChatHistoryOverlay({
         ) : null}
         {messages.kind === "ready" && messages.data.length > 0 ? (
           <ul className="chat-history-list">
-            {messages.data.map((message, index) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: the server redacts provider message ids, so position in the immutable snapshot is the only stable key
-              <li className="chat-history-entry" key={`chat-history-${index}`}>
-                <div className="chat-history-meta">
-                  <span className="chat-history-direction">
-                    {message.direction === "out"
-                      ? "you"
-                      : message.direction === "in"
-                        ? historyChatLabel(chat)
-                        : "unknown"}
-                  </span>
-                  <span>{historyTime(message.at)}</span>
-                </div>
-                <p className="chat-history-preview">{message.preview ?? "—"}</p>
-              </li>
-            ))}
+            {messages.data.map((message, index) => {
+              const isImage =
+                message.hasMedia &&
+                typeof message.id === "string" &&
+                (message.mimetype?.startsWith("image/") ?? true)
+              return (
+                // biome-ignore lint/suspicious/noArrayIndexKey: the server redacts provider message ids, so position in the immutable snapshot is the only stable key
+                <li className="chat-history-entry" key={`chat-history-${index}`}>
+                  <div className="chat-history-meta">
+                    <span className="chat-history-direction">
+                      {message.direction === "out"
+                        ? "you"
+                        : message.direction === "in"
+                          ? historyChatLabel(chat)
+                          : "unknown"}
+                    </span>
+                    <span>{historyTime(message.at)}</span>
+                  </div>
+                  {isImage && typeof message.id === "string" ? (
+                    <img
+                      className="chat-history-media"
+                      src={api.messageMediaUrl(scope, sessionId, chatRef, message.id)}
+                      alt={message.preview ?? "Image"}
+                      loading="lazy"
+                    />
+                  ) : null}
+                  <p className="chat-history-preview">{message.preview ?? "—"}</p>
+                </li>
+              )
+            })}
           </ul>
         ) : null}
       </div>

@@ -254,6 +254,9 @@ export function ChatDirectory({
         <ChatHistoryOverlay
           chat={history.chat}
           messages={messages}
+          scope={scope}
+          sessionId={sessionId}
+          chatRef={history.ref}
           onRetry={retryHistory}
           onClose={() => setHistory(null)}
         />
