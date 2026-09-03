@@ -67,14 +67,25 @@ function normalizePhone(phone: string | null | undefined): string | null {
 const LAST_ACTIVITY_PREVIEW_LIMIT = 90
 const CHAT_MESSAGE_PREVIEW_LIMIT = 280
 
+function isPhoneLikeName(name: string | null | undefined): boolean {
+  if (!name) return true
+  const trimmed = name.trim()
+  return /^\+?[\d\s\-()]+$/.test(trimmed) && trimmed.replace(/\D/g, "").length >= 7
+}
+
 function chatView(
   chat: WahaChat,
   phone: string | null | undefined,
+  enrichedName: string | null | undefined,
   scope: AccountScope,
   chatRef: ChatRefCodec | undefined,
 ): SessionChatView {
   const serializedId = chat.id._serialized
   const chatPhone = serializedId.endsWith("@c.us") ? serializedId.slice(0, -"@c.us".length) : phone
+  const resolvedName =
+    enrichedName !== null && enrichedName !== undefined && enrichedName.trim().length > 0
+      ? enrichedName
+      : null
   const lastMessage = chat.lastMessage
   const firstLine = (lastMessage?.body ?? "").split("\n", 1)[0]?.trim() ?? ""
   let preview: string | null = firstLine.length > 0 ? firstLine : null
@@ -86,9 +97,12 @@ function chatView(
     typeof lastMessage?.timestamp === "number" && Number.isFinite(lastMessage.timestamp)
       ? new Date(lastMessage.timestamp * 1000).toISOString()
       : null
+  const rawName = chat.name ?? null
+  const effectiveName =
+    resolvedName !== null ? resolvedName : isPhoneLikeName(rawName) ? null : rawName
   return {
     phone: normalizePhone(chatPhone),
-    name: chat.name ?? null,
+    name: effectiveName,
     isGroup: chat.isGroup ?? false,
     lastActivity: lastMessage
       ? {
@@ -137,12 +151,13 @@ async function projectChats(
   chatRef: ChatRefCodec | undefined,
 ): Promise<readonly SessionChatView[]> {
   const phones = new Map<number, string | null>()
-  const lookups = chats
+  const enrichedNames = new Map<number, string | null>()
+  const lidLookups = chats
     .map((chat, index) => ({ chat, index }))
     .filter(({ chat }) => chat.isGroup !== true && chat.id._serialized.endsWith("@lid"))
 
-  for (let offset = 0; offset < lookups.length; offset += 8) {
-    const batch = lookups.slice(offset, offset + 8)
+  for (let offset = 0; offset < lidLookups.length; offset += 8) {
+    const batch = lidLookups.slice(offset, offset + 8)
     const results = await Promise.allSettled(
       batch.map(({ chat }) => client.contact(sessionName, chat.id._serialized)),
     )
@@ -155,10 +170,40 @@ async function projectChats(
           ? contactPhone(result.value, lookup.chat.id._serialized)
           : null,
       )
+      if (result.status === "fulfilled") {
+        const fetchedName = result.value.name ?? result.value.pushname ?? null
+        if (fetchedName && !isPhoneLikeName(fetchedName))
+          enrichedNames.set(lookup.index, fetchedName)
+      }
     })
   }
 
-  return chats.map((chat, index) => chatView(chat, phones.get(index), scope, chatRef))
+  const nameLookups = chats
+    .map((chat, index) => ({ chat, index }))
+    .filter(
+      ({ chat, index }) =>
+        chat.isGroup !== true && !enrichedNames.has(index) && isPhoneLikeName(chat.name ?? null),
+    )
+
+  for (let offset = 0; offset < nameLookups.length; offset += 8) {
+    const batch = nameLookups.slice(offset, offset + 8)
+    const results = await Promise.allSettled(
+      batch.map(({ chat }) => client.contact(sessionName, chat.id._serialized)),
+    )
+    results.forEach((result, batchIndex) => {
+      const lookup = batch[batchIndex]
+      if (!lookup) return
+      if (result.status === "fulfilled") {
+        const fetchedName = result.value.name ?? result.value.pushname ?? null
+        if (fetchedName && !isPhoneLikeName(fetchedName))
+          enrichedNames.set(lookup.index, fetchedName)
+      }
+    })
+  }
+
+  return chats.map((chat, index) =>
+    chatView(chat, phones.get(index), enrichedNames.get(index), scope, chatRef),
+  )
 }
 
 function webhookConfig(
