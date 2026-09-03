@@ -35,6 +35,7 @@ const messageSchema = z.object({
   preview: z.string().nullable(),
   hasMedia: z.boolean(),
   mimetype: z.string().nullable(),
+  sender: z.string().nullable(),
 })
 export const createSessionSchema = z.object({
   connectionId: z.string().uuid(),
