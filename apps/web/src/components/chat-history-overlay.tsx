@@ -1,4 +1,6 @@
 import type * as React from "react"
+import { useEffect, useRef } from "react"
+import { createPortal } from "react-dom"
 
 import type { MessageView, SessionChat } from "../dashboard-session-api"
 import type { ResourceState } from "../dashboard-state"
@@ -29,7 +31,13 @@ export function ChatHistoryOverlay({
   onRetry: () => void
   onClose: () => void
 }>): React.JSX.Element {
-  return (
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    closeButtonRef.current?.focus()
+  }, [])
+
+  const overlay = (
     <div className="chat-history-backdrop">
       <div
         className="chat-history-panel"
@@ -39,7 +47,12 @@ export function ChatHistoryOverlay({
       >
         <div className="chat-history-header">
           <strong>{historyChatLabel(chat)}</strong>
-          <button className="button button-secondary" type="button" onClick={onClose}>
+          <button
+            className="button button-secondary"
+            ref={closeButtonRef}
+            type="button"
+            onClick={onClose}
+          >
             Close
           </button>
         </div>
@@ -47,8 +60,8 @@ export function ChatHistoryOverlay({
           <>
             <LoadingRows count={3} />
             <p className="chat-history-loading-copy">
-              Fetching history from WhatsApp. First load after a restart can take up to 30
-              seconds — later opens are instant.
+              Fetching history from WhatsApp. First load after a restart can take up to 30 seconds —
+              later opens are instant.
             </p>
           </>
         ) : null}
@@ -92,4 +105,7 @@ export function ChatHistoryOverlay({
       </div>
     </div>
   )
+
+  if (typeof document === "undefined") return overlay
+  return createPortal(overlay, document.body)
 }
