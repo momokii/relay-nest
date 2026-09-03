@@ -118,6 +118,38 @@ export function registerSessionRoutes(
     const { scope } = scopeQuerySchema.parse(request.query)
     return sendService(reply, () => service.messages(principal, sessionId, scope, chatRef))
   })
+  app.get(
+    "/scoped/sessions/:sessionId/chats/:chatRef/messages/:messageId/media",
+    async (request, reply) => {
+      const principal = await authenticate(auth, request, reply)
+      if (!principal) return
+      const { sessionId, chatRef, messageId } = z
+        .object({
+          sessionId: z.string().uuid(),
+          chatRef: z.string().min(1),
+          messageId: z.string().min(1),
+        })
+        .parse(request.params)
+      const { scope } = scopeQuerySchema.parse(request.query)
+      try {
+        const file = await service.messageMedia(principal, sessionId, scope, chatRef, messageId)
+        reply.header("content-type", file.contentType ?? "application/octet-stream")
+        reply.header("cache-control", "private, max-age=3600")
+        return reply.send(Buffer.from(file.buffer))
+      } catch (error) {
+        const { ScopedSessionError } = await import("./sessions")
+        const { WahaHttpError } = await import("./errors")
+        if (error instanceof ScopedSessionError) {
+          const status = error.code === "forbidden" || error.code === "role_denied" ? 403 : 409
+          return reply.code(status).send({ error: error.code })
+        }
+        if (error instanceof WahaHttpError) {
+          return reply.code(502).send({ error: "WAHA unavailable" })
+        }
+        return reply.code(502).send({ error: "WAHA unavailable" })
+      }
+    },
+  )
   app.get("/scoped/sessions/:sessionId/qr", async (request, reply) =>
     readSurface(auth, request, reply, (principal, sessionId, scope) =>
       service.qr(principal, sessionId, scope),
