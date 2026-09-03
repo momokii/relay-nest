@@ -76,6 +76,8 @@ export const wahaMessagesSchema = z.array(
       timestamp: z.number().nullable().optional(),
       fromMe: z.boolean().nullable().optional(),
       hasMedia: z.boolean().nullable().optional(),
+      from: z.string().nullable().optional(),
+      participant: z.string().nullable().optional(),
       media: z
         .object({
           url: z.string().nullable().optional(),
@@ -96,6 +98,8 @@ export const wahaSingleMessageSchema = z
     timestamp: z.number().nullable().optional(),
     fromMe: z.boolean().nullable().optional(),
     hasMedia: z.boolean().nullable().optional(),
+    from: z.string().nullable().optional(),
+    participant: z.string().nullable().optional(),
     media: z
       .object({
         url: z.string().nullable().optional(),

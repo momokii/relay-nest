@@ -125,6 +125,15 @@ function chatMessageView(message: WahaMessage): SessionChatMessageView {
   const raw = message as unknown as Record<string, unknown>
   // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
   const media = raw["media"] as { mimetype?: string } | undefined
+  // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
+  const participant = typeof raw["participant"] === "string" ? (raw["participant"] as string) : null
+  // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
+  const data = raw["_data"] as Record<string, unknown> | undefined
+  // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
+  const notifyName =
+    typeof data?.["notifyName"] === "string" ? (data["notifyName"] as string) : null
+  const rawSender = message.fromMe === true ? null : (notifyName ?? participant ?? null)
+  const sender = rawSender && isPhoneLikeName(rawSender) ? null : rawSender
   return {
     // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
     id: typeof raw["id"] === "string" ? (raw["id"] as string) : null,
@@ -147,6 +156,7 @@ function chatMessageView(message: WahaMessage): SessionChatMessageView {
             ? // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
               ((raw["_data"] as Record<string, unknown>)["mimetype"] as string)
             : null,
+    sender: sender && !isPhoneLikeName(sender) ? sender : sender,
   }
 }
 
@@ -401,6 +411,7 @@ export function createScopedSessionService(options: {
       const client = await options.clientFor(session)
       const messages = await client.messages(session.wahaSessionName, chatId)
       const sliced = messages.slice(0, Math.max(0, limit))
+      const initialViews = sliced.map(chatMessageView)
       const mentionLids = new Set<string>()
       for (const message of sliced) {
         const body = (message.body ?? "") as string
@@ -409,9 +420,17 @@ export function createScopedSessionService(options: {
           if (lid) mentionLids.add(lid)
         }
       }
-      const mentionMap = new Map<string, string>()
-      if (mentionLids.size > 0) {
-        const lids = [...mentionLids]
+      const senderLids = new Set<string>()
+      for (const view of initialViews) {
+        if (view.sender && view.sender.endsWith("@lid")) {
+          const lid = view.sender.slice(0, -"@lid".length)
+          if (lid) senderLids.add(lid)
+        }
+      }
+      const allLids = new Set<string>([...mentionLids, ...senderLids])
+      const lidMap = new Map<string, string>()
+      if (allLids.size > 0) {
+        const lids = [...allLids]
         for (let offset = 0; offset < lids.length; offset += 8) {
           const batch = lids.slice(offset, offset + 8)
           const results = await Promise.allSettled(
@@ -431,21 +450,32 @@ export function createScopedSessionService(options: {
               const phone = contactPhone(contact, `${lid}@lid`)
               const normalized = phone ? normalizePhone(phone) : null
               const label = displayName ?? normalized ?? lid
-              mentionMap.set(lid, label)
+              lidMap.set(lid, label)
             } else {
-              mentionMap.set(lid, lid)
+              lidMap.set(lid, lid)
             }
           })
         }
       }
-      return sliced.map((message) => {
-        const view = chatMessageView(message)
-        if (mentionMap.size === 0 || view.preview === null) return view
-        let enriched = view.preview
-        for (const [lid, label] of mentionMap) {
-          enriched = enriched.split(`@${lid}`).join(`@${label}`)
+      return initialViews.map((view) => {
+        let enrichedPreview = view.preview
+        let enrichedSender = view.sender
+        if (lidMap.size > 0) {
+          if (enrichedPreview !== null) {
+            for (const [lid, label] of lidMap) {
+              if (mentionLids.has(lid)) {
+                enrichedPreview = enrichedPreview.split(`@${lid}`).join(`@${label}`)
+              }
+            }
+          }
+          if (enrichedSender && enrichedSender.endsWith("@lid")) {
+            const lid = enrichedSender.slice(0, -"@lid".length)
+            const label = lidMap.get(lid)
+            if (label) enrichedSender = label
+          }
         }
-        return enriched === view.preview ? view : { ...view, preview: enriched }
+        if (enrichedPreview === view.preview && enrichedSender === view.sender) return view
+        return { ...view, preview: enrichedPreview, sender: enrichedSender }
       })
     },
     async messageMedia(

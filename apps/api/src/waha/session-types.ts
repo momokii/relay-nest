@@ -45,6 +45,7 @@ export type SessionChatMessageView = {
   readonly preview: string | null
   readonly hasMedia: boolean
   readonly mimetype: string | null
+  readonly sender: string | null
 }
 
 export type ChatRefCodec = {
