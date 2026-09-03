@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 
 import { createMessagingService } from "../apps/api/src/messaging"
@@ -43,6 +44,12 @@ function composerMarkup(
 }
 
 describe("contact send redesign selector contract baseline", () => {
+  it("gives the chat history panel a definite height for a visible scroll region", () => {
+    const styles = readFileSync("apps/web/src/styles.css", "utf8")
+
+    expect(styles).toMatch(/\.chat-history-panel\s*\{[^}]*\n\s+height:\s*min\(80dvh,\s*46rem\);/s)
+  })
+
   it("keeps redacted directory rows uniquely keyed", () => {
     // Given two directory rows whose provider identities are intentionally redacted
     const chats = [
