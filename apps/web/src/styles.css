@@ -1071,6 +1071,30 @@ select {
   object-fit: contain;
   background: var(--color-inset);
 }
+.chat-history-media-button {
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: zoom-in;
+}
+.chat-history-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--space-4);
+  border: none;
+  background: rgb(15 20 18 / 0.84);
+  cursor: zoom-out;
+}
+.chat-history-lightbox-image {
+  max-width: min(92vw, 64rem);
+  max-height: 88vh;
+  border-radius: var(--radius-panel);
+  background: var(--color-raised);
+  box-shadow: var(--depth-rest);
+}
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;

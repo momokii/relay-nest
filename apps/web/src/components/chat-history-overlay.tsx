@@ -1,5 +1,5 @@
 import type * as React from "react"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 
 import type { AccountScope } from "../dashboard-model"
@@ -40,11 +40,21 @@ export function ChatHistoryOverlay({
   onClose: () => void
 }>): React.JSX.Element {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
   const api = createDashboardSessionApi(import.meta.env.VITE_API_BASE_URL)
 
   useEffect(() => {
     closeButtonRef.current?.focus()
   }, [])
+
+  useEffect(() => {
+    if (previewImage === null) return
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") setPreviewImage(null)
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [previewImage])
 
   const overlay = (
     <div className="chat-history-backdrop">
@@ -94,9 +104,10 @@ export function ChatHistoryOverlay({
         {messages.kind === "ready" && messages.data.length > 0 ? (
           <ul className="chat-history-list">
             {messages.data.map((message, index) => {
+              const messageId = message.id
               const isImage =
                 message.hasMedia &&
-                typeof message.id === "string" &&
+                typeof messageId === "string" &&
                 (message.mimetype?.startsWith("image/") ?? true)
               return (
                 // biome-ignore lint/suspicious/noArrayIndexKey: the server redacts provider message ids, so position in the immutable snapshot is the only stable key
@@ -111,13 +122,22 @@ export function ChatHistoryOverlay({
                     </span>
                     <span>{historyTime(message.at)}</span>
                   </div>
-                  {isImage && typeof message.id === "string" ? (
-                    <img
-                      className="chat-history-media"
-                      src={api.messageMediaUrl(scope, sessionId, chatRef, message.id)}
-                      alt={message.preview ?? "Image"}
-                      loading="lazy"
-                    />
+                  {isImage && typeof messageId === "string" ? (
+                    <button
+                      type="button"
+                      className="chat-history-media-button"
+                      onClick={() =>
+                        setPreviewImage(api.messageMediaUrl(scope, sessionId, chatRef, messageId))
+                      }
+                      aria-label="View full image"
+                    >
+                      <img
+                        className="chat-history-media"
+                        src={api.messageMediaUrl(scope, sessionId, chatRef, messageId)}
+                        alt={message.preview ?? "Image"}
+                        loading="lazy"
+                      />
+                    </button>
                   ) : null}
                   <p className="chat-history-preview">{message.preview ?? "—"}</p>
                 </li>
@@ -126,6 +146,16 @@ export function ChatHistoryOverlay({
           </ul>
         ) : null}
       </div>
+      {previewImage ? (
+        <button
+          type="button"
+          className="chat-history-lightbox"
+          onClick={() => setPreviewImage(null)}
+          aria-label="Close full image view"
+        >
+          <img className="chat-history-lightbox-image" src={previewImage} alt="Enlarged preview" />
+        </button>
+      ) : null}
     </div>
   )
 
