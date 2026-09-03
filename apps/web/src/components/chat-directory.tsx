@@ -225,7 +225,7 @@ export function ChatDirectory({
                   disabled={disabled || directoryContactTarget(chat) === undefined}
                   aria-pressed={selected}
                 >
-                  <strong>{chat.name ?? "Unnamed chat"}</strong>
+                  <strong>{historyChatLabel(chat)}</strong>
                   <span>{directoryContactDescription(chat)}</span>
                   {activityLine ? <span className="directory-preview">{activityLine}</span> : null}
                   {selected ? <span className="directory-selection">Selected</span> : null}

@@ -92,7 +92,7 @@ export function ChatHistoryOverlay({
                     {message.direction === "out"
                       ? "you"
                       : message.direction === "in"
-                        ? "them"
+                        ? historyChatLabel(chat)
                         : "unknown"}
                   </span>
                   <span>{historyTime(message.at)}</span>
