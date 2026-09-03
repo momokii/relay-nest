@@ -122,13 +122,31 @@ function chatMessageView(message: WahaMessage): SessionChatMessageView {
   if (preview !== null && preview.length > CHAT_MESSAGE_PREVIEW_LIMIT) {
     preview = `${preview.slice(0, CHAT_MESSAGE_PREVIEW_LIMIT)}…`
   }
+  const raw = message as unknown as Record<string, unknown>
+  // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
+  const media = raw["media"] as { mimetype?: string } | undefined
   return {
+    // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
+    id: typeof raw["id"] === "string" ? (raw["id"] as string) : null,
     at:
       typeof message.timestamp === "number" && Number.isFinite(message.timestamp)
         ? new Date(message.timestamp * 1000).toISOString()
         : null,
     direction: message.fromMe === true ? "out" : message.fromMe === false ? "in" : "unknown",
     preview,
+    hasMedia: message.hasMedia === true,
+    mimetype:
+      typeof media?.mimetype === "string"
+        ? media.mimetype
+        : // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
+          typeof raw["mimetype"] === "string"
+          ? // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
+            (raw["mimetype"] as string)
+          : // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
+            typeof (raw["_data"] as Record<string, unknown> | undefined)?.["mimetype"] === "string"
+            ? // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
+              ((raw["_data"] as Record<string, unknown>)["mimetype"] as string)
+            : null,
   }
 }
 
@@ -231,7 +249,9 @@ function withWebhookConfig(
   const parsed: unknown = JSON.parse(body)
   const record: Record<string, unknown> =
     typeof parsed === "object" && parsed !== null ? { ...parsed } : {}
+  // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
   record["config"] = {
+    // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
     ...(typeof record["config"] === "object" && record["config"] !== null ? record["config"] : {}),
     ...webhookConfig(scope, sessionName, baseUrl),
   }
@@ -381,6 +401,33 @@ export function createScopedSessionService(options: {
       const client = await options.clientFor(session)
       const messages = await client.messages(session.wahaSessionName, chatId)
       return messages.slice(0, Math.max(0, limit)).map(chatMessageView)
+    },
+    async messageMedia(
+      principal: AuthPrincipal,
+      sessionId: string,
+      scope: AccountScope,
+      ref: string,
+      messageId: string,
+    ): Promise<{ buffer: ArrayBuffer; contentType: string | null }> {
+      const session = await authorized(principal, sessionId, scope, "read")
+      const chatId = options.chatRef?.open(ref, scope) ?? null
+      if (chatId === null) throw new ScopedSessionError("forbidden")
+      const client = await options.clientFor(session)
+      const message = await client.message(session.wahaSessionName, chatId, messageId)
+      const raw = message as unknown as Record<string, unknown>
+      // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
+      const media = raw["media"] as { url?: string } | undefined
+      // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
+      const mediaUrl = typeof media?.url === "string" ? media["url"] : null
+      if (!mediaUrl) throw new ScopedSessionError("unsupported")
+      let path: string
+      try {
+        path = new URL(mediaUrl).pathname
+      } catch {
+        path = mediaUrl
+      }
+      if (!path.startsWith("/api/files/")) throw new ScopedSessionError("unsupported")
+      return client.downloadFile(path)
     },
     async lifecycle(
       principal: AuthPrincipal,

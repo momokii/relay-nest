@@ -39,9 +39,12 @@ export type SessionChatView = {
 }
 
 export type SessionChatMessageView = {
+  readonly id: string | null
   readonly at: string | null
   readonly direction: "in" | "out" | "unknown"
   readonly preview: string | null
+  readonly hasMedia: boolean
+  readonly mimetype: string | null
 }
 
 export type ChatRefCodec = {
@@ -114,6 +117,16 @@ export type WahaSessionClient = {
   readonly me: (name: string) => Promise<WahaMetadata>
   readonly chats: (name: string) => Promise<readonly WahaChat[]>
   readonly messages: (name: string, chatId: string, signal?: AbortSignal) => Promise<WahaMessage[]>
+  readonly message: (
+    name: string,
+    chatId: string,
+    messageId: string,
+    signal?: AbortSignal,
+  ) => Promise<import("@waha-command-center/waha-contracts").WahaSingleMessage>
+  readonly downloadFile: (
+    path: string,
+    signal?: AbortSignal,
+  ) => Promise<{ buffer: ArrayBuffer; contentType: string | null }>
   readonly timelock: (name: string) => Promise<WahaTimelock>
   readonly capping: (name: string) => Promise<WahaCapping>
   readonly checkExists: (

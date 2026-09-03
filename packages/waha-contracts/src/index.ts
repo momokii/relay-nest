@@ -71,13 +71,43 @@ export const wahaChatsSchema = z.array(
 export const wahaMessagesSchema = z.array(
   z
     .object({
+      id: z.string().min(1).optional(),
       body: z.string().nullable().optional(),
       timestamp: z.number().nullable().optional(),
       fromMe: z.boolean().nullable().optional(),
       hasMedia: z.boolean().nullable().optional(),
+      media: z
+        .object({
+          url: z.string().nullable().optional(),
+          mimetype: z.string().nullable().optional(),
+          filename: z.string().nullable().optional(),
+        })
+        .passthrough()
+        .nullable()
+        .optional(),
+      mimetype: z.string().nullable().optional(),
     })
     .passthrough(),
 )
+export const wahaSingleMessageSchema = z
+  .object({
+    id: z.string().min(1).optional(),
+    body: z.string().nullable().optional(),
+    timestamp: z.number().nullable().optional(),
+    fromMe: z.boolean().nullable().optional(),
+    hasMedia: z.boolean().nullable().optional(),
+    media: z
+      .object({
+        url: z.string().nullable().optional(),
+        mimetype: z.string().nullable().optional(),
+        filename: z.string().nullable().optional(),
+      })
+      .passthrough()
+      .nullable()
+      .optional(),
+    mimetype: z.string().nullable().optional(),
+  })
+  .passthrough()
 export const wahaEnvironmentVariablesSchema = z.record(z.unknown())
 export const wahaSessionActionResponseSchema = wahaSessionSchema
 export const wahaEmptyResponseSchema = z.unknown()
@@ -120,6 +150,7 @@ export type WahaServerStatus = z.infer<typeof wahaServerStatusSchema>
 export type WahaSession = z.infer<typeof wahaSessionSchema>
 export type WahaChat = z.infer<typeof wahaChatsSchema>[number]
 export type WahaMessage = z.infer<typeof wahaMessagesSchema>[number]
+export type WahaSingleMessage = z.infer<typeof wahaSingleMessageSchema>
 export type WahaQrResponse = z.infer<typeof wahaQrResponseSchema>
 export type WahaMetadata = z.infer<typeof wahaMetadataSchema>
 export type WahaTimelock = z.infer<typeof wahaTimelockSchema>
