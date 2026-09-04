@@ -52,6 +52,7 @@ export function CampaignForm({
   const [sessionId, setSessionId] = useState("")
   const [groupIds, setGroupIds] = useState<readonly string[]>([])
   const [wahaGroupId, setWahaGroupId] = useState("")
+  const [targetMode, setTargetMode] = useState<"waha" | "custom">("waha")
   const [message, setMessage] = useState("")
   const [followUp, setFollowUp] = useState("")
   const [scheduledAt, setScheduledAt] = useState("")
@@ -64,8 +65,12 @@ export function CampaignForm({
   const submit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault()
     const contactGroupId = groupIds[0]
-    if (!sessionId || !contactGroupId || !wahaGroupId || !message.trim()) {
-      setError("Choose a session, at least one contact group, WAHA group, and message.")
+    if (!sessionId || !contactGroupId || !message.trim()) {
+      setError("Choose a session, at least one contact group, and message.")
+      return
+    }
+    if (targetMode === "waha" && !wahaGroupId) {
+      setError("Choose a WAHA group for the broadcast, or switch to Custom group.")
       return
     }
     if (sendMode === "later" && !scheduledAt) {
@@ -77,7 +82,7 @@ export function CampaignForm({
     const input: CampaignInput = {
       sessionId,
       contactGroupId,
-      wahaGroupId,
+      ...(targetMode === "waha" && wahaGroupId ? { wahaGroupId } : {}),
       message: message.trim(),
       ...(followUp.trim() ? { followUpMessage: followUp.trim() } : {}),
       trigger:
@@ -161,6 +166,30 @@ export function CampaignForm({
         </small>
       </div>
       <form className="operational-form campaign-form" onSubmit={(event) => void submit(event)}>
+        <fieldset className="campaign-trigger">
+          <legend>Target</legend>
+          <label>
+            <input
+              type="radio"
+              checked={targetMode === "waha"}
+              onChange={() => setTargetMode("waha")}
+            />{" "}
+            WAHA group — broadcast to an existing WhatsApp group
+          </label>
+          <label>
+            <input
+              type="radio"
+              checked={targetMode === "custom"}
+              onChange={() => setTargetMode("custom")}
+            />{" "}
+            Custom group — use only your contact group (no WAHA group needed)
+          </label>
+          <small>
+            {targetMode === "waha"
+              ? "Pick a WAHA group below for the broadcast."
+              : "No WAHA group needed. The campaign will use your contact group as the custom target."}
+          </small>
+        </fieldset>
         <CampaignGroupPicker
           scope={scope}
           sessions={sessions}
@@ -168,6 +197,7 @@ export function CampaignForm({
           contactGroupIds={groupIds}
           wahaGroupId={wahaGroupId}
           sessionId={sessionId}
+          targetMode={targetMode}
           onContactGroups={setGroupIds}
           onWahaGroup={setWahaGroupId}
           onSession={setSessionId}

@@ -16,7 +16,7 @@ export const campaigns = pgTable("campaigns", {
   contactGroupId: uuid("contact_group_id")
     .notNull()
     .references(() => contactGroups.id),
-  wahaGroupId: text("waha_group_id").notNull(),
+  wahaGroupId: text("waha_group_id"),
   messageCiphertext: text("message_ciphertext").notNull(),
   messageNonce: text("message_nonce").notNull(),
   messageAuthTag: text("message_auth_tag").notNull(),

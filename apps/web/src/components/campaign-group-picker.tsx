@@ -12,6 +12,7 @@ export function CampaignGroupPicker({
   contactGroupIds,
   wahaGroupId,
   sessionId,
+  targetMode,
   onContactGroups,
   onWahaGroup,
   onSession,
@@ -22,6 +23,7 @@ export function CampaignGroupPicker({
   contactGroupIds: readonly string[]
   wahaGroupId: string
   sessionId: string
+  targetMode?: "waha" | "custom"
   onContactGroups: (ids: readonly string[]) => void
   onWahaGroup: (id: string) => void
   onSession: (id: string) => void
@@ -30,6 +32,9 @@ export function CampaignGroupPicker({
   const [wahaGroups, setWahaGroups] = useState<readonly WahaGroup[]>([])
   const [newGroupName, setNewGroupName] = useState("")
   const [message, setMessage] = useState("Loading groups…")
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
+  const [members, setMembers] = useState<readonly { id: string; phone: string | null }[]>([])
+  const [newPhone, setNewPhone] = useState("")
   const selectedWaha = wahaGroups.find((group) => group.id === wahaGroupId) ?? null
   useEffect(() => {
     let current = true
@@ -71,6 +76,21 @@ export function CampaignGroupPicker({
         ? contactGroupIds.filter((item) => item !== id)
         : [...contactGroupIds, id],
     )
+  useEffect(() => {
+    if (!editingGroupId) {
+      setMembers([])
+      return
+    }
+    let current = true
+    void api.contactGroupMembers(scope, editingGroupId).then((result) => {
+      if (!current) return
+      if (result.kind === "ready") setMembers(result.data)
+      else setMembers([])
+    })
+    return () => {
+      current = false
+    }
+  }, [api, scope, editingGroupId])
   return (
     <div className="campaign-picker-grid">
       <label>
@@ -118,37 +138,67 @@ export function CampaignGroupPicker({
           />
         ) : (
           contactGroups.map((group) => (
-            <label className="campaign-choice" key={group.id}>
-              <input
-                type="checkbox"
-                checked={contactGroupIds.includes(group.id)}
-                onChange={() => toggleContact(group.id)}
-              />
-              <span>{group.name}</span>
-            </label>
+            <div key={group.id} style={{ display: "grid", gap: "var(--space-1)", padding: "var(--space-2)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-control)", background: contactGroupIds.includes(group.id) ? "var(--color-inset)" : "transparent" }}>
+              <label className="campaign-choice" style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                <input
+                  type="checkbox"
+                  checked={contactGroupIds.includes(group.id)}
+                  onChange={() => toggleContact(group.id)}
+                />
+                <span style={{ flex: 1 }}>{group.name}</span>
+                <button type="button" className="button button-secondary" style={{ padding: "var(--space-1) var(--space-2)", fontSize: "var(--type-caption)" }} onClick={() => setEditingGroupId(editingGroupId === group.id ? null : group.id)}>
+                  {editingGroupId === group.id ? "Hide" : "Manage"}
+                </button>
+              </label>
+              {editingGroupId === group.id ? (
+                <div style={{ display: "grid", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
+                  {members.length === 0 ? <small style={{ color: "var(--color-muted)" }}>No contacts yet — add a phone below.</small> : members.map((member) => (
+                    <div key={member.id} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--type-small)" }}>
+                      <span style={{ flex: 1 }}>{member.phone ?? member.id}</span>
+                      <button type="button" className="button button-secondary" style={{ padding: "var(--space-1) var(--space-2)" }} onClick={() => void api.removeContactGroupMember(scope, group.id, member.id).then((res) => { if (res.kind === "ready") setMembers((cur) => cur.filter((m) => m.id !== member.id)) })}>
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                    <input aria-label="Phone to add" placeholder="+628123456789" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} style={{ flex: 1, minHeight: "var(--control-height)", padding: "var(--space-2)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-control)" }} />
+                    <button type="button" className="button button-primary" disabled={!newPhone.trim()} onClick={() => void api.addContactGroupMember(scope, group.id, newPhone.trim()).then((res) => { if (res.kind === "ready") { setMembers((cur) => [...cur, res.data]); setNewPhone("") } })}>
+                      Add
+                    </button>
+                  </div>
+                  <small style={{ color: "var(--color-muted)" }}>Use E.164 format. This is your custom group — reuse it across campaigns. WAHA group is separate.</small>
+                </div>
+              ) : null}
+            </div>
           ))
         )}
       </fieldset>
-      <label>
-        <span>WAHA group</span>
-        <select
-          value={wahaGroupId}
-          onChange={(event) => onWahaGroup(event.target.value)}
-          disabled={!sessionId}
-        >
-          <option value="">Select a WAHA group</option>
-          {wahaGroups.map((group) => (
-            <option key={group.id} value={group.id}>
-              {group.name ?? group.subject ?? group.id}
-            </option>
-          ))}
-        </select>
-        <small>
-          {sessionId
-            ? "Group names come from the server; credentials never reach the browser."
-            : "Select an authorized session first."}
-        </small>
-      </label>
+      {targetMode !== "custom" ? (
+        <label>
+          <span>WAHA group</span>
+          <select
+            value={wahaGroupId}
+            onChange={(event) => onWahaGroup(event.target.value)}
+            disabled={!sessionId}
+          >
+            <option value="">Select a WAHA group</option>
+            {wahaGroups.map((group) => (
+              <option key={group.id} value={group.id}>
+                {group.name ?? group.subject ?? group.id}
+              </option>
+            ))}
+          </select>
+          <small>
+            {sessionId
+              ? "Group names come from the server; credentials never reach the browser."
+              : "Select an authorized session first."}
+          </small>
+        </label>
+      ) : (
+        <div style={{ padding: "var(--space-3)", background: "var(--color-inset)", borderRadius: "var(--radius-control)", fontSize: "var(--type-small)", color: "var(--color-muted)" }}>
+          Custom group selected — no WAHA group needed. The campaign will use your contact group directly.
+        </div>
+      )}
       {selectedWaha ? (
         <div
           className="campaign-waha-detail"

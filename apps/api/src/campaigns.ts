@@ -13,7 +13,7 @@ export type CampaignRecord = Readonly<{
   accountScope: AccountScope
   sessionId: string
   contactGroupId: string
-  wahaGroupId: string
+  wahaGroupId: string | null
   trigger: unknown
   scheduledAt: Date
   state: "scheduled" | "sent" | "failed"
@@ -35,7 +35,7 @@ type CampaignRepository = {
     readonly accountScope: AccountScope
     readonly sessionId: string
     readonly contactGroupId: string
-    readonly wahaGroupId: string
+    readonly wahaGroupId: string | null
     readonly message: string
     readonly followUpMessage?: string | undefined
     readonly trigger: CampaignTrigger
@@ -129,31 +129,36 @@ export function createCampaignService(dependencies: CampaignDependencies) {
         throw new CampaignForbiddenError("contact group is not granted in this scope")
       const session = await dependencies.sessions.find(input.sessionId, input.accountScope)
       if (!session) throw new CampaignForbiddenError("session is not in this scope")
-      const groups = await (await dependencies.wahaForSession(session)).groups(
-        session.wahaSessionName,
-      )
-      if (!groups.some((group) => group.id === input.wahaGroupId))
-        throw new CampaignForbiddenError("WAHA group is not available in this session")
+      if (input.wahaGroupId) {
+        const groups = await (await dependencies.wahaForSession(session)).groups(
+          session.wahaSessionName,
+        )
+        if (!groups.some((group) => group.id === input.wahaGroupId))
+          throw new CampaignForbiddenError("WAHA group is not available in this session")
+      }
       const campaign = await dependencies.campaigns.create({
         accountScope: input.accountScope,
         sessionId: input.sessionId,
         contactGroupId: input.contactGroupId,
-        wahaGroupId: input.wahaGroupId,
+        wahaGroupId: input.wahaGroupId ?? null,
         message: input.message,
         ...(input.followUpMessage ? { followUpMessage: input.followUpMessage } : {}),
         trigger: input.trigger,
         scheduledAt: effectiveScheduledAt,
         createdBy: principal.userId,
       })
-      const job = await dependencies.scheduler.schedule({
-        sessionId: input.sessionId,
-        accountScope: input.accountScope,
-        recipientPhone: input.wahaGroupId,
-        message: input.message,
-        scheduledFor: effectiveScheduledAt,
-        timezone: effectiveTimezone,
-        idempotencyKey: `campaign:${campaign.id}`,
-      })
+      const job = input.wahaGroupId
+        ? await dependencies.scheduler.schedule({
+            sessionId: input.sessionId,
+            accountScope: input.accountScope,
+            recipientPhone: input.wahaGroupId,
+            message: input.message,
+            scheduledFor: effectiveScheduledAt,
+            timezone: effectiveTimezone,
+            idempotencyKey: `campaign:${campaign.id}`,
+          })
+        : null
+      if (!job) return campaign
       return (
         (await dependencies.campaigns.attachSchedulerJob(
           campaign.id,
@@ -200,7 +205,7 @@ export type CampaignScheduleInput = Readonly<{
   readonly sessionId: string
   readonly accountScope: AccountScope
   readonly contactGroupId: string
-  readonly wahaGroupId: string
+  readonly wahaGroupId?: string | undefined
   readonly message: string
   readonly followUpMessage?: string | undefined
   readonly trigger: CampaignTrigger

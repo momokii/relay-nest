@@ -10,7 +10,7 @@ export type CampaignRecord = {
   readonly accountScope: AccountScope
   readonly sessionId: string
   readonly contactGroupId: string
-  readonly wahaGroupId: string
+  readonly wahaGroupId: string | null
   readonly trigger: unknown
   readonly scheduledAt: Date
   readonly state: "scheduled" | "sent" | "failed"
@@ -53,7 +53,7 @@ export function createCampaignRepository(db: PersistenceDatabase, masterKey: Buf
       readonly accountScope: AccountScope
       readonly sessionId: string
       readonly contactGroupId: string
-      readonly wahaGroupId: string
+      readonly wahaGroupId: string | null
       readonly message: string
       readonly followUpMessage?: string | undefined
       readonly trigger: unknown
