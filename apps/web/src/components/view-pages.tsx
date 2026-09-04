@@ -15,6 +15,7 @@ import { ContactLookup, MessageComposer } from "./send-forms"
 import { SentHistoryPanel } from "./sent-history-panel"
 
 export { RetentionPage, SettingsPage } from "./admin-pages"
+export { CampaignPage } from "./campaign-page"
 export { NotificationsPage } from "./notification-page"
 export { AnalyticsPage, OverviewPage } from "./overview-pages"
 export { SessionsPage } from "./session-page"

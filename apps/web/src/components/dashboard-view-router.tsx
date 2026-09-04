@@ -3,6 +3,7 @@ import { assertNever, type DashboardViewId } from "../dashboard-model"
 import type { DashboardViewProps } from "./dashboard-view"
 import {
   AnalyticsPage,
+  CampaignPage,
   ContactsPage,
   NotificationsPage,
   OverviewPage,
@@ -149,6 +150,15 @@ export function renderDashboardPage(
           cancelSchedule={context.cancelSchedule}
         />
       )
+    case "campaigns":
+      return (
+        <CampaignPage
+          key={context.scope}
+          scope={context.scope}
+          role={context.role}
+          sessions={context.sessions}
+        />
+      )
     case "analytics":
       return <AnalyticsPage analytics={context.analytics} />
     case "notifications":
@@ -244,6 +254,12 @@ export function pageDefinition(
         title: "One-time scheduling",
         eyebrow: "Durable jobs",
         description: "Record one future dispatch with an explicit timezone and no recurrence.",
+      }
+    case "campaigns":
+      return {
+        title: "Reaction campaigns",
+        eyebrow: "Group automation",
+        description: "Schedule one human-configured reaction campaign inside the active scope.",
       }
     case "analytics":
       return {

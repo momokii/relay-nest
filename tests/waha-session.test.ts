@@ -327,7 +327,13 @@ describe("scoped WAHA session lifecycle", () => {
     for (const body of bodies) {
       const events = (JSON.parse(body) as { config?: { webhooks?: { events: string[] }[] } }).config
         ?.webhooks?.[0]?.events
-      expect(events).toEqual(["message", "message.any", "message.ack", "session.status"])
+      expect(events).toEqual([
+        "message",
+        "message.any",
+        "message.ack",
+        "message.reaction",
+        "session.status",
+      ])
     }
   })
 

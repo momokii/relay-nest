@@ -13,6 +13,7 @@ export const VIEW_DEFINITIONS = [
   { id: "contacts", label: "Contacts", eyebrow: "Recipients" },
   { id: "send", label: "Send", eyebrow: "Individual text" },
   { id: "schedule", label: "Schedule", eyebrow: "One-time jobs" },
+  { id: "campaigns", label: "Campaigns", eyebrow: "Reaction campaigns" },
   { id: "analytics", label: "Analytics", eyebrow: "Scoped evidence" },
   { id: "notifications", label: "Notifications", eyebrow: "Failure paths" },
   { id: "retention", label: "Retention", eyebrow: "Admin controls" },

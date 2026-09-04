@@ -1317,3 +1317,106 @@ select {
     transition-duration: 1ms !important;
   }
 }
+.campaign-page {
+  align-items: start;
+}
+.campaign-form {
+  gap: var(--space-5);
+}
+.campaign-picker-grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.campaign-picker-grid > label:last-child,
+.campaign-choice-list {
+  grid-column: 1 / -1;
+}
+.campaign-choice-list,
+.campaign-trigger {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+}
+.campaign-inline-action {
+  display: flex;
+  gap: var(--space-2);
+}
+.campaign-inline-action input {
+  flex: 1;
+  min-width: 0;
+}
+.campaign-preview {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  background: var(--color-inset);
+  border-radius: var(--radius-control);
+}
+.campaign-preview > span {
+  color: var(--color-muted);
+  font-size: var(--type-caption);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.campaign-choice-list legend,
+.campaign-trigger legend {
+  padding-inline: var(--space-2);
+  font-size: var(--type-small);
+  font-weight: 700;
+}
+.campaign-choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-inset);
+  border-radius: var(--radius-control);
+}
+.campaign-choice input,
+.campaign-trigger input {
+  accent-color: var(--color-amber);
+}
+.campaign-trigger > label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.campaign-trigger > label:last-child {
+  margin-top: var(--space-2);
+}
+.campaign-list {
+  display: grid;
+  gap: var(--space-2);
+}
+.campaign-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-inset);
+  border-radius: var(--radius-control);
+}
+.campaign-row > div {
+  display: grid;
+  gap: var(--space-1);
+}
+.campaign-row span {
+  color: var(--color-muted);
+  font-size: var(--type-small);
+}
+@media (max-width: 48rem) {
+  .campaign-picker-grid,
+  .campaign-row {
+    grid-template-columns: 1fr;
+  }
+  .campaign-picker-grid > label:last-child,
+  .campaign-choice-list {
+    grid-column: auto;
+  }
+}
