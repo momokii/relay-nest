@@ -65,8 +65,18 @@ export function CampaignForm({
   const submit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault()
     const contactGroupId = groupIds[0]
-    if (!sessionId || !contactGroupId || !message.trim()) {
-      setError("Choose a session, at least one contact group, and message.")
+    if (!sessionId) {
+      setError("Pick an authorized session first — it’s required for both contact and WAHA groups.")
+      return
+    }
+    if (!contactGroupId) {
+      setError(
+        "Pick at least one contact group — check the box next to a group name, or create a new one and it will be auto-selected.",
+      )
+      return
+    }
+    if (!message.trim()) {
+      setError("Write the group message — it can’t be empty.")
       return
     }
     if (targetMode === "waha" && !wahaGroupId) {
