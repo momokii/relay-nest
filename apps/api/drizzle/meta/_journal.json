@@ -64,6 +64,20 @@
       "when": 1786903000000,
       "tag": "0009_contacts_session_phone_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": 7,
+      "when": 1786904000000,
+      "tag": "0010_contact_groups",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": 7,
+      "when": 1786905000000,
+      "tag": "0011_campaigns",
+      "breakpoints": true
     }
   ]
 }
