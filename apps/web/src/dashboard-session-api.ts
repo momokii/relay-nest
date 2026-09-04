@@ -56,6 +56,7 @@ const sentHistoryItemSchema = z.object({
   scheduledFor: z.string(),
   createdAt: z.string(),
   state: sentHistoryStateSchema,
+  attempts: z.number().int().nonnegative(),
   providerMessageId: z.string().nullable(),
 })
 const sentHistorySchema = z.object({

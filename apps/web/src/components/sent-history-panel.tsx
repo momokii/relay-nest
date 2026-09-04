@@ -97,6 +97,7 @@ export function SentHistoryPanel({ scope }: Readonly<{ scope: AccountScope }>): 
                   <th scope="col">Message</th>
                   <th scope="col">When</th>
                   <th scope="col">State</th>
+                  <th scope="col">Attempts</th>
                   <th scope="col">Provider ID</th>
                 </tr>
               </thead>
@@ -109,6 +110,7 @@ export function SentHistoryPanel({ scope }: Readonly<{ scope: AccountScope }>): 
                     <td>
                       <span className={stateClass(item.state)}>{item.state}</span>
                     </td>
+                    <td>{item.attempts}</td>
                     <td>
                       <code title={item.providerMessageId ?? undefined}>
                         {truncatedProviderId(item.providerMessageId)}

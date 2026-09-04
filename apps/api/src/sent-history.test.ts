@@ -74,14 +74,20 @@ function row(
 
 describe("sent-history projection", () => {
   it("projects an authorized Personal row without encrypted or full message fields", () => {
-    const result = projectSentHistoryRow(row(Buffer.alloc(32, 7), "submitted"), cipher)
+    const result = projectSentHistoryRow(
+      row(Buffer.alloc(32, 7), "submitted", {
+        message: `  first line ${"x".repeat(80)}  \nsecond line must not appear`,
+      }),
+      cipher,
+    )
 
     expect(result).toEqual({
       id: "11111111-1111-4111-8111-111111111111",
       sessionId: "22222222-2222-4222-8222-222222222222",
       scope: "personal",
       recipientPhone: "628123456789",
-      snippet80: "A message that is safe to show as a short snippet",
+      snippet80: `first line ${"x".repeat(80)}`.slice(0, 80),
+      attempts: 1,
       scheduledFor: new Date("2026-09-01T10:00:00.000Z"),
       createdAt: new Date("2026-09-01T09:00:00.000Z"),
       state: "submitted",

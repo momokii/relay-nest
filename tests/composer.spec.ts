@@ -99,4 +99,54 @@ test.describe("message composer formatting", () => {
       JSON.stringify({ value: await textarea.inputValue(), marker: "1. " }, null, 2),
     )
   })
+
+  test("keeps malformed preview input literal", async ({ page }) => {
+    // Given the composer receives an unclosed marker and HTML-like text
+    const textarea = page.getByRole("textbox", { name: "Text message" })
+    const malformed = "*unclosed <script>alert(1)</script>"
+
+    // When the operator types the malformed preview input
+    await textarea.fill(malformed)
+
+    // Then the preview shows text and never creates an executable element
+    await expect(page.getByLabel("Message preview")).toContainText(malformed)
+    await expect(page.locator(".message-preview-content script")).toHaveCount(0)
+    await page.screenshot({ path: "/tmp/qa-fix3-composer-malformed.png", fullPage: true })
+    await writeFile(
+      "/tmp/qa-fix3-composer-malformed.txt",
+      JSON.stringify(
+        {
+          value: await textarea.inputValue(),
+          scriptCount: await page.locator(".message-preview-content script").count(),
+        },
+        null,
+        2,
+      ),
+    )
+  })
+
+  test("handles an empty toolbar selection without losing focus", async ({ page }) => {
+    // Given the composer has no selected text
+    const textarea = page.getByRole("textbox", { name: "Text message" })
+    await textarea.fill("")
+
+    // When the operator activates Bold
+    await page.getByRole("button", { name: "Bold" }).click()
+
+    // Then the empty-selection marker is inserted and focus returns to the textarea
+    await expect(textarea).toHaveValue("**")
+    await expect(textarea).toBeFocused()
+    await page.screenshot({ path: "/tmp/qa-fix3-composer-toolbar-empty.png", fullPage: true })
+    await writeFile(
+      "/tmp/qa-fix3-composer-toolbar-empty.txt",
+      JSON.stringify(
+        {
+          value: await textarea.inputValue(),
+          focused: await textarea.evaluate((element) => document.activeElement === element),
+        },
+        null,
+        2,
+      ),
+    )
+  })
 })

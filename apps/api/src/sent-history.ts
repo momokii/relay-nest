@@ -61,10 +61,11 @@ export function projectSentHistoryRow(row: SentHistoryRow, cipher: Cipher) {
     sessionId: row.job.sessionId,
     scope: row.job.accountScope,
     recipientPhone,
-    snippet80: message?.slice(0, 80) ?? null,
+    snippet80: message?.split("\n", 1)[0]?.trim().slice(0, 80) ?? null,
     scheduledFor: row.job.scheduledFor,
     createdAt: row.job.createdAt,
     state: row.job.state,
+    attempts: row.job.attempts,
     providerMessageId: row.job.providerMessageId ?? row.attempt?.providerMessageId ?? null,
   }
 }
