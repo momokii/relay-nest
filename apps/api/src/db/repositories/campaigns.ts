@@ -1,5 +1,5 @@
 import { createEnvelopeCipher, type EncryptedEnvelope } from "@waha-command-center/config"
-import { and, eq } from "drizzle-orm"
+import { and, desc, eq } from "drizzle-orm"
 
 import type { PersistenceDatabase } from "../client"
 import { campaigns } from "../schema"
@@ -91,6 +91,29 @@ export function createCampaignRepository(db: PersistenceDatabase, masterKey: Buf
         .from(campaigns)
         .where(and(eq(campaigns.id, id), eq(campaigns.accountScope, accountScope)))
         .limit(1)
+      return row ? safe(row) : null
+    },
+    list: async (
+      accountScope: AccountScope,
+      createdBy: string,
+      pageSize: number,
+      offset: number,
+    ) => {
+      const rows = await db
+        .select()
+        .from(campaigns)
+        .where(and(eq(campaigns.accountScope, accountScope), eq(campaigns.createdBy, createdBy)))
+        .orderBy(desc(campaigns.createdAt))
+        .limit(pageSize)
+        .offset(offset)
+      return rows.map(safe)
+    },
+    cancel: async (id: string, accountScope: AccountScope) => {
+      const [row] = await db
+        .update(campaigns)
+        .set({ state: "failed" })
+        .where(and(eq(campaigns.id, id), eq(campaigns.accountScope, accountScope)))
+        .returning()
       return row ? safe(row) : null
     },
     listForReaction: async (

@@ -49,6 +49,14 @@ type CampaignRepository = {
   ) => Promise<CampaignRecord | null>
   readonly markSent: (id: string, scope: AccountScope) => Promise<unknown>
   readonly markFailed: (id: string, scope: AccountScope) => Promise<unknown>
+  readonly list: (
+    scope: AccountScope,
+    createdBy: string,
+    pageSize: number,
+    offset: number,
+  ) => Promise<readonly CampaignRecord[]>
+  readonly find: (id: string, scope: AccountScope) => Promise<CampaignRecord | null>
+  readonly cancel: (id: string, scope: AccountScope) => Promise<CampaignRecord | null>
 }
 
 type CampaignDependencies = Readonly<{
@@ -153,6 +161,37 @@ export function createCampaignService(dependencies: CampaignDependencies) {
           job.jobId,
         )) ?? campaign
       )
+    },
+    async list(
+      principal: CampaignPrincipal,
+      scope: AccountScope,
+      pageSize: number,
+      offset: number,
+    ): Promise<Readonly<{ items: readonly CampaignRecord[]; hasMore: boolean }>> {
+      const items = await dependencies.campaigns.list(scope, principal.userId, pageSize + 1, offset)
+      const hasMore = items.length > pageSize
+      return { items: hasMore ? items.slice(0, pageSize) : items, hasMore }
+    },
+    async find(
+      principal: CampaignPrincipal,
+      id: string,
+      scope: AccountScope,
+    ): Promise<CampaignRecord | null> {
+      const campaign = await dependencies.campaigns.find(id, scope)
+      if (!campaign || campaign.createdBy !== principal.userId) return null
+      return campaign
+    },
+    async cancel(
+      principal: CampaignPrincipal,
+      id: string,
+      scope: AccountScope,
+    ): Promise<CampaignRecord> {
+      const campaign = await dependencies.campaigns.find(id, scope)
+      if (!campaign || campaign.createdBy !== principal.userId)
+        throw new CampaignForbiddenError("campaign not found")
+      const updated = await dependencies.campaigns.cancel(id, scope)
+      if (!updated) throw new CampaignForbiddenError("campaign not found")
+      return updated
     },
   }
 }
