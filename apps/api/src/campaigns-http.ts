@@ -14,7 +14,7 @@ import { authenticate, csrfValid, sameOrigin, scopeQuerySchema } from "./waha/se
 const campaignBodySchema = z.object({
   sessionId: z.string().uuid(),
   contactGroupId: z.string().uuid(),
-  wahaGroupId: z.string().min(1).max(256),
+  wahaGroupId: z.string().min(1).max(256).optional(),
   message: z.string().trim().min(1).max(4096),
   followUpMessage: z.string().trim().min(1).max(4096).optional(),
   trigger: z.object({ type: z.string().min(1), emojiMap: z.record(z.string()).optional() }),

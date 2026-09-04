@@ -61,9 +61,20 @@ export type CampaignApi = Readonly<{
   cancel: (scope: AccountScope, id: string) => Promise<ApiResult<Campaign>>
   contactGroups: (scope: AccountScope) => Promise<ApiResult<readonly ContactGroup[]>>
   createContactGroup: (scope: AccountScope, name: string) => Promise<ApiResult<ContactGroup>>
-  contactGroupMembers: (scope: AccountScope, groupId: string) => Promise<ApiResult<readonly ContactGroupMember[]>>
-  addContactGroupMember: (scope: AccountScope, groupId: string, phone: string) => Promise<ApiResult<ContactGroupMember>>
-  removeContactGroupMember: (scope: AccountScope, groupId: string, memberId: string) => Promise<ApiResult<{ ok: boolean }>>
+  contactGroupMembers: (
+    scope: AccountScope,
+    groupId: string,
+  ) => Promise<ApiResult<readonly ContactGroupMember[]>>
+  addContactGroupMember: (
+    scope: AccountScope,
+    groupId: string,
+    phone: string,
+  ) => Promise<ApiResult<ContactGroupMember>>
+  removeContactGroupMember: (
+    scope: AccountScope,
+    groupId: string,
+    memberId: string,
+  ) => Promise<ApiResult<{ ok: boolean }>>
   wahaGroups: (scope: AccountScope, sessionId: string) => Promise<ApiResult<readonly WahaGroup[]>>
 }>
 
@@ -97,16 +108,27 @@ export function createCampaignApi(baseUrl = ""): CampaignApi {
         body: JSON.stringify({ name }),
       }),
     contactGroupMembers: (scope, groupId) =>
-      requestJson(scoped(`/scoped/contact-groups/${groupId}/members`, scope), z.array(contactGroupMemberSchema)),
+      requestJson(
+        scoped(`/scoped/contact-groups/${groupId}/members`, scope),
+        z.array(contactGroupMemberSchema),
+      ),
     addContactGroupMember: (scope, groupId, phone) =>
-      requestJson(scoped(`/scoped/contact-groups/${groupId}/members`, scope), contactGroupMemberSchema, {
-        method: "POST",
-        body: JSON.stringify({ phone }),
-      }),
+      requestJson(
+        scoped(`/scoped/contact-groups/${groupId}/members`, scope),
+        contactGroupMemberSchema,
+        {
+          method: "POST",
+          body: JSON.stringify({ phone }),
+        },
+      ),
     removeContactGroupMember: (scope, groupId, memberId) =>
-      requestJson(scoped(`/scoped/contact-groups/${groupId}/members/${memberId}`, scope), z.object({ ok: z.boolean() }), {
-        method: "DELETE",
-      }),
+      requestJson(
+        scoped(`/scoped/contact-groups/${groupId}/members/${memberId}`, scope),
+        z.object({ ok: z.boolean() }),
+        {
+          method: "DELETE",
+        },
+      ),
     wahaGroups: async (scope, sessionId) =>
       requestJson(scoped(`/scoped/sessions/${sessionId}/groups`, scope), z.array(wahaGroupSchema)),
   }
