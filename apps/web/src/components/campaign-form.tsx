@@ -134,15 +134,25 @@ export function CampaignForm({
             gap: "var(--space-1)",
           }}
         >
-          <li>Create a contact group below and add members from any contact list.</li>
           <li>
-            Pick the authorized session and the WAHA group — members of the selected WAHA group will
-            be shown below and you can add more from your contact groups.
+            <strong style={{ color: "var(--color-ink)" }}>Contacts group</strong> — your app-owned
+            list (e.g., “PTG Batch 1” with 40 contacts). Reusable across campaigns, scoped to
+            Personal/Business.
           </li>
           <li>
-            Write the group message and an optional follow-up. The group message is sent at the
-            scheduled time; the follow-up is sent <em>only to the person who reacted</em> (1 of 40,
-            not all).
+            <strong style={{ color: "var(--color-ink)" }}>WAHA group</strong> — the real WhatsApp
+            group (@g.us like “Product ber 4”). This is where the first message is broadcast.
+          </li>
+          <li>
+            Pick the authorized session and the WAHA group — its current members will be shown
+            below. Contacts from your selected contact group become the <em>allowlist</em> for who
+            is eligible for the follow-up.
+          </li>
+          <li>
+            Write the group message and an optional follow-up. The group message goes at the chosen
+            time (or immediately if “Send now”); the follow-up is sent{" "}
+            <strong style={{ color: "var(--color-ink)" }}>only to the person who reacted</strong> (1
+            of 40, not all 40), as a 1:1 message, checked for consent and safety.
           </li>
         </ol>
         <small>
@@ -253,9 +263,35 @@ export function CampaignForm({
           </div>
         ) : null}
         {error ? (
-          <p className="form-error" role="alert">
-            {error}
-          </p>
+          <div role="alert" style={{ display: "grid", gap: "var(--space-2)" }}>
+            <div
+              className="state-notice state-error"
+              style={{
+                padding: "var(--space-3)",
+                borderRadius: "var(--radius-control)",
+                background: "color-mix(in srgb, var(--color-error) 12%, var(--color-surface))",
+                border: "1px solid var(--color-error)",
+              }}
+            >
+              <strong style={{ display: "block", marginBottom: "var(--space-1)" }}>
+                Could not create campaign
+              </strong>
+              <span>{error}</span>
+              {error.includes("503") || error.toLowerCase().includes("unavailable") ? (
+                <small
+                  style={{
+                    display: "block",
+                    marginTop: "var(--space-2)",
+                    color: "var(--color-muted)",
+                  }}
+                >
+                  The campaign service returned 503 — it may be temporarily unavailable or the WAHA
+                  group is not in this session. Try refreshing, picking a different WAHA group, or
+                  check server logs.
+                </small>
+              ) : null}
+            </div>
+          </div>
         ) : null}
         <button
           className="button button-primary"
