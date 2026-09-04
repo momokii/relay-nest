@@ -99,7 +99,9 @@ export function createCampaignService(dependencies: CampaignDependencies) {
       input: CampaignScheduleInput,
     ): Promise<CampaignRecord> {
       const current = now()
-      if (input.scheduledAt <= current)
+      const effectiveScheduledAt = input.scheduledAt ?? new Date(current.getTime() + 5000)
+      const effectiveTimezone = input.timezone ?? "Asia/Jakarta"
+      if (effectiveScheduledAt <= current)
         throw new CampaignInputError("scheduledAt must be in the future")
       const decision = await dependencies.authorize(
         principal,
@@ -125,7 +127,14 @@ export function createCampaignService(dependencies: CampaignDependencies) {
       if (!groups.some((group) => group.id === input.wahaGroupId))
         throw new CampaignForbiddenError("WAHA group is not available in this session")
       const campaign = await dependencies.campaigns.create({
-        ...input,
+        accountScope: input.accountScope,
+        sessionId: input.sessionId,
+        contactGroupId: input.contactGroupId,
+        wahaGroupId: input.wahaGroupId,
+        message: input.message,
+        ...(input.followUpMessage ? { followUpMessage: input.followUpMessage } : {}),
+        trigger: input.trigger,
+        scheduledAt: effectiveScheduledAt,
         createdBy: principal.userId,
       })
       const job = await dependencies.scheduler.schedule({
@@ -133,8 +142,8 @@ export function createCampaignService(dependencies: CampaignDependencies) {
         accountScope: input.accountScope,
         recipientPhone: input.wahaGroupId,
         message: input.message,
-        scheduledFor: input.scheduledAt,
-        timezone: input.timezone,
+        scheduledFor: effectiveScheduledAt,
+        timezone: effectiveTimezone,
         idempotencyKey: `campaign:${campaign.id}`,
       })
       return (
@@ -156,8 +165,8 @@ export type CampaignScheduleInput = Readonly<{
   readonly message: string
   readonly followUpMessage?: string | undefined
   readonly trigger: CampaignTrigger
-  readonly scheduledAt: Date
-  readonly timezone: string
+  readonly scheduledAt?: Date | undefined
+  readonly timezone?: string | undefined
 }>
 
 export function createCampaignTransport(

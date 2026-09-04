@@ -56,6 +56,7 @@ export function CampaignForm({
   const [followUp, setFollowUp] = useState("")
   const [scheduledAt, setScheduledAt] = useState("")
   const [timezone, setTimezone] = useState("Asia/Jakarta")
+  const [sendMode, setSendMode] = useState<"now" | "later">("now")
   const [trigger, setTrigger] = useState<"any" | "emoji">("any")
   const [emojiMap, setEmojiMap] = useState("")
   const [error, setError] = useState("")
@@ -63,10 +64,12 @@ export function CampaignForm({
   const submit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault()
     const contactGroupId = groupIds[0]
-    if (!sessionId || !contactGroupId || !wahaGroupId || !message.trim() || !scheduledAt) {
-      setError(
-        "Choose a session, at least one contact group, WAHA group, message, and schedule time.",
-      )
+    if (!sessionId || !contactGroupId || !wahaGroupId || !message.trim()) {
+      setError("Choose a session, at least one contact group, WAHA group, and message.")
+      return
+    }
+    if (sendMode === "later" && !scheduledAt) {
+      setError("Choose a schedule time or switch to Send now.")
       return
     }
     setBusy(true)
@@ -89,8 +92,7 @@ export function CampaignForm({
                   .filter((item) => item.length === 2 && item[0] && item[1]),
               ),
             },
-      scheduledAt,
-      timezone,
+      ...(sendMode === "later" && scheduledAt ? { scheduledAt, timezone } : {}),
     }
     const result = await api.create(scope, input)
     setBusy(false)
@@ -210,29 +212,46 @@ export function CampaignForm({
             </label>
           ) : null}
         </fieldset>
-        <div className="form-grid">
+        <fieldset className="campaign-trigger">
+          <legend>Group message timing</legend>
           <label>
-            <span>Group message send time</span>
+            <input type="radio" checked={sendMode === "now"} onChange={() => setSendMode("now")} />{" "}
+            Send now — group message goes immediately, reactions still trigger the 1:1 follow-up
+          </label>
+          <label>
             <input
-              type="datetime-local"
-              value={scheduledAt}
-              onChange={(event) => setScheduledAt(event.target.value)}
-            />
-            <small>
-              Scheduled in the selected timezone. The reaction trigger runs immediately after
-              someone reacts, not at this time.
-            </small>
+              type="radio"
+              checked={sendMode === "later"}
+              onChange={() => setSendMode("later")}
+            />{" "}
+            Schedule for later
           </label>
-          <label>
-            <span>Timezone</span>
-            <select value={timezone} onChange={(event) => setTimezone(event.target.value)}>
-              <option>Asia/Jakarta</option>
-              <option>UTC</option>
-              <option>Asia/Singapore</option>
-              <option>Europe/London</option>
-            </select>
-          </label>
-        </div>
+        </fieldset>
+        {sendMode === "later" ? (
+          <div className="form-grid">
+            <label>
+              <span>Group message send time</span>
+              <input
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(event) => setScheduledAt(event.target.value)}
+              />
+              <small>
+                Scheduled in the selected timezone. The reaction trigger still runs immediately
+                after someone reacts.
+              </small>
+            </label>
+            <label>
+              <span>Timezone</span>
+              <select value={timezone} onChange={(event) => setTimezone(event.target.value)}>
+                <option>Asia/Jakarta</option>
+                <option>UTC</option>
+                <option>Asia/Singapore</option>
+                <option>Europe/London</option>
+              </select>
+            </label>
+          </div>
+        ) : null}
         {error ? (
           <p className="form-error" role="alert">
             {error}

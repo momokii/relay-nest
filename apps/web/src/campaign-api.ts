@@ -43,8 +43,8 @@ export type CampaignInput = Readonly<{
   message: string
   followUpMessage?: string
   trigger: { type: "any" | "emoji"; emojiMap?: Record<string, string> }
-  scheduledAt: string
-  timezone: string
+  scheduledAt?: string | undefined
+  timezone?: string | undefined
 }>
 
 export type CampaignApi = Readonly<{
