@@ -130,8 +130,7 @@ function chatMessageView(message: WahaMessage): SessionChatMessageView {
   // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
   const data = raw["_data"] as Record<string, unknown> | undefined
   // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
-  const notifyName =
-    typeof data?.["notifyName"] === "string" ? (data["notifyName"] as string) : null
+  const notifyName = typeof data?.notifyName === "string" ? (data.notifyName as string) : null
   const rawSender = message.fromMe === true ? null : (notifyName ?? participant ?? null)
   const sender = rawSender && isPhoneLikeName(rawSender) ? null : rawSender
   return {
@@ -422,7 +421,7 @@ export function createScopedSessionService(options: {
       }
       const senderLids = new Set<string>()
       for (const view of initialViews) {
-        if (view.sender && view.sender.endsWith("@lid")) {
+        if (view.sender?.endsWith("@lid")) {
           const lid = view.sender.slice(0, -"@lid".length)
           if (lid) senderLids.add(lid)
         }
@@ -468,7 +467,7 @@ export function createScopedSessionService(options: {
               }
             }
           }
-          if (enrichedSender && enrichedSender.endsWith("@lid")) {
+          if (enrichedSender?.endsWith("@lid")) {
             const lid = enrichedSender.slice(0, -"@lid".length)
             const label = lidMap.get(lid)
             if (label) enrichedSender = label

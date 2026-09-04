@@ -11,9 +11,9 @@ const rawBodies = new WeakMap<FastifyRequest, Buffer>()
 const MAX_WAHA_WEBHOOK_BODY_BYTES = 1_048_576
 
 export function resolveWebhookSecret(environment: NodeJS.ProcessEnv): string | undefined {
-  const plain = environment["WAHA_WEBHOOK_SECRET"]
+  const plain = environment.WAHA_WEBHOOK_SECRET
   if (plain) return plain
-  const secretFile = environment["WAHA_WEBHOOK_SECRET_FILE"]
+  const secretFile = environment.WAHA_WEBHOOK_SECRET_FILE
   if (!secretFile) return undefined
   const secret = readFileSync(secretFile, "utf8").trim()
   if (secret.length === 0) throw new Error("WAHA webhook secret file is empty")
