@@ -15,11 +15,14 @@ import { registerAuthRoutes } from "./auth/http"
 import { AuthService } from "./auth/service"
 import { BackupFormatError } from "./backup/format"
 import { BackupRepositoryError, createBackupRepository } from "./backup/repository"
+import { createReactionTrigger } from "./campaigns/reaction-trigger"
+import { registerCampaignRoutes } from "./campaigns-http"
 import type { DatabaseHandle } from "./db/client"
 import { createRepositories } from "./db/repositories"
 import { RetentionPreviewMismatchError } from "./db/repositories/retention"
 import type { createMessagingService } from "./messaging"
 import { registerMessagingRoutes } from "./messaging-http"
+import type { ConfiguredMessagingService } from "./messaging-runtime"
 import { createConfiguredMessagingService } from "./messaging-runtime"
 import { registerNotificationRoutes } from "./notifications/http"
 import { createNotificationService } from "./notifications/service"
@@ -75,6 +78,7 @@ export function createApiApp(
   options: {
     readonly sessionService?: ReturnType<typeof createScopedSessionService>
     readonly messagingService?: ReturnType<typeof createMessagingService>
+    readonly campaignService?: ConfiguredMessagingService["campaigns"]
     readonly notificationService?: ReturnType<typeof createNotificationService>
     readonly analyticsService?: AnalyticsService
     readonly aiApprovalService?: AiApprovalService
@@ -82,7 +86,8 @@ export function createApiApp(
   } = {},
 ): FastifyInstance {
   const app = Fastify({ logger: true, maxParamLength: 512 })
-  const repositories = createRepositories(database.db)
+  const encryptionMasterKey = resolveEncryptionMasterKey(process.env)
+  const repositories = createRepositories(database.db, encryptionMasterKey)
   const audit: AuditCallback = async (input) => {
     await repositories.auditEntries.append(input)
   }
@@ -90,10 +95,22 @@ export function createApiApp(
   const admin = new AdminService(database.db, audit)
   const loopbackOptions = resolveLoopbackWahaOption(options.allowLoopbackWaha)
   const webhookSecret = resolveWebhookSecret(process.env)
-  const encryptionMasterKey = resolveEncryptionMasterKey(process.env)
-  const configuredMessagingService =
-    options.messagingService ??
-    createConfiguredMessagingService(database, repositories, encryptionMasterKey, loopbackOptions)
+  const configuredRuntime = options.messagingService
+    ? undefined
+    : createConfiguredMessagingService(database, repositories, encryptionMasterKey, loopbackOptions)
+  const configuredMessagingService = options.messagingService ?? configuredRuntime
+  const reactionTrigger = configuredMessagingService
+    ? createReactionTrigger({
+        campaigns: repositories.campaigns,
+        contactGroups: {
+          hasMember: async (scope, sessionId, groupId, phone) =>
+            (await repositories.contactGroups.hasMember?.(scope, sessionId, groupId, phone)) ??
+            false,
+        },
+        messaging: configuredMessagingService,
+        audit,
+      })
+    : undefined
   const configuredNotificationService =
     options.notificationService ??
     (encryptionMasterKey
@@ -159,6 +176,13 @@ export function createApiApp(
           state,
         ),
     },
+    ...(reactionTrigger
+      ? {
+          onReaction: async (event: Parameters<typeof reactionTrigger>[0]) => {
+            await reactionTrigger(event)
+          },
+        }
+      : {}),
   })
 
   app.register(cors, { origin: false })
@@ -189,6 +213,8 @@ export function createApiApp(
     includeScopedSessionCompatibility: !sessionService,
   })
   registerConnectionRoutes(app, auth, repositories)
+  const campaignService = options.campaignService ?? configuredRuntime?.campaigns
+  if (campaignService) registerCampaignRoutes(app, auth, campaignService)
   registerAiApprovalRoutes(app, auth, aiApprovalService)
   if (sessionService) registerSessionRoutes(app, auth, sessionService)
   if (configuredMessagingService) registerMessagingRoutes(app, auth, configuredMessagingService)
