@@ -37,6 +37,33 @@ const messageSchema = z.object({
   mimetype: z.string().nullable(),
   sender: z.string().nullable(),
 })
+const sentHistoryStateSchema = z.enum([
+  "scheduled",
+  "queued",
+  "attempting",
+  "submitted",
+  "acknowledged",
+  "failed",
+  "unknown",
+  "cancelled",
+])
+const sentHistoryItemSchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  scope: z.enum(["personal", "business"]),
+  recipientPhone: z.string().nullable(),
+  snippet80: z.string().nullable(),
+  scheduledFor: z.string(),
+  createdAt: z.string(),
+  state: sentHistoryStateSchema,
+  providerMessageId: z.string().nullable(),
+})
+const sentHistorySchema = z.object({
+  items: z.array(sentHistoryItemSchema),
+  page: z.number().int().positive(),
+  pageSize: z.number().int().positive(),
+  hasMore: z.boolean(),
+})
 export const createSessionSchema = z.object({
   connectionId: z.string().uuid(),
   name: z.string().min(1),
@@ -52,6 +79,9 @@ export type SessionMetadata = z.infer<typeof metadataSchema>
 export type SessionCreateInput = z.infer<typeof createSessionSchema>
 export type SessionChat = z.infer<typeof chatSchema>
 export type MessageView = z.infer<typeof messageSchema>
+export type SentHistoryItem = z.infer<typeof sentHistoryItemSchema>
+export type SentHistoryState = z.infer<typeof sentHistoryStateSchema>
+export type SentHistoryPage = z.infer<typeof sentHistorySchema>
 
 export type DashboardSessionApi = Readonly<{
   create: (scope: AccountScope, input: SessionCreateInput) => Promise<ApiResult<SessionView>>
@@ -79,6 +109,11 @@ export type DashboardSessionApi = Readonly<{
     sessionId: string,
     ref: string,
   ) => Promise<ApiResult<readonly MessageView[]>>
+  sentHistory: (
+    scope: AccountScope,
+    page: number,
+    pageSize?: number,
+  ) => Promise<ApiResult<SentHistoryPage>>
   messageMediaUrl: (
     scope: AccountScope,
     sessionId: string,
@@ -139,6 +174,11 @@ export function createDashboardSessionApi(baseUrl = ""): DashboardSessionApi {
       )
       return result.kind === "ready" ? { kind: "ready", data: result.data } : result
     },
+    sentHistory: (scope, page, pageSize = 20) =>
+      requestJson(
+        `${url("/scoped/sent-history")}?scope=${scope}&page=${page}&pageSize=${pageSize}`,
+        sentHistorySchema,
+      ),
     messageMediaUrl: (scope, sessionId, ref, messageId) =>
       scoped(
         `/scoped/sessions/${sessionId}/chats/${encodeURIComponent(ref)}/messages/${encodeURIComponent(messageId)}/media`,

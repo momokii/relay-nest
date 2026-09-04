@@ -12,6 +12,7 @@ import type { ScheduleEditInput, ScheduleView } from "../dashboard-schedule-api"
 import type { ActionState, ResourceState } from "../dashboard-state"
 import { ScheduleJobsPanel } from "./schedule-jobs-panel"
 import { ContactLookup, MessageComposer } from "./send-forms"
+import { SentHistoryPanel } from "./sent-history-panel"
 
 export { RetentionPage, SettingsPage } from "./admin-pages"
 export { NotificationsPage } from "./notification-page"
@@ -75,7 +76,12 @@ export function SendPage(
     onSchedule: (input: ScheduleInput) => Promise<void>
   }>,
 ): React.JSX.Element {
-  return <MessageComposer key={props.scope} mode="send" {...props} />
+  return (
+    <div className="page-grid send-page">
+      <MessageComposer key={props.scope} mode="send" {...props} />
+      <SentHistoryPanel key={`${props.scope}-${props.action.kind}`} scope={props.scope} />
+    </div>
+  )
 }
 
 export function SchedulePage(
@@ -116,6 +122,7 @@ export function SchedulePage(
     <div className="page-grid schedule-page">
       <MessageComposer key={props.scope} mode="schedule" {...props} />
       <ScheduleJobsPanel {...props} />
+      <SentHistoryPanel key={`${props.scope}-${props.action.kind}`} scope={props.scope} />
     </div>
   )
 }
