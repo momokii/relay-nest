@@ -25,6 +25,8 @@ import {
 } from "@waha-command-center/waha-contracts"
 import { z } from "zod"
 
+import { createWahaGroupOperations } from "./groups"
+
 const emptyResponseSchema = z.undefined()
 const wahaQrImageResponseSchema = z
   .object({ mimetype: z.literal("image/png"), data: z.string().min(1) })
@@ -49,6 +51,7 @@ type WahaRequest = <T>(
 
 export function createWahaSessionOperations(request: WahaRequest) {
   return {
+    ...createWahaGroupOperations(request),
     session: (name: string, signal?: AbortSignal) =>
       request(`/api/sessions/${encodeURIComponent(name)}`, wahaSessionActionResponseSchema, signal),
     createSession: (body: string, signal?: AbortSignal) =>

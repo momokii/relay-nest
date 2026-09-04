@@ -147,6 +147,28 @@ export const wahaSendTextResponseSchema = z
   .passthrough()
   .transform((value) => ({ id: typeof value.id === "string" ? value.id : value.id.id }))
 
+export const wahaGroupParticipantInputSchema = z.object({
+  participants: z.array(z.string().min(1)).min(1),
+})
+export const wahaGroupCreateInputSchema = z.object({
+  session: z.string().min(1),
+  name: z.string().trim().min(1).max(100),
+  participants: z.array(z.string().min(1)),
+})
+const wahaGroupIdSchema = z.union([
+  z.string().min(1),
+  z.object({ _serialized: z.string().min(1) }).transform((value) => value._serialized),
+])
+export const wahaGroupSchema = z
+  .object({
+    id: wahaGroupIdSchema,
+    name: z.string().min(1).optional(),
+    participants: z.array(z.string()).optional(),
+  })
+  .passthrough()
+export const wahaGroupListSchema = z.array(wahaGroupSchema)
+export const wahaGroupMutationResponseSchema = z.unknown()
+
 export type WahaPing = z.infer<typeof wahaPingSchema>
 export type WahaHealth = z.infer<typeof wahaHealthSchema>
 export type WahaEnvironment = z.infer<typeof wahaEnvironmentSchema>
@@ -164,6 +186,9 @@ export type WahaPasskeyConfirmation = z.infer<typeof wahaPasskeyConfirmationSche
 export type WahaContactExists = z.infer<typeof wahaContactExistsSchema>
 export type WahaContact = z.infer<typeof wahaContactSchema>
 export type WahaSendTextResponse = z.infer<typeof wahaSendTextResponseSchema>
+export type WahaGroup = z.infer<typeof wahaGroupSchema>
+export type WahaGroupCreateInput = z.infer<typeof wahaGroupCreateInputSchema>
+export type WahaGroupParticipantInput = z.infer<typeof wahaGroupParticipantInputSchema>
 
 export const WAHA_IMAGE = "devlikeapro/waha:latest-2026.8.1" as const
 export const WAHA_CONTRACT_VERSION = "2026.8.1" as const

@@ -2,6 +2,7 @@ import type {
   WahaCapping,
   WahaChat,
   WahaContact,
+  WahaGroup,
   WahaMessage,
   WahaMetadata,
   WahaPasskeyChallenge,
@@ -16,6 +17,7 @@ import type { AccountScope } from "../db/schema/shared"
 export type {
   WahaCapping,
   WahaContact,
+  WahaGroup,
   WahaMessage,
   WahaMetadata,
   WahaPasskeyChallenge,
@@ -143,6 +145,22 @@ export type WahaSessionClient = {
     chatId: string,
     text: string,
   ) => Promise<{ readonly id: string }>
+  readonly createGroup: (
+    session: string,
+    name: string,
+    participantIds: readonly string[],
+  ) => Promise<WahaGroup>
+  readonly groups: (name: string) => Promise<readonly WahaGroup[]>
+  readonly addGroupParticipants: (
+    name: string,
+    groupId: string,
+    participantIds: readonly string[],
+  ) => Promise<unknown>
+  readonly removeGroupParticipants: (
+    name: string,
+    groupId: string,
+    participantIds: readonly string[],
+  ) => Promise<unknown>
 }
 
 export const SESSION_LIFECYCLE_ACTIONS = ["start", "stop", "restart", "logout", "delete"] as const
