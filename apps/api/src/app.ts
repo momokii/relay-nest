@@ -31,6 +31,7 @@ import {
   RetentionPolicyMissingError,
 } from "./retention/service"
 import { registerScheduledRoutes } from "./scheduled-http"
+import { registerSentHistoryRoutes } from "./sent-history"
 import { registerConnectionRoutes } from "./waha/connection-http"
 import { registerSessionRoutes } from "./waha/session-http"
 import type { createScopedSessionService } from "./waha/sessions"
@@ -192,6 +193,12 @@ export function createApiApp(
   if (sessionService) registerSessionRoutes(app, auth, sessionService)
   if (configuredMessagingService) registerMessagingRoutes(app, auth, configuredMessagingService)
   registerScheduledRoutes(app, auth, repositories.scheduledJobs)
+  registerSentHistoryRoutes(
+    app,
+    auth,
+    repositories.sentHistory,
+    encryptionMasterKey ? createEnvelopeCipher(encryptionMasterKey) : undefined,
+  )
   if (configuredAnalyticsService) registerAnalyticsRoutes(app, auth, configuredAnalyticsService)
   if (configuredNotificationService)
     registerNotificationRoutes(app, auth, admin, configuredNotificationService)

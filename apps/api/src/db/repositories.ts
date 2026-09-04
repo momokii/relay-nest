@@ -7,6 +7,7 @@ import { createNotificationRepositories } from "./repositories/notifications"
 import { createRetentionRepositories } from "./repositories/retention"
 import { createScheduledListRepository } from "./repositories/scheduled-list"
 import { createSchedulingRepositories } from "./repositories/scheduling"
+import { createSentHistoryRepository } from "./repositories/sent-history"
 import { createTransportRepositories } from "./repositories/transport"
 import {
   AuditImmutabilityError,
@@ -40,6 +41,7 @@ export function createRepositories(db: PersistenceDatabase) {
     ...createDispatchAttemptRepositories(db),
     ...scheduling,
     scheduledJobs: { ...scheduling.scheduledJobs, ...createScheduledListRepository(db) },
+    sentHistory: createSentHistoryRepository(db),
     ...createTransportRepositories(db),
     ...createNotificationRepositories(db),
     ...createRetentionRepositories(db),
