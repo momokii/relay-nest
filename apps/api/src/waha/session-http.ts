@@ -114,6 +114,25 @@ export function registerSessionRoutes(
       service.groups(principal, sessionId, scope),
     ),
   )
+  app.post("/scoped/sessions/:sessionId/groups/:groupId/participants", async (request, reply) => {
+    if (!sameOrigin(request)) return reply.code(403).send({ error: "forbidden" })
+    const principal = await authenticate(auth, request, reply)
+    if (!principal) return
+    if (
+      !(await auth.verifyCsrf(principal.sessionToken, request.headers["x-csrf-token"]?.toString()))
+    )
+      return reply.code(403).send({ error: "forbidden" })
+    const { sessionId, groupId } = z
+      .object({ sessionId: z.string().uuid(), groupId: z.string().min(1) })
+      .parse(request.params)
+    const { scope } = scopeQuerySchema.parse(request.query)
+    const { participantIds } = z
+      .object({ participantIds: z.array(z.string().min(1)).min(1).max(50) })
+      .parse(request.body)
+    return sendService(reply, () =>
+      service.addGroupParticipants(principal, sessionId, scope, groupId, participantIds),
+    )
+  })
   app.get("/scoped/sessions/:sessionId/chats/:chatRef/messages", async (request, reply) => {
     const principal = await authenticate(auth, request, reply)
     if (!principal) return

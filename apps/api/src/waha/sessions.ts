@@ -406,6 +406,17 @@ export function createScopedSessionService(options: {
       const client = await options.clientFor(session)
       return client.groups(session.wahaSessionName)
     },
+    async addGroupParticipants(
+      principal: AuthPrincipal,
+      sessionId: string,
+      scope: AccountScope,
+      groupId: string,
+      participantIds: readonly string[],
+    ): Promise<unknown> {
+      const session = await authorized(principal, sessionId, scope, "command")
+      const client = await options.clientFor(session)
+      return client.addGroupParticipants(session.wahaSessionName, groupId, participantIds)
+    },
     async messages(
       principal: AuthPrincipal,
       sessionId: string,
