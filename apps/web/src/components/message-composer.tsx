@@ -1,5 +1,5 @@
-import type * as React from "react"
-import { type FormEvent, useMemo, useState } from "react"
+import * as React from "react"
+import { type FormEvent, type KeyboardEvent, useMemo, useRef, useState } from "react"
 
 import type { AiApprovalResult } from "../dashboard-ai-api"
 import { createDashboardAiApi } from "../dashboard-ai-api"
@@ -18,6 +18,7 @@ import {
   validateMessageInput,
 } from "../dashboard-model"
 import { type ActionState, actionFromResult, type ResourceState } from "../dashboard-state"
+import { renderPreview } from "../lib/whatsapp-format"
 import { randomUuid } from "../random-uuid"
 import { ActionFeedback } from "./action-feedback"
 import { AiReviewPanel } from "./ai-review-panel"
@@ -29,6 +30,36 @@ export {
   canSubmitSelectedDirectoryContact,
   isContactResolutionCurrent,
 } from "./recipient-selector-state"
+
+function previewNode(node: ChildNode, key: number): React.ReactNode {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent
+  if (node.nodeType !== Node.ELEMENT_NODE) return null
+
+  const children = Array.from(node.childNodes).map((child, index) => previewNode(child, index))
+  switch (node.nodeName.toLowerCase()) {
+    case "strong":
+      return React.createElement("strong", { key }, children)
+    case "em":
+      return React.createElement("em", { key }, children)
+    case "s":
+      return React.createElement("s", { key }, children)
+    case "code":
+      return React.createElement("code", { key }, children)
+    case "ul":
+      return React.createElement("ul", { key }, children)
+    case "ol":
+      return React.createElement("ol", { key }, children)
+    case "li":
+      return React.createElement("li", { key }, children)
+    default:
+      return null
+  }
+}
+
+function renderPreviewNodes(text: string): readonly React.ReactNode[] {
+  const document = new DOMParser().parseFromString(renderPreview(text), "text/html")
+  return Array.from(document.body.childNodes).map((node, index) => previewNode(node, index))
+}
 
 export function MessageComposer({
   mode,
@@ -67,6 +98,7 @@ export function MessageComposer({
   const [timezone, setTimezone] = useState("UTC")
   const [validationError, setValidationError] = useState<string | undefined>()
   const [aiApproval, setAiApproval] = useState<ActionState<AiApprovalResult>>({ kind: "idle" })
+  const messageInput = useRef<HTMLTextAreaElement>(null)
   const aiApi = useMemo(() => createDashboardAiApi(import.meta.env.VITE_API_BASE_URL), [])
   const recipientSelector = useRecipientSelector({
     scope,
@@ -84,6 +116,34 @@ export function MessageComposer({
     selectedChatId: selection.selectedDirectoryPhone,
     contactId: selection.contactId,
   })
+  const preview = useMemo(() => renderPreviewNodes(message), [message])
+
+  function replaceMessageSelection(prefix: string, suffix = prefix): void {
+    const input = messageInput.current
+    if (!input) return
+    const start = input.selectionStart
+    const end = input.selectionEnd
+    const selected = message.slice(start, end)
+    input.setRangeText(`${prefix}${selected}${suffix}`, start, end, "select")
+    setMessage(input.value)
+    input.setSelectionRange(start + prefix.length, start + prefix.length + selected.length)
+    input.focus()
+  }
+
+  function handleMessageKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
+    if (event.key === "Enter") {
+      event.preventDefault()
+      const input = event.currentTarget
+      input.setRangeText("\n", input.selectionStart, input.selectionEnd, "end")
+      setMessage(input.value)
+      return
+    }
+    if (!(event.ctrlKey || event.metaKey) || event.altKey) return
+    const shortcut = event.key.toLowerCase()
+    if (shortcut !== "b" && shortcut !== "i") return
+    event.preventDefault()
+    replaceMessageSelection(shortcut === "b" ? "*" : "_")
+  }
 
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
@@ -159,18 +219,89 @@ export function MessageComposer({
             action={contactAction}
             consentAction={consentAction}
           />
-          <label>
-            <span>Text message</span>
-            <textarea
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              rows={4}
-              maxLength={4096}
-              placeholder="Text content is entered only at send time."
-              disabled={!canOperate}
-            />
-            <small>{message.length} / 4096 characters · no media or broadcast targets</small>
-          </label>
+          <div className="message-composer">
+            <div className="message-toolbar" role="toolbar" aria-label="Message formatting">
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => replaceMessageSelection("*")}
+                disabled={!canOperate}
+                aria-label="Bold"
+              >
+                B
+              </button>
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => replaceMessageSelection("_")}
+                disabled={!canOperate}
+                aria-label="Italic"
+              >
+                I
+              </button>
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => replaceMessageSelection("~")}
+                disabled={!canOperate}
+                aria-label="Strikethrough"
+              >
+                S
+              </button>
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => replaceMessageSelection("```")}
+                disabled={!canOperate}
+                aria-label="Monospace"
+              >
+                M
+              </button>
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => replaceMessageSelection("- ", "")}
+                disabled={!canOperate}
+                aria-label="Bullet list"
+              >
+                •
+              </button>
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => replaceMessageSelection("1. ", "")}
+                disabled={!canOperate}
+                aria-label="Numbered list"
+              >
+                1.
+              </button>
+            </div>
+            <label htmlFor="message-textarea">
+              <span>Text message</span>
+              <textarea
+                id="message-textarea"
+                ref={messageInput}
+                aria-label="Text message"
+                aria-describedby="message-textarea-help"
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                onKeyDown={handleMessageKeyDown}
+                rows={4}
+                maxLength={4096}
+                placeholder="Text content is entered only at send time."
+                disabled={!canOperate}
+              />
+              <small id="message-textarea-help">
+                {message.length} / 4096 characters · no media or broadcast targets
+              </small>
+            </label>
+            <section className="message-preview" aria-label="Message preview">
+              <span className="message-preview-label">Preview</span>
+              <div className="message-preview-content">
+                {preview.length > 0 ? preview : "\u00a0"}
+              </div>
+            </section>
+          </div>
           {mode === "schedule" ? (
             <div className="form-grid">
               <label>
