@@ -186,6 +186,57 @@ describe("scoped messaging HTTP routes", () => {
     await app.close()
   })
 
+  it("rejects an over limit immediate message before any scheduler call", async () => {
+    // Given an authenticated operator and a message one character over WhatsApp's limit
+    const app = Fastify()
+    const auth = {
+      authenticate: async () => principal,
+      verifyCsrf: async () => true,
+    }
+    let schedulerCalls = 0
+    registerMessagingRoutes(app, auth, {
+      resolveContact: async () => ({
+        id: contactId,
+        phone: "+628123456789",
+        displayName: null,
+        consentGranted: true,
+        optedOut: false,
+      }),
+      sendImmediate: async () => {
+        schedulerCalls += 1
+        return { state: "submitted", providerMessageId: "provider-1" }
+      },
+      scheduleText: async () => {
+        schedulerCalls += 1
+        return { state: "scheduled", jobId: "job-1" }
+      },
+      setConsent: async () => ({ updated: true }),
+    })
+
+    // When the operator submits the over-limit command
+    const response = await app.inject({
+      method: "POST",
+      url: `/scoped/sessions/${sessionId}/messages/immediate?scope=personal`,
+      headers: {
+        origin: "http://localhost",
+        host: "localhost",
+        cookie: "waha_session=session-token",
+        "x-csrf-token": "csrf-token",
+      },
+      payload: {
+        phoneNumber: "+628123456789",
+        message: "x".repeat(4097),
+        idempotencyKey: "11111111-1111-4111-8111-111111111116",
+      },
+    })
+
+    // Then validation returns a stable generic 400 and no scheduler operation is reached
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toEqual({ error: "invalid request" })
+    expect(schedulerCalls).toBe(0)
+    await app.close()
+  })
+
   it("maps malformed scheduled input to a generic 400 without Zod details", async () => {
     // Given an authenticated operator with an empty message and invalid schedule UUID
     const app = Fastify()

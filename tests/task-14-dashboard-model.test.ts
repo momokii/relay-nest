@@ -101,6 +101,23 @@ describe("Todo 14 dashboard model", () => {
     })
   })
 
+  it("rejects a message over WhatsApp's 4096-character limit", () => {
+    // Given a valid consented recipient and a message one character over the provider limit
+    const result = validateMessageInput({
+      recipient: "+15551234567",
+      message: "x".repeat(4097),
+      hasConsent: true,
+      hasMedia: false,
+      isRecurring: false,
+    })
+
+    // Then client validation blocks the send before an API call
+    expect(result).toEqual({
+      valid: false,
+      reason: "Enter a text message between 1 and 4096 characters.",
+    })
+  })
+
   it("rejects group chat addresses in submission validation", () => {
     // Given a raw provider group chat address that can never receive individual text
     const group = validateMessageInput({

@@ -44,7 +44,7 @@ const targetSchema = z.union([
   z.object({ contactId: z.string().uuid() }),
 ])
 const sendSchema = targetSchema.and(
-  z.object({ message: z.string().min(1).max(4096), idempotencyKey: z.string().uuid() }),
+  z.object({ message: z.string().trim().min(1).max(4096), idempotencyKey: z.string().uuid() }),
 )
 const scheduleSchema = sendSchema.and(
   z.object({ scheduledFor: z.coerce.date(), timezone: z.string().min(1).max(80) }),
