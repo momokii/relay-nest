@@ -242,7 +242,7 @@ function webhookConfig(
     webhooks: [
       {
         url: `${baseUrl}/api/webhooks/waha/${scope}/${sessionName}`,
-        events: ["message", "message.any", "message.ack", "session.status"],
+        events: ["message", "message.any", "message.ack", "message.reaction", "session.status"],
       },
     ],
   }

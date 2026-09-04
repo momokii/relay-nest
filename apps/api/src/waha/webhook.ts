@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto"
 import { z } from "zod"
-
+import { type ReactionEvent, reactionEventSchema } from "../campaigns/reaction-trigger"
 import type { AccountScope } from "../db/schema/shared"
 
 const DEFAULT_REPLAY_WINDOW_MS = 5 * 60 * 1000
@@ -140,6 +140,7 @@ export type WahaWebhookHandlerOptions = {
   readonly replayWindowMs?: number
   readonly configuredEvents?: readonly string[]
   readonly encodePayload?: (rawBody: Buffer, accountScope: AccountScope) => PayloadEnvelope
+  readonly onReaction?: (event: ReactionEvent) => Promise<void>
 }
 
 export type WahaWebhookResult =
@@ -330,6 +331,33 @@ export function createWahaWebhookHandler(options: WahaWebhookHandlerOptions) {
       }
     }
     if (inserted === "duplicate") return { status: 200, duplicate: true }
+    if (event.event === "message.reaction" && options.onReaction) {
+      const reaction = reactionEventSchema.safeParse({
+        sessionId: session.id,
+        accountScope,
+        reactionMessageId:
+          typeof event.payload === "object" && event.payload !== null && "id" in event.payload
+            ? event.payload.id
+            : undefined,
+        participant:
+          typeof event.payload === "object" &&
+          event.payload !== null &&
+          "participant" in event.payload
+            ? event.payload.participant
+            : undefined,
+        sourceMessageId:
+          typeof event.payload === "object" &&
+          event.payload !== null &&
+          "messageId" in event.payload
+            ? event.payload.messageId
+            : undefined,
+        wahaGroupId:
+          typeof event.payload === "object" && event.payload !== null && "chatId" in event.payload
+            ? event.payload.chatId
+            : undefined,
+      })
+      if (reaction.success) await options.onReaction(reaction.data)
+    }
     return { status: 202, duplicate: false }
   }
 }

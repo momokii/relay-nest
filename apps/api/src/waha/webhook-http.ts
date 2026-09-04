@@ -3,7 +3,7 @@ import { Readable } from "node:stream"
 import { createEnvelopeCipher } from "@waha-command-center/config"
 import type { FastifyInstance, FastifyRequest } from "fastify"
 import { z } from "zod"
-
+import type { ReactionEvent } from "../campaigns/reaction-trigger"
 import type { AccountScope } from "../db/schema/shared"
 import { createWahaWebhookHandler, type WahaWebhookStore } from "./webhook"
 
@@ -77,6 +77,7 @@ export function registerWahaWebhookRoutes(
     readonly secret: string | undefined
     readonly encryptionMasterKey: Buffer | undefined
     readonly store: WahaWebhookStore
+    readonly onReaction?: (event: ReactionEvent) => Promise<void>
   },
 ): void {
   app.addHook("preParsing", async (request, reply, payload) => {
@@ -90,6 +91,7 @@ export function registerWahaWebhookRoutes(
     ? createWahaWebhookHandler({
         secret: options.secret,
         store: options.store,
+        ...(options.onReaction ? { onReaction: options.onReaction } : {}),
         ...(cipher
           ? {
               encodePayload: (body: Buffer, accountScope: AccountScope) => {
