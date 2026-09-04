@@ -1,4 +1,6 @@
 export * from "./auth"
+export * from "./campaigns"
+export * from "./contact-groups"
 export * from "./identity"
 export * from "./messaging"
 export * from "./operations"

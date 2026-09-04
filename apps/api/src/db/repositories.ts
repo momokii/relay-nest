@@ -1,6 +1,8 @@
 import { and, asc, eq, inArray } from "drizzle-orm"
 
 import type { PersistenceDatabase } from "./client"
+import { createCampaignRepository } from "./repositories/campaigns"
+import { createContactGroupRepository } from "./repositories/contact-groups"
 import { createDispatchAttemptRepositories } from "./repositories/dispatch-attempts"
 import { createIdentityRepositories } from "./repositories/identity"
 import { createNotificationRepositories } from "./repositories/notifications"
@@ -34,8 +36,9 @@ type AuditInput = {
   readonly subjectId: string
 }
 
-export function createRepositories(db: PersistenceDatabase) {
+export function createRepositories(db: PersistenceDatabase, masterKey?: Buffer) {
   const scheduling = createSchedulingRepositories(db)
+  const contactGroups = createContactGroupRepository(db, masterKey)
   return {
     ...createIdentityRepositories(db),
     ...createDispatchAttemptRepositories(db),
@@ -45,6 +48,8 @@ export function createRepositories(db: PersistenceDatabase) {
     ...createTransportRepositories(db),
     ...createNotificationRepositories(db),
     ...createRetentionRepositories(db),
+    contactGroups,
+    campaigns: createCampaignRepository(db, masterKey),
     normalizedEvents: {
       create: (input: typeof normalizedEvents.$inferInsert) =>
         withPersistenceErrors(
