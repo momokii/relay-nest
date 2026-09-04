@@ -229,9 +229,10 @@ select {
 .app-body {
   display: grid;
   grid-template-columns: 15rem minmax(0, 1fr);
-  max-width: 80rem;
+  max-width: 84rem;
   min-height: calc(100dvh - 4.5rem);
   margin: 0 auto;
+  gap: var(--space-2);
 }
 .primary-navigation {
   display: flex;
@@ -299,14 +300,14 @@ select {
 }
 .main-content {
   min-width: 0;
-  padding: var(--space-10) var(--space-8) var(--space-16);
+  padding: var(--space-12) var(--space-10) var(--space-16);
 }
 .page-header {
   display: flex;
   align-items: end;
   justify-content: space-between;
   gap: var(--space-8);
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-10);
 }
 .page-header h1 {
   max-width: 18ch;
@@ -349,19 +350,22 @@ select {
 .page-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-6);
+  gap: var(--space-8);
 }
 .contacts-page,
-.schedule-page {
+.schedule-page,
+.campaign-page {
   grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-8);
 }
 .send-page {
-  grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 0.85fr);
+  grid-template-columns: minmax(0, 1.2fr) minmax(22rem, 0.8fr);
   align-items: start;
+  gap: var(--space-8);
 }
 .panel {
   min-width: 0;
-  padding: var(--space-6);
+  padding: var(--space-8);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-panel);
   background: var(--color-surface);
