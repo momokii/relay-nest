@@ -130,7 +130,7 @@ function chatMessageView(message: WahaMessage): SessionChatMessageView {
   // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
   const data = raw["_data"] as Record<string, unknown> | undefined
   // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
-  const notifyName = typeof data?.notifyName === "string" ? (data.notifyName as string) : null
+  const notifyName = typeof data?.["notifyName"] === "string" ? (data["notifyName"] as string) : null
   const rawSender = message.fromMe === true ? null : (notifyName ?? participant ?? null)
   const sender = rawSender && isPhoneLikeName(rawSender) ? null : rawSender
   return {

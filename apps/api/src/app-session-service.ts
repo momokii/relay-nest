@@ -111,7 +111,8 @@ export function createConfiguredSessionService(
     return entries
   }
   return createScopedSessionService({
-    webhookBaseUrl: process.env.WAHA_WEBHOOK_BASE_URL,
+    // biome-ignore lint/complexity/useLiteralKeys: index signature requires bracket access
+    webhookBaseUrl: process.env["WAHA_WEBHOOK_BASE_URL"],
     repository: {
       list: (scope) => repositories.sessions.list(scope),
       find: (id, scope) => repositories.sessions.find(id, scope),
