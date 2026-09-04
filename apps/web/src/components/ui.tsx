@@ -91,16 +91,38 @@ export function InfoHint({ message }: Readonly<{ message: string }>): React.JSX.
         aria-label="More information"
         aria-expanded={open}
         aria-controls={open ? hintId : undefined}
+        aria-describedby={open ? hintId : undefined}
+        aria-keyshortcuts="Escape"
         onClick={() => setPinned((current) => !current)}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onFocus={() => setHovered(true)}
-        onBlur={() => setHovered(false)}
+        onBlur={() => {
+          setHovered(false)
+          setPinned(false)
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            setHovered(false)
+            setPinned(false)
+          }
+        }}
       >
-        <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-          <circle cx="8" cy="8" r="6.6" />
-          <rect x="7.25" y="6.9" width="1.5" height="4.4" rx="0.75" />
-          <circle cx="8" cy="4.9" r="0.95" />
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <path d="M12 16v-4" />
+          <path d="M12 8h.01" />
         </svg>
       </button>
       {open ? (
@@ -117,7 +139,12 @@ export function StatusBadge({
   tone = "info",
   title,
   info,
-}: Readonly<{ label: string; tone?: StatusTone; title?: string; info?: string }>): React.JSX.Element {
+}: Readonly<{
+  label: string
+  tone?: StatusTone
+  title?: string
+  info?: string
+}>): React.JSX.Element {
   return (
     <span className={`status-badge status-${tone}`} title={title}>
       {label}

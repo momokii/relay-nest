@@ -355,6 +355,10 @@ select {
 .schedule-page {
   grid-template-columns: minmax(0, 1fr);
 }
+.send-page {
+  grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 0.85fr);
+  align-items: start;
+}
 .panel {
   min-width: 0;
   padding: var(--space-6);
@@ -430,10 +434,10 @@ select {
   color: var(--color-muted);
 }
 .info-hint-trigger svg {
-  width: 0.95rem;
-  height: 0.95rem;
-  fill: currentColor;
-  stroke: none;
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
 }
 .info-hint-trigger:hover,
 .info-hint-trigger:focus-visible,
@@ -526,6 +530,45 @@ select {
 .status-error {
   background: color-mix(in srgb, var(--color-error) 12%, var(--color-surface));
   color: var(--color-error);
+}
+.sent-history-table-wrap {
+  overflow-x: auto;
+}
+.sent-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--type-small);
+}
+.sent-history-table th,
+.sent-history-table td {
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+.sent-history-table th {
+  color: var(--color-muted);
+  font-size: var(--type-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.sent-history-table td:first-child,
+.sent-history-table td:nth-child(3),
+.sent-history-table td:nth-child(5) {
+  white-space: nowrap;
+}
+.sent-history-table code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--type-caption);
+}
+.sent-history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  color: var(--color-muted);
+  font-size: var(--type-small);
 }
 .session-row {
   justify-content: space-between;
@@ -620,6 +663,42 @@ select {
 .operational-form textarea {
   resize: vertical;
 }
+.message-composer {
+  display: grid;
+  gap: var(--space-3);
+}
+.message-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.message-preview {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-inset);
+}
+.message-preview-label {
+  color: var(--color-muted);
+  font-size: var(--type-caption);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.message-preview-content {
+  min-height: 4rem;
+  color: var(--color-ink);
+  font-size: var(--type-body);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.message-preview-content ul,
+.message-preview-content ol {
+  margin: 0;
+  padding-left: var(--space-6);
+}
 .checkbox-row {
   grid-template-columns: auto 1fr !important;
   align-items: start;
@@ -686,6 +765,10 @@ select {
   border-color: var(--color-border-strong);
   background: transparent;
   color: var(--color-ink);
+}
+.message-toolbar .button {
+  min-width: var(--control-height);
+  padding: var(--space-2);
 }
 .button-danger {
   border-color: var(--color-error);
