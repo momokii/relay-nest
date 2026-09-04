@@ -109,6 +109,11 @@ export function registerSessionRoutes(
       service.chats(principal, sessionId, scope),
     ),
   )
+  app.get("/scoped/sessions/:sessionId/groups", async (request, reply) =>
+    readSurface(auth, request, reply, (principal, sessionId, scope) =>
+      service.groups(principal, sessionId, scope),
+    ),
+  )
   app.get("/scoped/sessions/:sessionId/chats/:chatRef/messages", async (request, reply) => {
     const principal = await authenticate(auth, request, reply)
     if (!principal) return

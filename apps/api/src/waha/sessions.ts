@@ -1,4 +1,4 @@
-import type { WahaChat, WahaMessage } from "@waha-command-center/waha-contracts"
+import type { WahaChat, WahaGroup, WahaMessage } from "@waha-command-center/waha-contracts"
 import type { AuthPrincipal } from "../auth/service"
 import type { AccountScope } from "../db/schema/shared"
 import type {
@@ -396,6 +396,15 @@ export function createScopedSessionService(options: {
       const client = await options.clientFor(session)
       const chats = await client.chats(session.wahaSessionName)
       return projectChats(client, session.wahaSessionName, chats, scope, options.chatRef)
+    },
+    async groups(
+      principal: AuthPrincipal,
+      sessionId: string,
+      scope: AccountScope,
+    ): Promise<readonly WahaGroup[]> {
+      const session = await authorized(principal, sessionId, scope, "read")
+      const client = await options.clientFor(session)
+      return client.groups(session.wahaSessionName)
     },
     async messages(
       principal: AuthPrincipal,

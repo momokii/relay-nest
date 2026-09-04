@@ -55,7 +55,7 @@ export function CampaignForm({
   const [message, setMessage] = useState("")
   const [followUp, setFollowUp] = useState("")
   const [scheduledAt, setScheduledAt] = useState("")
-  const [timezone, setTimezone] = useState("UTC")
+  const [timezone, setTimezone] = useState("Asia/Jakarta")
   const [trigger, setTrigger] = useState<"any" | "emoji">("any")
   const [emojiMap, setEmojiMap] = useState("")
   const [error, setError] = useState("")
@@ -108,9 +108,46 @@ export function CampaignForm({
       description={
         role === "viewer"
           ? "Viewer access is read-only."
-          : "A campaign is one scheduled, scoped reaction workflow. Messages are rendered as text only."
+          : "Create a contact list, pick a WhatsApp group, schedule the first message, and set who gets the follow-up when they react."
       }
     >
+      <div
+        className="campaign-instructions"
+        style={{
+          display: "grid",
+          gap: "var(--space-2)",
+          padding: "var(--space-3)",
+          background: "var(--color-inset)",
+          borderRadius: "var(--radius-control)",
+          fontSize: "var(--type-small)",
+          color: "var(--color-muted)",
+        }}
+      >
+        <strong style={{ color: "var(--color-ink)" }}>How it works</strong>
+        <ol
+          style={{
+            margin: 0,
+            paddingLeft: "var(--space-5)",
+            display: "grid",
+            gap: "var(--space-1)",
+          }}
+        >
+          <li>Create a contact group below and add members from any contact list.</li>
+          <li>
+            Pick the authorized session and the WAHA group — members of the selected WAHA group will
+            be shown below and you can add more from your contact groups.
+          </li>
+          <li>
+            Write the group message and an optional follow-up. The group message is sent at the
+            scheduled time; the follow-up is sent <em>only to the person who reacted</em> (1 of 40,
+            not all).
+          </li>
+        </ol>
+        <small>
+          All messages stay as text with WhatsApp formatting (*bold* _italic_ etc.) and are scoped
+          to Personal/Business.
+        </small>
+      </div>
       <form className="operational-form campaign-form" onSubmit={(event) => void submit(event)}>
         <CampaignGroupPicker
           scope={scope}
@@ -124,27 +161,27 @@ export function CampaignForm({
           onSession={setSessionId}
         />
         <label>
-          <span>Message</span>
+          <span>Group message — sent to the WAHA group at the scheduled time</span>
           <textarea
             value={message}
             onChange={(event) => setMessage(event.target.value)}
             rows={4}
             maxLength={4096}
-            placeholder="Write the human-approved reaction message."
+            placeholder="e.g., Hello team *update* for tomorrow _please react_ 👍 to confirm"
           />
         </label>
         <section className="campaign-preview" aria-label="Message preview">
-          <span>Parser preview</span>
+          <span>Live WhatsApp preview</span>
           <div>{previewNodes(message)}</div>
         </section>
         <label>
-          <span>Follow-up message (optional)</span>
+          <span>Follow-up — sent 1:1 only to the person who reacted (not to all 40)</span>
           <textarea
             value={followUp}
             onChange={(event) => setFollowUp(event.target.value)}
             rows={3}
             maxLength={4096}
-            placeholder="Sent after the initial reaction when configured."
+            placeholder="e.g., Thanks for reacting! Here is the next step for you."
           />
         </label>
         <fieldset className="campaign-trigger">
@@ -175,18 +212,22 @@ export function CampaignForm({
         </fieldset>
         <div className="form-grid">
           <label>
-            <span>Schedule date and time</span>
+            <span>Group message send time</span>
             <input
               type="datetime-local"
               value={scheduledAt}
               onChange={(event) => setScheduledAt(event.target.value)}
             />
+            <small>
+              Scheduled in the selected timezone. The reaction trigger runs immediately after
+              someone reacts, not at this time.
+            </small>
           </label>
           <label>
             <span>Timezone</span>
             <select value={timezone} onChange={(event) => setTimezone(event.target.value)}>
-              <option>UTC</option>
               <option>Asia/Jakarta</option>
+              <option>UTC</option>
               <option>Asia/Singapore</option>
               <option>Europe/London</option>
             </select>

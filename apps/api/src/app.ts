@@ -17,6 +17,7 @@ import { BackupFormatError } from "./backup/format"
 import { BackupRepositoryError, createBackupRepository } from "./backup/repository"
 import { createReactionTrigger } from "./campaigns/reaction-trigger"
 import { registerCampaignRoutes } from "./campaigns-http"
+import { registerContactGroupsRoutes } from "./contact-groups-http"
 import type { DatabaseHandle } from "./db/client"
 import { createRepositories } from "./db/repositories"
 import { RetentionPreviewMismatchError } from "./db/repositories/retention"
@@ -215,6 +216,7 @@ export function createApiApp(
   registerConnectionRoutes(app, auth, repositories)
   const campaignService = options.campaignService ?? configuredRuntime?.campaigns
   if (campaignService) registerCampaignRoutes(app, auth, campaignService)
+  registerContactGroupsRoutes(app, auth, repositories.contactGroups)
   registerAiApprovalRoutes(app, auth, aiApprovalService)
   if (sessionService) registerSessionRoutes(app, auth, sessionService)
   if (configuredMessagingService) registerMessagingRoutes(app, auth, configuredMessagingService)

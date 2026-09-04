@@ -30,6 +30,7 @@ export function CampaignGroupPicker({
   const [wahaGroups, setWahaGroups] = useState<readonly WahaGroup[]>([])
   const [newGroupName, setNewGroupName] = useState("")
   const [message, setMessage] = useState("Loading groups…")
+  const selectedWaha = wahaGroups.find((group) => group.id === wahaGroupId) ?? null
   useEffect(() => {
     let current = true
     void api.contactGroups(scope).then((result) => {
@@ -148,6 +149,71 @@ export function CampaignGroupPicker({
             : "Select an authorized session first."}
         </small>
       </label>
+      {selectedWaha ? (
+        <div
+          className="campaign-waha-detail"
+          style={{
+            display: "grid",
+            gap: "var(--space-2)",
+            padding: "var(--space-3)",
+            background: "var(--color-inset)",
+            borderRadius: "var(--radius-control)",
+          }}
+        >
+          <strong style={{ fontSize: "var(--type-small)" }}>
+            {selectedWaha.name ?? selectedWaha.subject ?? selectedWaha.id}
+          </strong>
+          <span style={{ color: "var(--color-muted)", fontSize: "var(--type-caption)" }}>
+            {selectedWaha.participants?.length
+              ? `${selectedWaha.participants.length} members in WAHA group`
+              : "No participant list returned for this WAHA group."}
+          </span>
+          {selectedWaha.participants?.length ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--space-1)" }}>
+              {selectedWaha.participants.slice(0, 12).map((participant) => (
+                <span
+                  key={participant}
+                  className="status-badge status-info"
+                  style={{ fontSize: "var(--type-caption)" }}
+                >
+                  {participant}
+                </span>
+              ))}
+              {selectedWaha.participants.length > 12 ? (
+                <span style={{ fontSize: "var(--type-caption)", color: "var(--color-muted)" }}>
+                  +{selectedWaha.participants.length - 12} more
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+          <small>
+            Contacts from your selected contact group(s) will be matched for the follow-up
+            allowlist. To add more people to this WAHA group, use the contact group below and the
+            group will be updated on campaign creation.
+          </small>
+        </div>
+      ) : null}
+      {contactGroupIds.length > 0 ? (
+        <div
+          className="campaign-contact-preview"
+          style={{
+            display: "grid",
+            gap: "var(--space-1)",
+            padding: "var(--space-2)",
+            border: "1px solid var(--color-border)",
+            borderRadius: "var(--radius-control)",
+          }}
+        >
+          <span style={{ fontSize: "var(--type-small)", fontWeight: 600 }}>
+            Selected contact groups: {contactGroupIds.length}
+          </span>
+          <small>
+            On reaction, only the reactor (1 of {selectedWaha?.participants?.length ?? 40} or your
+            selected list) receives the 1:1 follow-up — not the whole group. This is the allowlist
+            for who is eligible.
+          </small>
+        </div>
+      ) : null}
     </div>
   )
 }
