@@ -1,6 +1,7 @@
 import { createBlindIndex, createEnvelopeCipher } from "@waha-command-center/config"
-
+import type { UserRole } from "./auth/authorization"
 import { authorizeSessionAction } from "./auth/authorization"
+import { type CampaignPrincipal, createCampaignService, createCampaignTransport } from "./campaigns"
 import type { DatabaseHandle } from "./db/client"
 import type { createRepositories } from "./db/repositories"
 import { createMessagingRepositories } from "./db/repositories/messaging"
@@ -12,13 +13,16 @@ import { createWahaClient } from "./waha/adapter"
 
 type Repositories = ReturnType<typeof createRepositories>
 type ConfiguredMessagingServiceOptions = Readonly<{ allowLoopbackWaha?: boolean }>
+export type ConfiguredMessagingService = ReturnType<typeof createMessagingService> & {
+  readonly campaigns: ReturnType<typeof createCampaignService>
+}
 
 export function createConfiguredMessagingService(
   database: DatabaseHandle,
   repositories: Repositories,
   masterKey: Buffer | undefined,
   options: ConfiguredMessagingServiceOptions = {},
-) {
+): ConfiguredMessagingService | undefined {
   if (!masterKey || masterKey.length !== 32) return undefined
   const cipher = createEnvelopeCipher(masterKey)
   const messagingRepositories = createMessagingRepositories(database.db, masterKey)
@@ -56,10 +60,18 @@ export function createConfiguredMessagingService(
     clientForSession,
     contacts: messagingRepositories.contacts,
   })
+  const campaignTransport = createCampaignTransport({
+    campaigns: repositories.campaigns,
+    sessions: { find: (id, scope) => repositories.sessions.find(id, scope) },
+    wahaForSession: async (session) =>
+      (await clientForSession(session.id, session.accountScope)).client,
+  })
   const scheduler = createSchedulerService({
     repository: encryptedScheduler,
     transport: async (job) => {
-      const result = await messagingTransport(job)
+      const result = job.idempotencyKey.startsWith("campaign:")
+        ? await campaignTransport(job)
+        : await messagingTransport(job)
       await repositories.auditEntries.append({
         action: `message.dispatch_${result.state}`,
         subjectType: "dispatch_attempt",
@@ -70,6 +82,7 @@ export function createConfiguredMessagingService(
       return result
     },
     gate: async (job) => {
+      if (job.idempotencyKey.startsWith("campaign:")) return { allowed: true as const }
       const context = await clientForSession(job.sessionId, job.accountScope)
       const contact = await messagingRepositories.contacts.find(
         job.accountScope,
@@ -127,19 +140,29 @@ export function createConfiguredMessagingService(
     },
   })
 
-  return createMessagingService({
-    authorize: async (principal, sessionId, accountScope) => {
-      const session = await repositories.sessions.find(sessionId, accountScope)
-      const grant = await repositories.sessionGrants.find(principal.userId, sessionId, accountScope)
-      return authorizeSessionAction({
-        principal: { roles: principal.roles },
-        accountScope,
-        sessionScope: session?.accountScope ?? accountScope,
-        hasGrant: Boolean(grant),
-        action: "command",
-        sessionActive: session?.status !== "disabled",
-      })
-    },
+  const authorize = async (
+    principal: CampaignPrincipal,
+    sessionId: string,
+    accountScope: "personal" | "business",
+    _action: "command" = "command",
+  ) => {
+    const session = await repositories.sessions.find(sessionId, accountScope)
+    const grant = await repositories.sessionGrants.find(principal.userId, sessionId, accountScope)
+    return authorizeSessionAction({
+      principal: {
+        roles: principal.roles.filter(
+          (role): role is UserRole => role === "admin" || role === "operator" || role === "viewer",
+        ),
+      },
+      accountScope,
+      sessionScope: session?.accountScope ?? accountScope,
+      hasGrant: Boolean(grant),
+      action: "command",
+      sessionActive: session?.status !== "disabled",
+    })
+  }
+  const messagingService = createMessagingService({
+    authorize,
     sessions: {
       find: async (sessionId, accountScope) => {
         const session = await repositories.sessions.find(sessionId, accountScope)
@@ -226,4 +249,21 @@ export function createConfiguredMessagingService(
       await repositories.auditEntries.append(input)
     },
   })
+  return {
+    ...messagingService,
+    campaigns: createCampaignService({
+      campaigns: repositories.campaigns,
+      sessions: { find: (id, scope) => repositories.sessions.find(id, scope) },
+      contactGroups: repositories.contactGroups,
+      authorize,
+      scheduler: {
+        schedule: async (input) => {
+          const result = await encryptedScheduler.scheduleWithIdempotency(input)
+          return { jobId: result.job.id, duplicate: result.duplicate }
+        },
+      },
+      wahaForSession: async (session) =>
+        (await clientForSession(session.id, session.accountScope)).client,
+    }),
+  }
 }
