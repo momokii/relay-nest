@@ -91,4 +91,20 @@ export function registerContactGroupsRoutes(
       return reply.code(403).send({ error: "forbidden" })
     }
   })
+
+  app.delete("/scoped/contact-groups/:groupId", async (request, reply) => {
+    if (!sameOrigin(request)) return reply.code(403).send({ error: "forbidden" })
+    const principal = await authenticate(auth, request, reply)
+    if (!principal) return
+    if (!(await csrfValid(auth, principal, request))) return reply.code(403).send({ error: "forbidden" })
+    const { groupId } = z.object({ groupId: z.string().uuid() }).parse(request.params)
+    const { scope } = scopeQuerySchema.parse(request.query)
+    try {
+      const ok = await repository.delete?.(principal.userId, scope, groupId)
+      if (!ok) return reply.code(404).send({ error: "not found" })
+      return reply.send({ ok: true })
+    } catch {
+      return reply.code(403).send({ error: "forbidden" })
+    }
+  })
 }

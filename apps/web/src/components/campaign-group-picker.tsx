@@ -35,6 +35,9 @@ export function CampaignGroupPicker({
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [members, setMembers] = useState<readonly { id: string; phone: string | null }[]>([])
   const [newPhone, setNewPhone] = useState("")
+  const [availableContacts, setAvailableContacts] = useState<
+    readonly { phone: string; name: string | null }[]
+  >([])
   const selectedWaha = wahaGroups.find((group) => group.id === wahaGroupId) ?? null
   useEffect(() => {
     let current = true
@@ -70,6 +73,30 @@ export function CampaignGroupPicker({
       current = false
     }
   }, [api, scope, sessionId])
+  useEffect(() => {
+    if (!sessionId) {
+      setAvailableContacts([])
+      return
+    }
+    let current = true
+    // Use the same chats endpoint as the directory to offer existing WhatsApp contacts
+    import("../dashboard-session-api").then(({ createDashboardSessionApi }) => {
+      const sessionApi = createDashboardSessionApi(import.meta.env.VITE_API_BASE_URL)
+      void sessionApi.chats(scope, sessionId).then((result) => {
+        if (!current) return
+        if (result.kind === "ready") {
+          const contacts = result.data
+            .filter((chat) => !chat.isGroup && chat.phone)
+            .map((chat) => ({ phone: chat.phone as string, name: chat.name }))
+            .slice(0, 50)
+          setAvailableContacts(contacts)
+        }
+      })
+    })
+    return () => {
+      current = false
+    }
+  }, [scope, sessionId])
   const toggleContact = (id: string): void =>
     onContactGroups(
       contactGroupIds.includes(id)
@@ -138,35 +165,170 @@ export function CampaignGroupPicker({
           />
         ) : (
           contactGroups.map((group) => (
-            <div key={group.id} style={{ display: "grid", gap: "var(--space-1)", padding: "var(--space-2)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-control)", background: contactGroupIds.includes(group.id) ? "var(--color-inset)" : "transparent" }}>
-              <label className="campaign-choice" style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+            <div
+              key={group.id}
+              style={{
+                display: "grid",
+                gap: "var(--space-1)",
+                padding: "var(--space-2)",
+                border: "1px solid var(--color-border)",
+                borderRadius: "var(--radius-control)",
+                background: contactGroupIds.includes(group.id)
+                  ? "var(--color-inset)"
+                  : "transparent",
+              }}
+            >
+              <label
+                className="campaign-choice"
+                style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}
+              >
                 <input
                   type="checkbox"
                   checked={contactGroupIds.includes(group.id)}
                   onChange={() => toggleContact(group.id)}
                 />
                 <span style={{ flex: 1 }}>{group.name}</span>
-                <button type="button" className="button button-secondary" style={{ padding: "var(--space-1) var(--space-2)", fontSize: "var(--type-caption)" }} onClick={() => setEditingGroupId(editingGroupId === group.id ? null : group.id)}>
+                <button
+                  type="button"
+                  className="button button-secondary"
+                  style={{
+                    padding: "var(--space-1) var(--space-2)",
+                    fontSize: "var(--type-caption)",
+                  }}
+                  onClick={() => setEditingGroupId(editingGroupId === group.id ? null : group.id)}
+                >
                   {editingGroupId === group.id ? "Hide" : "Manage"}
+                </button>
+                <button
+                  type="button"
+                  className="button"
+                  style={{
+                    padding: "var(--space-1) var(--space-2)",
+                    fontSize: "var(--type-caption)",
+                    background: "var(--color-error)",
+                    color: "white",
+                    border: "none",
+                  }}
+                  onClick={() =>
+                    void api.deleteContactGroup(scope, group.id).then((res) => {
+                      if (res.kind === "ready") {
+                        setContactGroups((cur) => cur.filter((g) => g.id !== group.id))
+                        onContactGroups(contactGroupIds.filter((id) => id !== group.id))
+                        if (editingGroupId === group.id) setEditingGroupId(null)
+                      }
+                    })
+                  }
+                >
+                  Del
                 </button>
               </label>
               {editingGroupId === group.id ? (
-                <div style={{ display: "grid", gap: "var(--space-2)", marginTop: "var(--space-2)" }}>
-                  {members.length === 0 ? <small style={{ color: "var(--color-muted)" }}>No contacts yet — add a phone below.</small> : members.map((member) => (
-                    <div key={member.id} style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", fontSize: "var(--type-small)" }}>
-                      <span style={{ flex: 1 }}>{member.phone ?? member.id}</span>
-                      <button type="button" className="button button-secondary" style={{ padding: "var(--space-1) var(--space-2)" }} onClick={() => void api.removeContactGroupMember(scope, group.id, member.id).then((res) => { if (res.kind === "ready") setMembers((cur) => cur.filter((m) => m.id !== member.id)) })}>
-                        Remove
-                      </button>
-                    </div>
-                  ))}
+                <div
+                  style={{ display: "grid", gap: "var(--space-2)", marginTop: "var(--space-2)" }}
+                >
+                  {members.length === 0 ? (
+                    <small style={{ color: "var(--color-muted)" }}>
+                      No contacts yet — add a phone below.
+                    </small>
+                  ) : (
+                    members.map((member) => (
+                      <div
+                        key={member.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "var(--space-2)",
+                          fontSize: "var(--type-small)",
+                        }}
+                      >
+                        <span style={{ flex: 1 }}>{member.phone ?? member.id}</span>
+                        <button
+                          type="button"
+                          className="button button-secondary"
+                          style={{ padding: "var(--space-1) var(--space-2)" }}
+                          onClick={() =>
+                            void api
+                              .removeContactGroupMember(scope, group.id, member.id)
+                              .then((res) => {
+                                if (res.kind === "ready")
+                                  setMembers((cur) => cur.filter((m) => m.id !== member.id))
+                              })
+                          }
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))
+                  )}
                   <div style={{ display: "flex", gap: "var(--space-2)" }}>
-                    <input aria-label="Phone to add" placeholder="+628123456789" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} style={{ flex: 1, minHeight: "var(--control-height)", padding: "var(--space-2)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-control)" }} />
-                    <button type="button" className="button button-primary" disabled={!newPhone.trim()} onClick={() => void api.addContactGroupMember(scope, group.id, newPhone.trim()).then((res) => { if (res.kind === "ready") { setMembers((cur) => [...cur, res.data]); setNewPhone("") } })}>
+                    <input
+                      aria-label="Phone to add"
+                      placeholder="+628123456789"
+                      value={newPhone}
+                      onChange={(e) => setNewPhone(e.target.value)}
+                      style={{
+                        flex: 1,
+                        minHeight: "var(--control-height)",
+                        padding: "var(--space-2)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: "var(--radius-control)",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="button button-primary"
+                      disabled={!newPhone.trim()}
+                      onClick={() =>
+                        void api
+                          .addContactGroupMember(scope, group.id, newPhone.trim())
+                          .then((res) => {
+                            if (res.kind === "ready") {
+                              setMembers((cur) => [...cur, res.data])
+                              setNewPhone("")
+                            }
+                          })
+                      }
+                    >
                       Add
                     </button>
                   </div>
-                  <small style={{ color: "var(--color-muted)" }}>Use E.164 format. This is your custom group — reuse it across campaigns. WAHA group is separate.</small>
+                  {availableContacts.length > 0 ? (
+                    <div style={{ display: "grid", gap: "var(--space-1)" }}>
+                      <small style={{ color: "var(--color-muted)" }}>
+                        Or pick from your WhatsApp contacts:
+                      </small>
+                      <select
+                        aria-label="Pick from WhatsApp contacts"
+                        defaultValue=""
+                        onChange={(e) => {
+                          const phone = e.target.value
+                          if (phone) {
+                            void api.addContactGroupMember(scope, group.id, phone).then((res) => {
+                              if (res.kind === "ready") setMembers((cur) => [...cur, res.data])
+                            })
+                            e.target.value = ""
+                          }
+                        }}
+                        style={{
+                          minHeight: "var(--control-height)",
+                          padding: "var(--space-2)",
+                          border: "1px solid var(--color-border)",
+                          borderRadius: "var(--radius-control)",
+                        }}
+                      >
+                        <option value="">Select a WhatsApp contact…</option>
+                        {availableContacts.slice(0, 30).map((contact) => (
+                          <option key={contact.phone} value={contact.phone}>
+                            {contact.name ? `${contact.name} (${contact.phone})` : contact.phone}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
+                  <small style={{ color: "var(--color-muted)" }}>
+                    Use E.164 format. This is your custom group — reuse it across campaigns. WAHA
+                    group is separate.
+                  </small>
                 </div>
               ) : null}
             </div>
@@ -195,8 +357,17 @@ export function CampaignGroupPicker({
           </small>
         </label>
       ) : (
-        <div style={{ padding: "var(--space-3)", background: "var(--color-inset)", borderRadius: "var(--radius-control)", fontSize: "var(--type-small)", color: "var(--color-muted)" }}>
-          Custom group selected — no WAHA group needed. The campaign will use your contact group directly.
+        <div
+          style={{
+            padding: "var(--space-3)",
+            background: "var(--color-inset)",
+            borderRadius: "var(--radius-control)",
+            fontSize: "var(--type-small)",
+            color: "var(--color-muted)",
+          }}
+        >
+          Custom group selected — no WAHA group needed. The campaign will use your contact group
+          directly.
         </div>
       )}
       {selectedWaha ? (

@@ -54,4 +54,9 @@ export type ContactGroupRepository = {
     groupId: string,
     memberId: string,
   ) => Promise<boolean>
+  readonly delete?: (
+    userId: string,
+    accountScope: AccountScope,
+    groupId: string,
+  ) => Promise<boolean>
 }

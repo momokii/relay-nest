@@ -189,5 +189,20 @@ export function createContactGroupRepository(
         .returning({ id: contactGroupMembers.id })
       return rows.length === 1
     },
+    delete: async (userId: string, accountScope: AccountScope, groupId: string) => {
+      await requireGrant(userId, groupId, accountScope)
+      await db.delete(contactGroupMembers).where(eq(contactGroupMembers.groupId, groupId))
+      const rows = await db
+        .delete(contactGroups)
+        .where(
+          and(
+            eq(contactGroups.id, groupId),
+            eq(contactGroups.accountScope, accountScope),
+            eq(contactGroups.createdBy, userId),
+          ),
+        )
+        .returning({ id: contactGroups.id })
+      return rows.length === 1
+    },
   }
 }

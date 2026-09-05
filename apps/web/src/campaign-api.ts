@@ -61,6 +61,7 @@ export type CampaignApi = Readonly<{
   cancel: (scope: AccountScope, id: string) => Promise<ApiResult<Campaign>>
   contactGroups: (scope: AccountScope) => Promise<ApiResult<readonly ContactGroup[]>>
   createContactGroup: (scope: AccountScope, name: string) => Promise<ApiResult<ContactGroup>>
+  deleteContactGroup: (scope: AccountScope, groupId: string) => Promise<ApiResult<{ ok: boolean }>>
   contactGroupMembers: (
     scope: AccountScope,
     groupId: string,
@@ -107,6 +108,14 @@ export function createCampaignApi(baseUrl = ""): CampaignApi {
         method: "POST",
         body: JSON.stringify({ name }),
       }),
+    deleteContactGroup: (scope, groupId) =>
+      requestJson(
+        scoped(`/scoped/contact-groups/${groupId}`, scope),
+        z.object({ ok: z.boolean() }),
+        {
+          method: "DELETE",
+        },
+      ),
     contactGroupMembers: (scope, groupId) =>
       requestJson(
         scoped(`/scoped/contact-groups/${groupId}/members`, scope),
