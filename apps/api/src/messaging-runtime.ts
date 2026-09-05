@@ -8,13 +8,19 @@ import { createMessagingRepositories } from "./db/repositories/messaging"
 import { createMessagingService, isSupportedProviderChatId } from "./messaging"
 import { evaluateMessagingSafety, isQuietHoursActive } from "./messaging-safety"
 import { createMessagingTransport } from "./messaging-transport"
-import { createEncryptedSchedulerRepository, createSchedulerService } from "./scheduler"
+import {
+  createEncryptedSchedulerRepository,
+  createSchedulerService,
+  createSchedulerTicker,
+  type SchedulerTicker,
+} from "./scheduler"
 import { createWahaClient } from "./waha/adapter"
 
 type Repositories = ReturnType<typeof createRepositories>
 type ConfiguredMessagingServiceOptions = Readonly<{ allowLoopbackWaha?: boolean }>
 export type ConfiguredMessagingService = ReturnType<typeof createMessagingService> & {
   readonly campaigns: ReturnType<typeof createCampaignService>
+  readonly schedulerTicker: SchedulerTicker
 }
 
 export function createConfiguredMessagingService(
@@ -139,6 +145,7 @@ export function createConfiguredMessagingService(
       return decision
     },
   })
+  const schedulerTicker = createSchedulerTicker(scheduler)
 
   const authorize = async (
     principal: CampaignPrincipal,
@@ -261,9 +268,11 @@ export function createConfiguredMessagingService(
           const result = await encryptedScheduler.scheduleWithIdempotency(input)
           return { jobId: result.job.id, duplicate: result.duplicate }
         },
+        cancel: (jobId, scope) => encryptedScheduler.cancel(jobId, scope),
       },
       wahaForSession: async (session) =>
         (await clientForSession(session.id, session.accountScope)).client,
     }),
+    schedulerTicker,
   }
 }

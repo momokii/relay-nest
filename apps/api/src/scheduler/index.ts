@@ -6,6 +6,12 @@ export {
   type EncryptedScheduleInput,
 } from "./database"
 export { evaluateSafetyGates, type SafetyGateInput } from "./gates"
+export {
+  createSchedulerTicker,
+  type SchedulerTicker,
+  type SchedulerTickerOptions,
+  type SchedulerTickerSource,
+} from "./ticker"
 export type {
   DispatchResult,
   SchedulerFailure,

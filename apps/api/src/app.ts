@@ -1,5 +1,9 @@
 import cors from "@fastify/cors"
-import { createEnvelopeCipher, resolveEncryptionMasterKey } from "@waha-command-center/config"
+import {
+  createEnvelopeCipher,
+  resolveEncryptionMasterKey,
+  workspaceConfig,
+} from "@waha-command-center/config"
 import Fastify, { type FastifyInstance } from "fastify"
 import { z } from "zod"
 import { registerAiApprovalRoutes } from "./ai/http"
@@ -100,6 +104,10 @@ export function createApiApp(
     ? undefined
     : createConfiguredMessagingService(database, repositories, encryptionMasterKey, loopbackOptions)
   const configuredMessagingService = options.messagingService ?? configuredRuntime
+  // The API process is the only scheduler driver; never start it inside tests.
+  if (configuredRuntime && workspaceConfig.appEnv !== "test") {
+    configuredRuntime.schedulerTicker.start()
+  }
   const reactionTrigger = configuredMessagingService
     ? createReactionTrigger({
         campaigns: repositories.campaigns,
