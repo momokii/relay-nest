@@ -209,15 +209,21 @@ export function CampaignGroupPicker({
                     color: "white",
                     border: "none",
                   }}
-                  onClick={() =>
+                  onClick={() => {
+                    if (!confirm(`Delete contact group "${group.name}"? This cannot be undone.`))
+                      return
                     void api.deleteContactGroup(scope, group.id).then((res) => {
                       if (res.kind === "ready") {
                         setContactGroups((cur) => cur.filter((g) => g.id !== group.id))
                         onContactGroups(contactGroupIds.filter((id) => id !== group.id))
                         if (editingGroupId === group.id) setEditingGroupId(null)
+                      } else {
+                        alert(
+                          `Could not delete: ${res.message || "forbidden — group may be in use by a campaign or not owned by you."}`,
+                        )
                       }
                     })
-                  }
+                  }}
                 >
                   Del
                 </button>

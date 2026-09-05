@@ -103,7 +103,8 @@ export function registerContactGroupsRoutes(
       const ok = await repository.delete?.(principal.userId, scope, groupId)
       if (!ok) return reply.code(404).send({ error: "not found" })
       return reply.send({ ok: true })
-    } catch {
+    } catch (error) {
+      request.log.error({ err: error }, "contact group delete failed")
       return reply.code(403).send({ error: "forbidden" })
     }
   })
