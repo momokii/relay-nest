@@ -116,6 +116,14 @@ export function createCampaignRepository(db: PersistenceDatabase, masterKey: Buf
         .returning()
       return row ? safe(row) : null
     },
+    updateContactGroup: async (id: string, accountScope: AccountScope, contactGroupId: string) => {
+      const [row] = await db
+        .update(campaigns)
+        .set({ contactGroupId })
+        .where(and(eq(campaigns.id, id), eq(campaigns.accountScope, accountScope)))
+        .returning()
+      return row ? safe(row) : null
+    },
     listForReaction: async (
       accountScope: AccountScope,
       sessionId: string,

@@ -59,6 +59,7 @@ export type CampaignApi = Readonly<{
   list: (scope: AccountScope) => Promise<ApiResult<readonly Campaign[]>>
   create: (scope: AccountScope, input: CampaignInput) => Promise<ApiResult<Campaign>>
   cancel: (scope: AccountScope, id: string) => Promise<ApiResult<Campaign>>
+  updateContactGroup: (scope: AccountScope, id: string, contactGroupId: string) => Promise<ApiResult<Campaign>>
   contactGroups: (scope: AccountScope) => Promise<ApiResult<readonly ContactGroup[]>>
   createContactGroup: (scope: AccountScope, name: string) => Promise<ApiResult<ContactGroup>>
   deleteContactGroup: (scope: AccountScope, groupId: string) => Promise<ApiResult<{ ok: boolean }>>
@@ -91,6 +92,11 @@ export function createCampaignApi(baseUrl = ""): CampaignApi {
       requestJson(scoped("/scoped/campaigns", scope), campaignSchema, {
         method: "POST",
         body: JSON.stringify(input),
+      }),
+    updateContactGroup: (scope, id, contactGroupId) =>
+      requestJson(scoped(`/scoped/campaigns/${id}`, scope), campaignSchema, {
+        method: "PATCH",
+        body: JSON.stringify({ contactGroupId }),
       }),
     cancel: (scope, id) =>
       requestJson(scoped(`/scoped/campaigns/${id}/cancel`, scope), campaignSchema, {

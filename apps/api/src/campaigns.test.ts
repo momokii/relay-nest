@@ -46,6 +46,7 @@ function service(overrides: Partial<Parameters<typeof createCampaignService>[0]>
       list: async () => [],
       find: async () => null,
       cancel: async () => null,
+      updateContactGroup: async () => null,
     },
     sessions: { find: async () => session },
     contactGroups: { hasGrant: async () => true },

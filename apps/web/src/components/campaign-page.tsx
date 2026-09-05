@@ -19,11 +19,16 @@ export function CampaignPage({
 }>): React.JSX.Element {
   const api = useMemo(() => createCampaignApi(import.meta.env.VITE_API_BASE_URL), [])
   const [campaigns, setCampaigns] = useState<readonly Campaign[]>([])
+  const [contactGroups, setContactGroups] = useState<readonly { id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const load = useCallback(async (): Promise<void> => {
     setLoading(true)
-    const result = await api.list(scope)
-    setCampaigns(result.kind === "ready" ? result.data : [])
+    const [campaignResult, groupResult] = await Promise.all([
+      api.list(scope),
+      api.contactGroups(scope),
+    ])
+    setCampaigns(campaignResult.kind === "ready" ? campaignResult.data : [])
+    setContactGroups(groupResult.kind === "ready" ? groupResult.data : [])
     setLoading(false)
   }, [api, scope])
   useEffect(() => {
@@ -55,8 +60,12 @@ export function CampaignPage({
           ) : (
             <CampaignList
               campaigns={campaigns}
+              contactGroups={contactGroups}
               onCancel={(id) => {
                 void api.cancel(scope, id).then(() => void load())
+              }}
+              onChangeGroup={(id, contactGroupId) => {
+                void api.updateContactGroup(scope, id, contactGroupId).then(() => void load())
               }}
             />
           )}

@@ -57,6 +57,11 @@ type CampaignRepository = {
   ) => Promise<readonly CampaignRecord[]>
   readonly find: (id: string, scope: AccountScope) => Promise<CampaignRecord | null>
   readonly cancel: (id: string, scope: AccountScope) => Promise<CampaignRecord | null>
+  readonly updateContactGroup: (
+    id: string,
+    scope: AccountScope,
+    contactGroupId: string,
+  ) => Promise<CampaignRecord | null>
 }
 
 type CampaignDependencies = Readonly<{
@@ -192,9 +197,22 @@ export function createCampaignService(dependencies: CampaignDependencies) {
       scope: AccountScope,
     ): Promise<CampaignRecord> {
       const campaign = await dependencies.campaigns.find(id, scope)
-      if (!campaign || campaign.createdBy !== principal.userId)
-        throw new CampaignForbiddenError("campaign not found")
+      if (!campaign || campaign.createdBy !== principal.userId) throw new CampaignForbiddenError("campaign not found")
       const updated = await dependencies.campaigns.cancel(id, scope)
+      if (!updated) throw new CampaignForbiddenError("campaign not found")
+      return updated
+    },
+    async updateContactGroup(
+      principal: CampaignPrincipal,
+      id: string,
+      scope: AccountScope,
+      contactGroupId: string,
+    ): Promise<CampaignRecord> {
+      const campaign = await dependencies.campaigns.find(id, scope)
+      if (!campaign || campaign.createdBy !== principal.userId) throw new CampaignForbiddenError("campaign not found")
+      if (!(await dependencies.contactGroups.hasGrant(principal.userId, contactGroupId, scope)))
+        throw new CampaignForbiddenError("contact group is not granted in this scope")
+      const updated = await dependencies.campaigns.updateContactGroup(id, scope, contactGroupId)
       if (!updated) throw new CampaignForbiddenError("campaign not found")
       return updated
     },
