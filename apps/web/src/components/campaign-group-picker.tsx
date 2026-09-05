@@ -80,11 +80,11 @@ export function CampaignGroupPicker({
       setAvailableContacts([])
       return
     }
+    const sessionScope = sessions.find((session) => session.id === sessionId)?.accountScope ?? scope
     let current = true
-    // Use the same chats endpoint as the directory to offer existing WhatsApp contacts
     import("../dashboard-session-api").then(({ createDashboardSessionApi }) => {
       const sessionApi = createDashboardSessionApi(import.meta.env.VITE_API_BASE_URL)
-      void sessionApi.chats(scope, sessionId).then((result) => {
+      void sessionApi.chats(sessionScope, sessionId).then((result) => {
         if (!current) return
         if (result.kind === "ready") {
           const contacts = result.data
@@ -92,13 +92,15 @@ export function CampaignGroupPicker({
             .map((chat) => ({ phone: chat.phone as string, name: chat.name }))
             .slice(0, 50)
           setAvailableContacts(contacts)
+        } else {
+          setAvailableContacts([])
         }
       })
     })
     return () => {
       current = false
     }
-  }, [scope, sessionId])
+  }, [scope, sessionId, sessions])
   const toggleContact = (id: string): void =>
     onContactGroups(
       contactGroupIds.includes(id)
