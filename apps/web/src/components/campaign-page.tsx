@@ -37,6 +37,13 @@ export function CampaignPage({
   const sessionList = sessions.kind === "ready" ? sessions.data : []
   return (
     <div className="page-grid campaign-page">
+      <div style={{ gridColumn: "1 / -1" }}>
+        <StateNotice
+          title="Unstable — Campaigns"
+          message="This menu is under active development. Group broadcasts and reaction triggers may change, and data may be reset. Use for testing only."
+          tone="warning"
+        />
+      </div>
       {sessions.kind === "denied" ? (
         <StateNotice
           title="Campaigns unavailable"
@@ -61,8 +68,12 @@ export function CampaignPage({
             <CampaignList
               campaigns={campaigns}
               contactGroups={contactGroups}
+              sessions={sessionList}
               onCancel={(id) => {
                 void api.cancel(scope, id).then(() => void load())
+              }}
+              onDelete={(id) => {
+                void api.remove(scope, id).then(() => void load())
               }}
               onChangeGroup={(id, contactGroupId) => {
                 void api.updateContactGroup(scope, id, contactGroupId).then(() => void load())
