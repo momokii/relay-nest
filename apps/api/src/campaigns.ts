@@ -14,12 +14,15 @@ export type CampaignRecord = Readonly<{
   sessionId: string
   contactGroupId: string
   wahaGroupId: string | null
+  wahaGroupSubject?: string | null
   trigger: unknown
   scheduledAt: Date
-  state: "scheduled" | "sent" | "failed"
+  state: "scheduled" | "sent" | "failed" | "cancelled"
   createdBy: string
   schedulerJobId: string | null
   followUpMessage: string | null
+  messagePreview?: string | null
+  timezone?: string | null
 }>
 
 export class CampaignInputError extends Error {
@@ -36,6 +39,7 @@ type CampaignRepository = {
     readonly sessionId: string
     readonly contactGroupId: string
     readonly wahaGroupId: string | null
+    readonly wahaGroupSubject: string | null
     readonly message: string
     readonly followUpMessage?: string | undefined
     readonly trigger: CampaignTrigger
@@ -57,6 +61,7 @@ type CampaignRepository = {
   ) => Promise<readonly CampaignRecord[]>
   readonly find: (id: string, scope: AccountScope) => Promise<CampaignRecord | null>
   readonly cancel: (id: string, scope: AccountScope) => Promise<CampaignRecord | null>
+  readonly remove?: (id: string, scope: AccountScope) => Promise<boolean>
   readonly updateContactGroup: (
     id: string,
     scope: AccountScope,
@@ -88,10 +93,17 @@ type CampaignDependencies = Readonly<{
       readonly timezone: string
       readonly idempotencyKey: string
     }) => Promise<{ readonly jobId: string; readonly duplicate: boolean }>
+    readonly cancel: (jobId: string, scope: AccountScope) => Promise<SchedulerJob | null>
   }
   readonly wahaForSession: (session: CampaignSession) => Promise<
     Readonly<{
-      readonly groups: (name: string) => Promise<readonly Readonly<{ readonly id: string }>[]>
+      readonly groups: (name: string) => Promise<
+        readonly Readonly<{
+          readonly id: string
+          readonly name?: string | undefined
+          readonly subject?: string | undefined
+        }>[]
+      >
       readonly sendText: (
         name: string,
         chatId: string,
@@ -134,18 +146,21 @@ export function createCampaignService(dependencies: CampaignDependencies) {
         throw new CampaignForbiddenError("contact group is not granted in this scope")
       const session = await dependencies.sessions.find(input.sessionId, input.accountScope)
       if (!session) throw new CampaignForbiddenError("session is not in this scope")
+      let wahaGroupSubject: string | null = null
       if (input.wahaGroupId) {
         const groups = await (await dependencies.wahaForSession(session)).groups(
           session.wahaSessionName,
         )
-        if (!groups.some((group) => group.id === input.wahaGroupId))
-          throw new CampaignForbiddenError("WAHA group is not available in this session")
+        const group = groups.find((candidate) => candidate.id === input.wahaGroupId)
+        if (!group) throw new CampaignForbiddenError("WAHA group is not available in this session")
+        wahaGroupSubject = group.name ?? group.subject ?? null
       }
       const campaign = await dependencies.campaigns.create({
         accountScope: input.accountScope,
         sessionId: input.sessionId,
         contactGroupId: input.contactGroupId,
         wahaGroupId: input.wahaGroupId ?? null,
+        wahaGroupSubject,
         message: input.message,
         ...(input.followUpMessage ? { followUpMessage: input.followUpMessage } : {}),
         trigger: input.trigger,
@@ -180,7 +195,18 @@ export function createCampaignService(dependencies: CampaignDependencies) {
     ): Promise<Readonly<{ items: readonly CampaignRecord[]; hasMore: boolean }>> {
       const items = await dependencies.campaigns.list(scope, principal.userId, pageSize + 1, offset)
       const hasMore = items.length > pageSize
-      return { items: hasMore ? items.slice(0, pageSize) : items, hasMore }
+      const paged = hasMore ? items.slice(0, pageSize) : items
+      const filtered: CampaignRecord[] = []
+      for (const campaign of paged) {
+        const allowed = await dependencies.authorize(
+          principal,
+          campaign.sessionId,
+          scope,
+          "command",
+        )
+        if (allowed.allowed) filtered.push(campaign)
+      }
+      return { items: filtered, hasMore: hasMore && filtered.length === paged.length }
     },
     async find(
       principal: CampaignPrincipal,
@@ -189,6 +215,8 @@ export function createCampaignService(dependencies: CampaignDependencies) {
     ): Promise<CampaignRecord | null> {
       const campaign = await dependencies.campaigns.find(id, scope)
       if (!campaign || campaign.createdBy !== principal.userId) return null
+      const allowed = await dependencies.authorize(principal, campaign.sessionId, scope, "command")
+      if (!allowed.allowed) throw new CampaignForbiddenError("forbidden")
       return campaign
     },
     async cancel(
@@ -197,10 +225,32 @@ export function createCampaignService(dependencies: CampaignDependencies) {
       scope: AccountScope,
     ): Promise<CampaignRecord> {
       const campaign = await dependencies.campaigns.find(id, scope)
-      if (!campaign || campaign.createdBy !== principal.userId) throw new CampaignForbiddenError("campaign not found")
+      if (!campaign || campaign.createdBy !== principal.userId)
+        throw new CampaignForbiddenError("campaign not found")
+      if (campaign.state === "cancelled") return campaign
+      if (campaign.state !== "scheduled")
+        throw new CampaignInputError("only scheduled campaigns can be cancelled")
+      if (campaign.schedulerJobId) {
+        const cancelled = await dependencies.scheduler.cancel(campaign.schedulerJobId, scope)
+        if (!cancelled) throw new CampaignInputError("campaign is no longer cancellable")
+      }
       const updated = await dependencies.campaigns.cancel(id, scope)
-      if (!updated) throw new CampaignForbiddenError("campaign not found")
+      if (!updated) {
+        const current = await dependencies.campaigns.find(id, scope)
+        if (current && current.createdBy === principal.userId && current.state === "cancelled")
+          return current
+        throw new CampaignInputError("only scheduled campaigns can be cancelled")
+      }
       return updated
+    },
+    async remove(principal: CampaignPrincipal, id: string, scope: AccountScope): Promise<void> {
+      const campaign = await dependencies.campaigns.find(id, scope)
+      if (!campaign || campaign.createdBy !== principal.userId)
+        throw new CampaignForbiddenError("campaign not found")
+      if (campaign.state === "scheduled")
+        throw new CampaignInputError("only terminal campaigns can be deleted")
+      const removed = (await dependencies.campaigns.remove?.(id, scope)) ?? false
+      if (!removed) throw new CampaignForbiddenError("campaign not found")
     },
     async updateContactGroup(
       principal: CampaignPrincipal,
@@ -209,7 +259,8 @@ export function createCampaignService(dependencies: CampaignDependencies) {
       contactGroupId: string,
     ): Promise<CampaignRecord> {
       const campaign = await dependencies.campaigns.find(id, scope)
-      if (!campaign || campaign.createdBy !== principal.userId) throw new CampaignForbiddenError("campaign not found")
+      if (!campaign || campaign.createdBy !== principal.userId)
+        throw new CampaignForbiddenError("campaign not found")
       if (!(await dependencies.contactGroups.hasGrant(principal.userId, contactGroupId, scope)))
         throw new CampaignForbiddenError("contact group is not granted in this scope")
       const updated = await dependencies.campaigns.updateContactGroup(id, scope, contactGroupId)
