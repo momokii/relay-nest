@@ -38,6 +38,8 @@ export function CampaignGroupPicker({
   const [availableContacts, setAvailableContacts] = useState<
     readonly { phone: string; name: string | null }[]
   >([])
+  const [confirmDelete, setConfirmDelete] = useState<ContactGroup | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const selectedWaha = wahaGroups.find((group) => group.id === wahaGroupId) ?? null
   useEffect(() => {
     let current = true
@@ -209,21 +211,7 @@ export function CampaignGroupPicker({
                     color: "white",
                     border: "none",
                   }}
-                  onClick={() => {
-                    if (!confirm(`Delete contact group "${group.name}"? This cannot be undone.`))
-                      return
-                    void api.deleteContactGroup(scope, group.id).then((res) => {
-                      if (res.kind === "ready") {
-                        setContactGroups((cur) => cur.filter((g) => g.id !== group.id))
-                        onContactGroups(contactGroupIds.filter((id) => id !== group.id))
-                        if (editingGroupId === group.id) setEditingGroupId(null)
-                      } else {
-                        alert(
-                          `Could not delete: ${res.message || "forbidden — group may be in use by a campaign or not owned by you."}`,
-                        )
-                      }
-                    })
-                  }}
+                  onClick={() => setConfirmDelete(group)}
                 >
                   Del
                 </button>
@@ -439,6 +427,132 @@ export function CampaignGroupPicker({
             selected list) receives the 1:1 follow-up — not the whole group. This is the allowlist
             for who is eligible.
           </small>
+        </div>
+      ) : null}
+      {confirmDelete ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Delete ${confirmDelete.name}`}
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgb(15 20 18 / 0.6)",
+            display: "grid",
+            placeItems: "center",
+            zIndex: 60,
+            padding: "var(--space-4)",
+          }}
+          onClick={() => setConfirmDelete(null)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setConfirmDelete(null)
+          }}
+          tabIndex={-1}
+        >
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only, no keyboard action needed */}
+          <div
+            role="document"
+            style={{
+              background: "var(--color-surface)",
+              padding: "var(--space-6)",
+              borderRadius: "var(--radius-panel)",
+              maxWidth: "28rem",
+              width: "100%",
+              display: "grid",
+              gap: "var(--space-3)",
+              border: "1px solid var(--color-border)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <strong>Delete contact group “{confirmDelete.name}”?</strong>
+            <small style={{ color: "var(--color-muted)" }}>
+              This will remove the group and its members. Campaigns using this group will keep their
+              reference but the group will no longer be selectable. This cannot be undone.
+            </small>
+            <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => setConfirmDelete(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="button"
+                style={{ background: "var(--color-error)", color: "white", border: "none" }}
+                onClick={() =>
+                  void api.deleteContactGroup(scope, confirmDelete.id).then((res) => {
+                    if (res.kind === "ready") {
+                      setContactGroups((cur) => cur.filter((g) => g.id !== confirmDelete.id))
+                      onContactGroups(contactGroupIds.filter((id) => id !== confirmDelete.id))
+                      if (editingGroupId === confirmDelete.id) setEditingGroupId(null)
+                      setConfirmDelete(null)
+                    } else {
+                      setDeleteError(
+                        res.message ||
+                          "The server denied this scoped request — group may be in use by a campaign.",
+                      )
+                      setConfirmDelete(null)
+                    }
+                  })
+                }
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {deleteError ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Delete error"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgb(15 20 18 / 0.6)",
+            display: "grid",
+            placeItems: "center",
+            zIndex: 60,
+            padding: "var(--space-4)",
+          }}
+          onClick={() => setDeleteError(null)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setDeleteError(null)
+          }}
+          tabIndex={-1}
+        >
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only, no keyboard action needed */}
+          <div
+            role="document"
+            style={{
+              background: "var(--color-surface)",
+              padding: "var(--space-6)",
+              borderRadius: "var(--radius-panel)",
+              maxWidth: "28rem",
+              width: "100%",
+              display: "grid",
+              gap: "var(--space-3)",
+              border: "1px solid var(--color-error)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <strong style={{ color: "var(--color-error)" }}>Could not delete</strong>
+            <span>{deleteError}</span>
+            <small style={{ color: "var(--color-muted)" }}>
+              If the group is used by a campaign, delete the campaign first or remove the group from
+              the campaign.
+            </small>
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={() => setDeleteError(null)}
+            >
+              Close
+            </button>
+          </div>
         </div>
       ) : null}
     </div>
