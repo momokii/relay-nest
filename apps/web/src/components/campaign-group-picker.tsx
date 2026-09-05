@@ -189,7 +189,14 @@ export function CampaignGroupPicker({
                   checked={contactGroupIds.includes(group.id)}
                   onChange={() => toggleContact(group.id)}
                 />
-                <span style={{ flex: 1 }}>{group.name}</span>
+                <span style={{ flex: 1 }}>
+                  {group.name} —{" "}
+                  <small style={{ color: "var(--color-muted)" }}>
+                    {editingGroupId === group.id
+                      ? `${members.length} contacts`
+                      : "click Manage to see contacts"}
+                  </small>
+                </span>
                 <button
                   type="button"
                   className="button button-secondary"
