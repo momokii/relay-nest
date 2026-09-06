@@ -18,7 +18,7 @@ function truncatedId(value: string): string {
 function UsersTable({ users }: Readonly<{ users: readonly AdminUserRecord[] }>): React.JSX.Element {
   return (
     <div className="sent-history-table-wrap">
-      <table className="sent-history-table" aria-label="Users">
+      <table className="sent-history-table users-table" aria-label="Users">
         <thead>
           <tr>
             <th scope="col">Email</th>
@@ -137,7 +137,7 @@ export function UsersPage({
     )
 
   return (
-    <div className="page-grid">
+    <div className="page-grid users-page">
       <Panel
         eyebrow="Admin controls"
         title="Create a user"

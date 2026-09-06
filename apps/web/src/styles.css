@@ -355,7 +355,8 @@ select {
 .contacts-page,
 .schedule-page,
 .send-page,
-.campaign-page {
+.campaign-page,
+.users-page {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-10);
 }
@@ -565,6 +566,9 @@ select {
 .sent-history-table code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: var(--type-caption);
+}
+.users-table {
+  min-width: 640px;
 }
 .sent-history-pagination {
   display: flex;

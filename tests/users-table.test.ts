@@ -48,6 +48,8 @@ describe("users access page", () => {
 
     // When the page renders
     // Then the table shows the records without any credential material
+    expect(markup).toContain("users-page")
+    expect(markup).toContain("users-table")
     expect(markup).toContain("operator@example.test")
     expect(markup).toContain("personal · operator")
     expect(markup).toContain(">active<")
