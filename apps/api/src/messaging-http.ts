@@ -16,7 +16,7 @@ import {
   scopeQuerySchema,
   sessionParamsSchema,
 } from "./waha/session-http-support"
-import { scheduleTimingSchema } from "./wall-clock"
+import { isSupportedTimeZone, scheduleTimingSchema } from "./wall-clock"
 
 export type MessagingRouteService = {
   readonly resolveContact: (
@@ -45,7 +45,16 @@ const targetSchema = z.union([
   z.object({ contactId: z.string().uuid() }),
 ])
 const sendSchema = targetSchema.and(
-  z.object({ message: z.string().trim().min(1).max(4096), idempotencyKey: z.string().uuid() }),
+  z.object({
+    message: z.string().trim().min(1).max(4096),
+    idempotencyKey: z.string().uuid(),
+    timezone: z
+      .string()
+      .min(1)
+      .max(80)
+      .refine((value) => isSupportedTimeZone(value), "unsupported timezone")
+      .optional(),
+  }),
 )
 const scheduleSchema = sendSchema.and(scheduleTimingSchema)
 const consentSchema = z.object({ consentGranted: z.boolean(), optedOut: z.boolean() })

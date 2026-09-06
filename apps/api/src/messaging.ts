@@ -204,7 +204,7 @@ export function createMessagingService(options: MessagingServiceOptions) {
         recipientPhone: prepared.contact.phone,
         message: input.message,
         scheduledFor: now(),
-        timezone: "UTC",
+        timezone: timezoneFor(input),
         idempotencyKey: input.idempotencyKey,
         origin: "immediate",
       })

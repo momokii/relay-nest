@@ -87,6 +87,43 @@ describe("individual text messaging", () => {
     expect(updates).toHaveLength(0)
   })
 
+  it("records an immediate send in the submitted display timezone", async () => {
+    // Given a consented target and a scheduler capturing the durable job
+    const scheduled: unknown[] = []
+    const service = createMessagingService(
+      serviceOptions({
+        scheduler: {
+          schedule: async (input: unknown) => {
+            scheduled.push(input)
+            return { jobId: "job-1", duplicate: false }
+          },
+          dispatch: async () => ({ state: "submitted" as const, providerMessageId: "provider-1" }),
+        },
+      }),
+    )
+
+    // When one immediate send carries Asia/Jakarta and the next omits the timezone
+    await service.sendImmediate(principal, {
+      sessionId: "session-1",
+      accountScope: "personal",
+      phoneNumber: "+628123456789",
+      message: "hello",
+      idempotencyKey: "send-tz-1",
+      timezone: "Asia/Jakarta",
+    })
+    await service.sendImmediate(principal, {
+      sessionId: "session-1",
+      accountScope: "personal",
+      phoneNumber: "+628123456789",
+      message: "hello",
+      idempotencyKey: "send-tz-2",
+    })
+
+    // Then each durable record carries its display timezone, defaulting to UTC
+    expect(scheduled[0]).toMatchObject({ timezone: "Asia/Jakarta", origin: "immediate" })
+    expect(scheduled[1]).toMatchObject({ timezone: "UTC", origin: "immediate" })
+  })
+
   it("uses the scheduler for immediate and future sends and remains idempotent", async () => {
     // Given a consented target and a scheduler with a durable idempotency key
     const scheduled: unknown[] = []

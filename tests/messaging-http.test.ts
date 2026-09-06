@@ -60,6 +60,72 @@ describe("scoped messaging HTTP routes", () => {
     await app.close()
   })
 
+  it("forwards an immediate display timezone and rejects an unsupported timezone", async () => {
+    // Given the immediate boundary backed by a capturing service
+    const app = Fastify()
+    const auth = {
+      authenticate: async () => principal,
+      verifyCsrf: async () => true,
+    }
+    const timezones: (string | undefined)[] = []
+    registerMessagingRoutes(app, auth, {
+      resolveContact: async () => ({
+        id: contactId,
+        phone: "+628123456789",
+        displayName: null,
+        consentGranted: false,
+        optedOut: false,
+      }),
+      sendImmediate: async (_principal, input) => {
+        timezones.push(input.timezone)
+        return { state: "submitted", providerMessageId: "provider-1" }
+      },
+      scheduleText: async () => ({ state: "scheduled", jobId: "job-1" }),
+      setConsent: async () => ({ updated: true }),
+    })
+
+    // When one send carries Asia/Jakarta and another carries a non-IANA timezone
+    const ok = await app.inject({
+      method: "POST",
+      url: `/scoped/sessions/${sessionId}/messages/immediate?scope=personal`,
+      headers: {
+        origin: "http://localhost",
+        host: "localhost",
+        cookie: "waha_session=session-token",
+        "x-csrf-token": "csrf-token",
+      },
+      payload: {
+        phoneNumber: "+628123456789",
+        message: "hello",
+        idempotencyKey: "11111111-1111-4111-8111-111111111115",
+        timezone: "Asia/Jakarta",
+      },
+    })
+    const bad = await app.inject({
+      method: "POST",
+      url: `/scoped/sessions/${sessionId}/messages/immediate?scope=personal`,
+      headers: {
+        origin: "http://localhost",
+        host: "localhost",
+        cookie: "waha_session=session-token",
+        "x-csrf-token": "csrf-token",
+      },
+      payload: {
+        phoneNumber: "+628123456789",
+        message: "hello",
+        idempotencyKey: "11111111-1111-4111-8111-111111111116",
+        timezone: "Mars/Olympus",
+      },
+    })
+
+    // Then the valid timezone reaches the service and the invalid one is a generic 400
+    expect(ok.statusCode).toBe(200)
+    expect(timezones[0]).toBe("Asia/Jakarta")
+    expect(bad.statusCode).toBe(400)
+    expect(timezones).toHaveLength(1)
+    await app.close()
+  })
+
   it("rejects a cross-origin mutating command before the service", async () => {
     // Given a browser request from a different origin
     const app = Fastify()

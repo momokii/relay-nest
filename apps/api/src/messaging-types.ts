@@ -156,6 +156,7 @@ export type SendInput = ContactTarget & {
   readonly accountScope: AccountScope
   readonly message: string
   readonly idempotencyKey: string
+  readonly timezone?: string | undefined
 }
 
 export type ScheduleInput = SendInput & {

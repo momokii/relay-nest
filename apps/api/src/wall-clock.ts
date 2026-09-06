@@ -30,7 +30,7 @@ type WallParts = {
   readonly millisecond: number
 }
 
-function isSupportedTimeZone(timeZone: string): boolean {
+export function isSupportedTimeZone(timeZone: string): boolean {
   try {
     new Intl.DateTimeFormat("en-US", { timeZone })
     return true
