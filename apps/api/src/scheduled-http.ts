@@ -10,6 +10,7 @@ import {
   scopeQuerySchema,
   sessionParamsSchema,
 } from "./waha/session-http-support"
+import { scheduleTimingSchema } from "./wall-clock"
 
 type ScheduledJobsRepository = ReturnType<typeof createRepositories>["scheduledJobs"]
 type ScheduledRouteRepositories = Pick<
@@ -23,10 +24,7 @@ type ScheduleAuth = Pick<AuthService, "authorize"> & {
 }
 
 const scheduleIdParamsSchema = z.object({ sessionId: z.string().uuid(), jobId: z.string().uuid() })
-const editScheduleSchema = z.object({
-  scheduledFor: z.coerce.date(),
-  timezone: z.string().min(1).max(80),
-})
+const editScheduleSchema = scheduleTimingSchema
 const deletableStates: readonly StoredSchedule["state"][] = [
   "submitted",
   "acknowledged",
