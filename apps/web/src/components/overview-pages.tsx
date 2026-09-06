@@ -185,7 +185,13 @@ export function OverviewPage({
 
 export function AnalyticsPage({
   analytics,
-}: Readonly<{ analytics: ResourceState<AnalyticsView> }>): React.JSX.Element {
+  analyticsWindow,
+  onAnalyticsWindowChange,
+}: Readonly<{
+  analytics: ResourceState<AnalyticsView>
+  analyticsWindow?: { from: string; to: string } | undefined
+  onAnalyticsWindowChange?: (next: { from: string; to: string } | undefined) => void
+}>): React.JSX.Element {
   const data = analytics.kind === "ready" ? analytics.data : undefined
   return (
     <div className="page-grid">
@@ -193,6 +199,11 @@ export function AnalyticsPage({
         eyebrow="Scoped projection"
         title="Analytics"
         description={`Window and scope are mandatory at the API boundary. ${WEBHOOK_EVIDENCE_NOTE}`}
+        action={
+          onAnalyticsWindowChange ? (
+            <WindowPicker window={analyticsWindow} onChange={onAnalyticsWindowChange} />
+          ) : undefined
+        }
       >
         <ResourceStateBody
           state={analytics}
@@ -200,28 +211,44 @@ export function AnalyticsPage({
           emptyMessage="No projection evidence is available for this scope."
         />
         {data ? (
-          <div className="metric-grid">
-            <Metric
-              label="Inbound"
-              value={String(data.messageVolume.inbound)}
-              info="Messages received in this scope, counted from signed WhatsApp webhook events. Requires webhook ingestion to be connected."
-            />
-            <Metric
-              label="Outbound"
-              value={String(data.messageVolume.outbound)}
-              info="Messages you sent in this scope, counted from signed WhatsApp webhook events. Requires webhook ingestion to be connected."
-            />
-            <Metric
-              label="Retries"
-              value={String(data.retryCount)}
-              info="Extra delivery attempts after the first try."
-            />
-            <Metric
-              label="Contact activity"
-              value={String(data.contactActivity)}
-              info="New or updated verified contacts in this scope."
-            />
-          </div>
+          <>
+            <div className="metric-grid">
+              <Metric
+                label="Inbound"
+                value={String(data.messageVolume.inbound)}
+                info="Messages received in this scope, counted from signed WhatsApp webhook events. Requires webhook ingestion to be connected."
+              />
+              <Metric
+                label="Outbound"
+                value={String(data.messageVolume.outbound)}
+                info="Messages you sent in this scope, counted from signed WhatsApp webhook events. Requires webhook ingestion to be connected."
+              />
+              <Metric
+                label="Retries"
+                value={String(data.retryCount)}
+                info="Extra delivery attempts after the first try."
+              />
+              <Metric
+                label="Contact activity"
+                value={String(data.contactActivity)}
+                info="New or updated verified contacts in this scope."
+              />
+            </div>
+            <div className="metric-grid" style={{ marginTop: "1rem" }}>
+              <Metric
+                label="Direct sends"
+                value={String(data.methodVolume.direct)}
+                detail={`${data.methodVolume.scheduled} scheduled`}
+                info="Direct = immediate send (scheduledFor ≈ createdAt). Scheduled = future one-time job. Window-scoped via scheduled_jobs."
+              />
+              <Metric
+                label="Scheduled lifecycle"
+                value={String(data.scheduledJobs.total)}
+                detail={`submitted ${data.scheduledJobs.submitted} · failed ${data.scheduledJobs.failed} · cancelled ${data.scheduledJobs.cancelled}`}
+                info="One-time jobs updated in window: scheduled/queued/attempting/submitted/acknowledged/failed/unknown/cancelled with retries."
+              />
+            </div>
+          </>
         ) : null}
       </Panel>
       <Panel eyebrow="Delivery evidence" title="Acknowledgment breakdown" tone="inset">

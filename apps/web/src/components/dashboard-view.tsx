@@ -33,6 +33,8 @@ export type DashboardViewProps = Readonly<
     DashboardOperationsController & {
       activeView: DashboardViewId
       scope: AccountScope
+      analyticsWindow: { from: string; to: string } | undefined
+      setAnalyticsWindow: (window: { from: string; to: string } | undefined) => void
       role: DashboardRole
       principal: Principal
       isDemo: boolean

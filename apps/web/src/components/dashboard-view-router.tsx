@@ -77,6 +77,8 @@ type PageContext = Pick<
   | "saveNotificationSettings"
   | "saveNotificationPreferences"
   | "testNotifications"
+  | "analyticsWindow"
+  | "setAnalyticsWindow"
   | "updateRetentionPolicy"
 >
 
@@ -91,6 +93,8 @@ export function renderDashboardPage(
           scope={context.scope}
           sessions={context.sessions}
           analytics={context.analytics}
+          analyticsWindow={context.analyticsWindow}
+          onAnalyticsWindowChange={context.setAnalyticsWindow}
         />
       )
     case "sessions":
@@ -204,7 +208,13 @@ export function renderDashboardPage(
         </div>
       )
     case "analytics":
-      return <AnalyticsPage analytics={context.analytics} />
+      return (
+        <AnalyticsPage
+          analytics={context.analytics}
+          analyticsWindow={context.analyticsWindow}
+          onAnalyticsWindowChange={context.setAnalyticsWindow}
+        />
+      )
     case "notifications":
       return (
         <NotificationsPage
