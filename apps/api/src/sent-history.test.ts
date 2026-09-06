@@ -186,7 +186,7 @@ describe("sent-history projection", () => {
           requestedLimit = limit
           return {
             jobs: scope === "personal" ? [row(Buffer.alloc(32, 7), "submitted")] : [],
-            hasMore: false,
+            hasMore: false, total: 0,
           }
         },
         findForUser: async () => null,
@@ -220,7 +220,7 @@ describe("sent-history projection", () => {
       {
         listForUser: async () => {
           queried = true
-          return { jobs: [], hasMore: false }
+          return { jobs: [], hasMore: false, total: 0 }
         },
         findForUser: async () => null,
       },
@@ -251,7 +251,7 @@ describe("sent-history projection", () => {
       {
         listForUser: async () => {
           queried = true
-          return { jobs: [], hasMore: false }
+          return { jobs: [], hasMore: false, total: 0 }
         },
         findForUser: async () => null,
       },
@@ -280,7 +280,7 @@ describe("sent-history projection", () => {
       {
         listForUser: async () => ({
           jobs: [row(Buffer.alloc(32, 7), "submitted")],
-          hasMore: false,
+          hasMore: false, total: 0,
         }),
         findForUser: async () => null,
       },
@@ -314,7 +314,7 @@ describe("sent-history projection", () => {
         listForUser: async (_userId, _scope, limit, offset) => {
           requestedOffset = offset
           expect(limit).toBe(1)
-          return { jobs: [second], hasMore: false }
+          return { jobs: [second], hasMore: false, total: 0 }
         },
         findForUser: async () => null,
       },
@@ -346,7 +346,7 @@ describe("sent-history projection", () => {
     registerSentHistoryRoutes(
       app,
       { authenticate: async () => principal, verifyCsrf: async () => true },
-      { listForUser: async () => ({ jobs: [], hasMore: false }), findForUser: async () => null },
+      { listForUser: async () => ({ jobs: [], hasMore: false, total: 0 }), findForUser: async () => null },
       cipher,
     )
 
@@ -370,7 +370,7 @@ describe("sent-history projection", () => {
       app,
       { authenticate: async () => principal, verifyCsrf: async () => true },
       {
-        listForUser: async () => ({ jobs: [], hasMore: false }),
+        listForUser: async () => ({ jobs: [], hasMore: false, total: 0 }),
         findForUser: async (jobId, userId, scope) => {
           requestedJobId = jobId
           requestedUserId = userId
@@ -404,7 +404,7 @@ describe("sent-history projection", () => {
       app,
       { authenticate: async () => null, verifyCsrf: async () => true },
       {
-        listForUser: async () => ({ jobs: [], hasMore: false }),
+        listForUser: async () => ({ jobs: [], hasMore: false, total: 0 }),
         findForUser: async () => {
           queried = true
           return null
@@ -429,7 +429,7 @@ describe("sent-history projection", () => {
       app,
       { authenticate: async () => principal, verifyCsrf: async () => true },
       {
-        listForUser: async () => ({ jobs: [], hasMore: false }),
+        listForUser: async () => ({ jobs: [], hasMore: false, total: 0 }),
         findForUser: async () => {
           queried = true
           return null
@@ -453,7 +453,7 @@ describe("sent-history projection", () => {
       app,
       { authenticate: async () => principal, verifyCsrf: async () => true },
       {
-        listForUser: async () => ({ jobs: [], hasMore: false }),
+        listForUser: async () => ({ jobs: [], hasMore: false, total: 0 }),
         findForUser: async () => null,
       },
       cipher,
@@ -474,7 +474,7 @@ describe("sent-history projection", () => {
       app,
       { authenticate: async () => principal, verifyCsrf: async () => true },
       {
-        listForUser: async () => ({ jobs: [], hasMore: false }),
+        listForUser: async () => ({ jobs: [], hasMore: false, total: 0 }),
         findForUser: async () => {
           queried = true
           return null

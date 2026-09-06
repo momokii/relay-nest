@@ -101,8 +101,37 @@ export function useDashboardController(): DashboardController {
     () => createDashboardRetentionApi(import.meta.env.VITE_API_BASE_URL),
     [],
   )
-  const [activeView, setActiveView] = useState<DashboardViewId>("overview")
+  const [activeView, setActiveView] = useState<DashboardViewId>(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash.replace(/^#/, "")
+      const view = hash.split("?")[0]?.split("&")[0]
+      const valid: readonly string[] = ["overview", "sessions", "contacts", "send", "schedule", "campaigns", "analytics", "notifications", "retention", "users", "settings"]
+      if (view && (valid as readonly string[]).includes(view)) return view as DashboardViewId
+    }
+    return "overview"
+  })
   const [scope, setScope] = useState<AccountScope>("personal")
+
+  useEffect(() => {
+    const hash = `#${activeView}`
+    if (typeof window !== "undefined" && window.location.hash !== hash) {
+      window.history.replaceState(null, "", hash)
+    }
+  }, [activeView])
+
+  useEffect(() => {
+    const onHashChange = (): void => {
+      const hash = window.location.hash.replace(/^#/, "")
+      const view = hash.split("?")[0]?.split("&")[0]
+      const valid: readonly string[] = ["overview", "sessions", "contacts", "send", "schedule", "campaigns", "analytics", "notifications", "retention", "users", "settings"]
+      if (view && (valid as readonly string[]).includes(view)) {
+        const next = view as DashboardViewId
+        if (next !== activeView) setActiveView(next)
+      }
+    }
+    window.addEventListener("hashchange", onHashChange)
+    return () => window.removeEventListener("hashchange", onHashChange)
+  }, [activeView])
   const scopeRef = useRef<AccountScope>(scope)
   const scopeGenerationRef = useRef(0)
   const contactResolutionTokenRef = useRef(0)

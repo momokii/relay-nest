@@ -3,7 +3,6 @@ import { assertNever, type DashboardViewId } from "../dashboard-model"
 import type { DashboardViewProps } from "./dashboard-view"
 import {
   AnalyticsPage,
-  CampaignPage,
   ContactsPage,
   NotificationsPage,
   OverviewPage,
@@ -50,11 +49,21 @@ type PageContext = Pick<
   | "onLoadHistory"
   | "history"
   | "page"
+  | "pageSize"
+  | "q"
+  | "stateFilter"
+  | "from"
+  | "to"
   | "detail"
   | "editAction"
   | "cancelAction"
   | "deleteAction"
   | "loadPage"
+  | "setPageSize"
+  | "setQ"
+  | "setStateFilter"
+  | "setFrom"
+  | "setTo"
   | "selectJob"
   | "editJob"
   | "cancelJob"
@@ -126,11 +135,21 @@ export function renderDashboardPage(
           onSchedule={context.onSchedule}
           history={context.history}
           page={context.page}
+          pageSize={context.pageSize}
+          q={context.q}
+          stateFilter={context.stateFilter}
+          from={context.from}
+          to={context.to}
           detail={context.detail}
           editAction={context.editAction}
           cancelAction={context.cancelAction}
           deleteAction={context.deleteAction}
           loadPage={context.loadPage}
+          setPageSize={context.setPageSize}
+          setQ={context.setQ}
+          setStateFilter={context.setStateFilter}
+          setFrom={context.setFrom}
+          setTo={context.setTo}
           selectJob={context.selectJob}
           editJob={context.editJob}
           cancelJob={context.cancelJob}
@@ -152,11 +171,21 @@ export function renderDashboardPage(
           onSchedule={context.onSchedule}
           history={context.history}
           page={context.page}
+          pageSize={context.pageSize}
+          q={context.q}
+          stateFilter={context.stateFilter}
+          from={context.from}
+          to={context.to}
           detail={context.detail}
           editAction={context.editAction}
           cancelAction={context.cancelAction}
           deleteAction={context.deleteAction}
           loadPage={context.loadPage}
+          setPageSize={context.setPageSize}
+          setQ={context.setQ}
+          setStateFilter={context.setStateFilter}
+          setFrom={context.setFrom}
+          setTo={context.setTo}
           selectJob={context.selectJob}
           editJob={context.editJob}
           cancelJob={context.cancelJob}
@@ -165,12 +194,14 @@ export function renderDashboardPage(
       )
     case "campaigns":
       return (
-        <CampaignPage
-          key={context.scope}
-          scope={context.scope}
-          role={context.role}
-          sessions={context.sessions}
-        />
+        <div className="panel panel-warning">
+          <h2 style={{ margin: 0 }}>Campaigns — Under development</h2>
+          <p className="panel-description" style={{ marginTop: "0.5rem" }}>
+            This menu is not accessible yet. Reaction campaigns are flagged as{" "}
+            <strong>UNSTABLE</strong> and remain under active development. The page and its actions
+            are disabled until the feature is ready.
+          </p>
+        </div>
       )
     case "analytics":
       return <AnalyticsPage analytics={context.analytics} />

@@ -52,6 +52,7 @@ const sentHistoryItemSchema = z.object({
   sessionId: z.string(),
   scope: z.enum(["personal", "business"]),
   recipientPhone: z.string().nullable(),
+  recipientName: z.string().nullable().optional(),
   snippet80: z.string().nullable(),
   scheduledFor: z.string(),
   timezone: z.string(),
@@ -72,6 +73,7 @@ const sentHistorySchema = z.object({
   page: z.number().int().positive(),
   pageSize: z.number().int().positive(),
   hasMore: z.boolean(),
+  total: z.number().int().nonnegative().optional(),
 })
 export const createSessionSchema = z.object({
   connectionId: z.string().uuid(),
@@ -92,6 +94,13 @@ export type SentHistoryItem = z.infer<typeof sentHistoryItemSchema>
 export type SentHistoryDetail = z.infer<typeof sentHistoryDetailSchema>
 export type SentHistoryState = z.infer<typeof sentHistoryStateSchema>
 export type SentHistoryPage = z.infer<typeof sentHistorySchema>
+
+export type SentHistoryFilters = Readonly<{
+  q?: string
+  state?: SentHistoryState
+  from?: string
+  to?: string
+}>
 
 export type DashboardSessionApi = Readonly<{
   create: (scope: AccountScope, input: SessionCreateInput) => Promise<ApiResult<SessionView>>
@@ -123,6 +132,7 @@ export type DashboardSessionApi = Readonly<{
     scope: AccountScope,
     page: number,
     pageSize?: number,
+    filters?: SentHistoryFilters,
   ) => Promise<ApiResult<SentHistoryPage>>
   sentHistoryDetail: (scope: AccountScope, jobId: string) => Promise<ApiResult<SentHistoryDetail>>
   messageMediaUrl: (
@@ -185,11 +195,18 @@ export function createDashboardSessionApi(baseUrl = ""): DashboardSessionApi {
       )
       return result.kind === "ready" ? { kind: "ready", data: result.data } : result
     },
-    sentHistory: (scope, page, pageSize = 20) =>
-      requestJson(
-        `${url("/scoped/sent-history")}?scope=${scope}&page=${page}&pageSize=${pageSize}`,
-        sentHistorySchema,
-      ),
+    sentHistory: (scope, page, pageSize = 20, filters = {}) => {
+      const params = new URLSearchParams({
+        scope,
+        page: String(page),
+        pageSize: String(pageSize),
+      })
+      if (filters.q) params.set("q", filters.q)
+      if (filters.state) params.set("state", filters.state)
+      if (filters.from) params.set("from", filters.from)
+      if (filters.to) params.set("to", filters.to)
+      return requestJson(`${url("/scoped/sent-history")}?${params.toString()}`, sentHistorySchema)
+    },
     sentHistoryDetail: (scope, jobId) =>
       requestJson(scoped(`/scoped/sent-history/${jobId}`, scope), sentHistoryDetailSchema),
     messageMediaUrl: (scope, sessionId, ref, messageId) =>

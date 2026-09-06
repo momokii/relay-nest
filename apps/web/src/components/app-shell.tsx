@@ -137,21 +137,30 @@ export function AppShell({
             </span>
           </div>
           <div className="nav-list">
-            {VIEW_DEFINITIONS.map((view) => (
-              <button
-                className={`nav-item ${activeView === view.id ? "is-active" : ""}`}
-                key={view.id}
-                type="button"
-                aria-current={activeView === view.id ? "page" : undefined}
-                onClick={() => {
-                  onViewChange(view.id)
-                  onNavToggle()
-                }}
-              >
-                <span>{view.label}</span>
-                <small>{view.eyebrow}</small>
-              </button>
-            ))}
+            {VIEW_DEFINITIONS.map((view) => {
+              const isCampaigns = view.id === "campaigns"
+              return (
+                <button
+                  className={`nav-item ${activeView === view.id ? "is-active" : ""} ${isCampaigns ? "is-disabled" : ""}`}
+                  key={view.id}
+                  type="button"
+                  aria-current={activeView === view.id ? "page" : undefined}
+                  aria-disabled={isCampaigns ? "true" : undefined}
+                  disabled={isCampaigns}
+                  title={
+                    isCampaigns ? "Under development — Campaigns is not available yet" : undefined
+                  }
+                  onClick={() => {
+                    if (isCampaigns) return
+                    onViewChange(view.id)
+                    onNavToggle()
+                  }}
+                >
+                  <span>{view.label}</span>
+                  <small>{isCampaigns ? "Under development" : view.eyebrow}</small>
+                </button>
+              )
+            })}
           </div>
           <div className="nav-footnote">
             <StatusDot />

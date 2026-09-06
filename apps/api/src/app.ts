@@ -234,6 +234,8 @@ export function createApiApp(
     auth,
     repositories.sentHistory,
     encryptionMasterKey ? createEnvelopeCipher(encryptionMasterKey) : undefined,
+    database.db,
+    encryptionMasterKey,
   )
   if (configuredAnalyticsService) registerAnalyticsRoutes(app, auth, configuredAnalyticsService)
   if (configuredNotificationService)

@@ -44,11 +44,21 @@ export function scheduleRowActions(state: SentHistoryState): ScheduleRowActions 
 export type DashboardScheduleHistoryController = Readonly<{
   history: ResourceState<SentHistoryPage>
   page: number
+  pageSize: number
   selectedJobId: string
   detail: ResourceState<SentHistoryDetail | undefined>
   editAction: ActionState<ScheduleView>
   cancelAction: ActionState<ScheduleView>
   deleteAction: ActionState<ScheduleRemoval>
+  q: string
+  stateFilter: SentHistoryState | ""
+  from: string
+  to: string
+  setQ: (value: string) => void
+  setStateFilter: (value: SentHistoryState | "") => void
+  setFrom: (value: string) => void
+  setTo: (value: string) => void
+  setPageSize: (value: number) => void
   loadPage: (page: number) => void
   selectJob: (jobId: string) => void
   editJob: (
@@ -85,6 +95,7 @@ export function useDashboardScheduleHistoryController(
   )
   const [history, setHistory] = useState<ResourceState<SentHistoryPage>>({ kind: "loading" })
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [selectedJobId, setSelectedJobId] = useState("")
   const [detail, setDetail] = useState<ResourceState<SentHistoryDetail | undefined>>({
     kind: "loading",
@@ -92,8 +103,22 @@ export function useDashboardScheduleHistoryController(
   const [editAction, setEditAction] = useState<ActionState<ScheduleView>>({ kind: "idle" })
   const [cancelAction, setCancelAction] = useState<ActionState<ScheduleView>>({ kind: "idle" })
   const [deleteAction, setDeleteAction] = useState<ActionState<ScheduleRemoval>>({ kind: "idle" })
+  const [q, setQ] = useState("")
+  const [debouncedQ, setDebouncedQ] = useState("")
+  const [stateFilter, setStateFilter] = useState<SentHistoryState | "">("")
+  const [from, setFrom] = useState("")
+  const [to, setTo] = useState("")
   const historyRequestId = useRef(0)
   const detailRequestId = useRef(0)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQ(q), 3000)
+    return () => clearTimeout(timer)
+  }, [q])
+
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedQ, stateFilter, from, to, pageSize, scope])
 
   useEffect(() => {
     const requestId = ++historyRequestId.current
@@ -104,7 +129,12 @@ export function useDashboardScheduleHistoryController(
     setCancelAction({ kind: "idle" })
     setDeleteAction({ kind: "idle" })
     setHistory({ kind: "loading" })
-    void sessionApi.sentHistory(scope, page).then((result) => {
+    const filters: { q?: string; state?: SentHistoryState; from?: string; to?: string } = {}
+    if (debouncedQ) filters.q = debouncedQ
+    if (stateFilter) filters.state = stateFilter
+    if (from) filters.from = from
+    if (to) filters.to = to
+    void sessionApi.sentHistory(scope, page, pageSize, filters).then((result) => {
       if (requestId !== historyRequestId.current) return
       setHistory(resourceFromResult(result))
       if (result.kind !== "ready") return
@@ -120,7 +150,7 @@ export function useDashboardScheduleHistoryController(
         if (detailId === detailRequestId.current) setDetail(resourceFromResult(detailResult))
       })
     })
-  }, [page, scope, sessionApi])
+  }, [page, pageSize, debouncedQ, stateFilter, from, to, scope, sessionApi])
 
   const loadPage = (nextPage: number): void => {
     historyRequestId.current += 1
@@ -210,11 +240,21 @@ export function useDashboardScheduleHistoryController(
   return {
     history,
     page,
+    pageSize,
     selectedJobId,
     detail,
     editAction,
     cancelAction,
     deleteAction,
+    q,
+    stateFilter,
+    from,
+    to,
+    setQ,
+    setStateFilter,
+    setFrom,
+    setTo,
+    setPageSize,
     loadPage,
     selectJob,
     editJob,

@@ -62,11 +62,21 @@ type ScheduleHistoryProps = Pick<
   DashboardScheduleHistoryController,
   | "history"
   | "page"
+  | "pageSize"
+  | "q"
+  | "stateFilter"
+  | "from"
+  | "to"
   | "detail"
   | "editAction"
   | "cancelAction"
   | "deleteAction"
   | "loadPage"
+  | "setPageSize"
+  | "setQ"
+  | "setStateFilter"
+  | "setFrom"
+  | "setTo"
   | "selectJob"
   | "editJob"
   | "cancelJob"
@@ -77,11 +87,21 @@ function ScheduleHistorySection({
   scope,
   history,
   page,
+  pageSize,
+  q,
+  stateFilter,
+  from,
+  to,
   detail,
   editAction,
   cancelAction,
   deleteAction,
   loadPage,
+  setPageSize,
+  setQ,
+  setStateFilter,
+  setFrom,
+  setTo,
   selectJob,
   editJob,
   cancelJob,
@@ -94,6 +114,11 @@ function ScheduleHistorySection({
       scope={scope}
       history={history}
       page={page}
+      pageSize={pageSize}
+      q={q}
+      stateFilter={stateFilter}
+      from={from}
+      to={to}
       openJobId={openJobId}
       detail={detail}
       editAction={editAction}
@@ -103,6 +128,11 @@ function ScheduleHistorySection({
         setOpenJobId("")
         loadPage(nextPage)
       }}
+      setPageSize={setPageSize}
+      setQ={setQ}
+      setStateFilter={setStateFilter}
+      setFrom={setFrom}
+      setTo={setTo}
       onOpenJob={(jobId) => {
         setOpenJobId(jobId)
         selectJob(jobId)
@@ -167,8 +197,8 @@ export function SchedulePage(
 ): React.JSX.Element {
   return (
     <div className="page-grid schedule-page">
-      <MessageComposer key={props.scope} mode="schedule" {...props} />
       <ScheduleHistorySection {...props} />
+      <MessageComposer key={props.scope} mode="schedule" {...props} />
     </div>
   )
 }
