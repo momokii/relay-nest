@@ -259,7 +259,7 @@ export function ScheduleHistoryPanel({
                     <td title={item.recipientPhone ?? undefined}>{formatRecipient(item)}</td>
                     <td>{item.snippet80 ?? "Unavailable"}</td>
                     <td>
-                      {formatScheduleDate(item.scheduledFor || item.createdAt)}
+                      {formatScheduleDate(item.scheduledFor || item.createdAt, item.timezone)}
                       <small> · {item.timezone}</small>
                     </td>
                     <td>

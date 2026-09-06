@@ -7,8 +7,32 @@ import { LoadingRows, StateNotice, StatusBadge } from "./ui"
 
 export type ScheduleStateTone = "success" | "warning" | "error" | "info"
 
-export function formatScheduleDate(value: string): string {
-  return new Date(value).toLocaleString()
+export function formatScheduleDate(value: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(value))
+}
+
+// Output contract of <input type="datetime-local">: "YYYY-MM-DDTHH:mm" wall time.
+export function scheduleInstantToLocalInput(value: string, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(value))
+  const read = (partType: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((part) => part.type === partType)?.value ?? ""
+  return `${read("year")}-${read("month")}-${read("day")}T${read("hour")}:${read("minute")}`
 }
 
 export function scheduleStateTone(state: SentHistoryState): ScheduleStateTone {

@@ -9,7 +9,7 @@ import type { ActionState, ResourceState } from "../dashboard-state"
 import { scheduleRowActions } from "../schedule-history-controller"
 import { ScheduleDeleteConfirm } from "./schedule-delete-confirm"
 import { LoadingRows, StateNotice, StatusBadge } from "./ui"
-import { formatScheduleDate, scheduleStateTone } from "./view-support"
+import { formatScheduleDate, scheduleInstantToLocalInput, scheduleStateTone } from "./view-support"
 
 export function ScheduleDetailModal({
   detail,
@@ -37,9 +37,11 @@ export function ScheduleDetailModal({
 }>): React.JSX.Element {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const [confirming, setConfirming] = useState(false)
-  const [scheduledFor, setScheduledFor] = useState("")
-  const [timezone, setTimezone] = useState("")
   const job = detail.kind === "ready" ? detail.data : undefined
+  const [scheduledFor, setScheduledFor] = useState(() =>
+    job ? scheduleInstantToLocalInput(job.scheduledFor, job.timezone) : "",
+  )
+  const [timezone, setTimezone] = useState(job?.timezone ?? "")
   const actions = job ? scheduleRowActions(job.state) : { canCancel: false, canDelete: false }
   const deleted = deleteAction.kind === "ready"
   const scheduleBusy = editAction.kind === "submitting" || cancelAction.kind === "submitting"
@@ -49,7 +51,7 @@ export function ScheduleDetailModal({
   }, [])
 
   useEffect(() => {
-    setScheduledFor(job?.scheduledFor ?? "")
+    setScheduledFor(job ? scheduleInstantToLocalInput(job.scheduledFor, job.timezone) : "")
     setTimezone(job?.timezone ?? "")
     setConfirming(false)
   }, [job])
@@ -110,7 +112,7 @@ export function ScheduleDetailModal({
               <div>
                 <dt>Scheduled for</dt>
                 <dd>
-                  {formatScheduleDate(job.scheduledFor)} · {job.timezone}
+                  {formatScheduleDate(job.scheduledFor, job.timezone)} · {job.timezone}
                 </dd>
               </div>
               <div>
@@ -119,7 +121,9 @@ export function ScheduleDetailModal({
               </div>
               <div>
                 <dt>Next attempt</dt>
-                <dd>{job.nextAttemptAt ? formatScheduleDate(job.nextAttemptAt) : "—"}</dd>
+                <dd>
+                  {job.nextAttemptAt ? formatScheduleDate(job.nextAttemptAt, job.timezone) : "—"}
+                </dd>
               </div>
               <div>
                 <dt>Message</dt>
@@ -147,6 +151,7 @@ export function ScheduleDetailModal({
                     <span>Scheduled for</span>
                     <input
                       aria-label="Scheduled for"
+                      type="datetime-local"
                       value={scheduledFor}
                       onChange={(event) => setScheduledFor(event.target.value)}
                     />
