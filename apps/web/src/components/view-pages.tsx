@@ -172,8 +172,8 @@ export function SendPage(
 ): React.JSX.Element {
   return (
     <div className="page-grid send-page">
-      <MessageComposer key={props.scope} mode="send" {...props} />
       <ScheduleHistorySection {...props} origin="immediate" />
+      <MessageComposer key={props.scope} mode="send" {...props} />
     </div>
   )
 }

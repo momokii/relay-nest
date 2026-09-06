@@ -228,6 +228,7 @@ export function ScheduleHistoryPanel({
                   <th scope="col">Recipient</th>
                   <th scope="col">Message</th>
                   <th scope="col">When</th>
+                  <th scope="col">Method</th>
                   <th scope="col">
                     <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
                       State
@@ -260,6 +261,12 @@ export function ScheduleHistoryPanel({
                     <td>
                       {formatScheduleDate(item.scheduledFor || item.createdAt)}
                       <small> · {item.timezone}</small>
+                    </td>
+                    <td>
+                      <StatusBadge
+                        label={item.origin === "immediate" ? "Direct" : "Scheduled"}
+                        tone={item.origin === "immediate" ? "info" : "warning"}
+                      />
                     </td>
                     <td>
                       <StatusBadge label={item.state} tone={scheduleStateTone(item.state)} />
