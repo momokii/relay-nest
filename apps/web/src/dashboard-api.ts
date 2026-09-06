@@ -115,6 +115,7 @@ export type SendInput = Readonly<{
   contactId?: string
   message: string
   idempotencyKey: string
+  timezone?: string
 }>
 
 export type ScheduleInput = SendInput &
@@ -261,11 +262,14 @@ export function createDashboardApi(baseUrl = ""): DashboardApi {
       return result.kind === "ready" ? { kind: "ready", data: result.data } : result
     },
     getAnalytics: (scope, window?: { from: string; to: string }) => {
-    const base = scoped("/scoped/analytics", scope)
-    if (!window) return requestJson(base, analyticsSchema)
-    const separator = base.includes("?") ? "&" : "?"
-    return requestJson(`${base}${separator}from=${encodeURIComponent(window.from)}&to=${encodeURIComponent(window.to)}`, analyticsSchema)
-  },
+      const base = scoped("/scoped/analytics", scope)
+      if (!window) return requestJson(base, analyticsSchema)
+      const separator = base.includes("?") ? "&" : "?"
+      return requestJson(
+        `${base}${separator}from=${encodeURIComponent(window.from)}&to=${encodeURIComponent(window.to)}`,
+        analyticsSchema,
+      )
+    },
     resolveContact: (scope, sessionId, recipient) =>
       requestJson(`${url(`/scoped/sessions/${sessionId}/contact`)}?scope=${scope}`, contactSchema, {
         method: "POST",
@@ -289,6 +293,7 @@ export function createDashboardApi(baseUrl = ""): DashboardApi {
               : { phoneNumber: input.recipient }),
             message: input.message,
             idempotencyKey: input.idempotencyKey,
+            ...(input.timezone ? { timezone: input.timezone } : {}),
           }),
         },
       ),

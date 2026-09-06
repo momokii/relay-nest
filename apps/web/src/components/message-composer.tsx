@@ -1,5 +1,5 @@
 import * as React from "react"
-import { type FormEvent, type KeyboardEvent, useMemo, useRef, useState } from "react"
+import { type FormEvent, type KeyboardEvent, useId, useMemo, useRef, useState } from "react"
 
 import type { AiApprovalResult } from "../dashboard-ai-api"
 import { createDashboardAiApi } from "../dashboard-ai-api"
@@ -25,6 +25,57 @@ import { AiReviewPanel } from "./ai-review-panel"
 import { RecipientSelectorFields } from "./recipient-selector"
 import { canSubmitSelectedDirectoryContact, useRecipientSelector } from "./recipient-selector-state"
 import { Panel, StateNotice } from "./ui"
+import { resolvePreferredTimezone } from "./view-support"
+
+const COMPOSER_TIMEZONES: readonly string[] = [
+  "UTC",
+  "Asia/Jakarta",
+  "Asia/Singapore",
+  "Europe/London",
+  "America/New_York",
+  "America/Los_Angeles",
+]
+const TIMEZONE_PREFERENCE_KEY = "relaynest.composer-timezone"
+
+function savedTimezonePreference(): string | null {
+  if (typeof localStorage === "undefined") return null
+  return localStorage.getItem(TIMEZONE_PREFERENCE_KEY)
+}
+
+function browserTimeZone(): string | null {
+  if (typeof Intl === "undefined") return null
+  return Intl.DateTimeFormat().resolvedOptions().timeZone ?? null
+}
+
+function TimezoneSelect({
+  id,
+  value,
+  onChange,
+  disabled,
+}: Readonly<{
+  id: string
+  value: string
+  onChange: (value: string) => void
+  disabled: boolean
+}>): React.JSX.Element {
+  const options = COMPOSER_TIMEZONES.includes(value)
+    ? COMPOSER_TIMEZONES
+    : [value, ...COMPOSER_TIMEZONES]
+  return (
+    <select
+      id={id}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      disabled={disabled}
+    >
+      {options.map((zone) => (
+        <option key={zone} value={zone}>
+          {zone}
+        </option>
+      ))}
+    </select>
+  )
+}
 
 export {
   canSubmitSelectedDirectoryContact,
@@ -95,10 +146,13 @@ export function MessageComposer({
 }>): React.JSX.Element {
   const [message, setMessage] = useState("")
   const [scheduledFor, setScheduledFor] = useState("")
-  const [timezone, setTimezone] = useState("UTC")
+  const [timezone, setTimezone] = useState(() =>
+    resolvePreferredTimezone(savedTimezonePreference(), browserTimeZone()),
+  )
   const [validationError, setValidationError] = useState<string | undefined>()
   const [aiApproval, setAiApproval] = useState<ActionState<AiApprovalResult>>({ kind: "idle" })
   const messageInput = useRef<HTMLTextAreaElement>(null)
+  const timezoneId = useId()
   const aiApi = useMemo(() => createDashboardAiApi(import.meta.env.VITE_API_BASE_URL), [])
   const recipientSelector = useRecipientSelector({
     scope,
@@ -117,6 +171,11 @@ export function MessageComposer({
     contactId: selection.contactId,
   })
   const preview = useMemo(() => renderPreviewNodes(message), [message])
+
+  function changeTimezone(value: string): void {
+    setTimezone(value)
+    if (typeof localStorage !== "undefined") localStorage.setItem(TIMEZONE_PREFERENCE_KEY, value)
+  }
 
   function replaceMessageSelection(prefix: string, suffix = prefix): void {
     const input = messageInput.current
@@ -182,6 +241,7 @@ export function MessageComposer({
       ...(selection.contactId ? { contactId: selection.contactId } : {}),
       message: validation.message,
       idempotencyKey: randomUuid(),
+      timezone,
     }
     if (mode === "send") {
       void onSend(common)
@@ -302,6 +362,18 @@ export function MessageComposer({
               </div>
             </section>
           </div>
+          {mode === "send" ? (
+            <label htmlFor={timezoneId}>
+              <span>Timezone</span>
+              <TimezoneSelect
+                id={timezoneId}
+                value={timezone}
+                onChange={changeTimezone}
+                disabled={!canOperate}
+              />
+              <small>The send time is recorded and shown in this timezone.</small>
+            </label>
+          ) : null}
           {mode === "schedule" ? (
             <div className="form-grid">
               <label>
@@ -313,20 +385,14 @@ export function MessageComposer({
                   disabled={!canOperate}
                 />
               </label>
-              <label>
+              <label htmlFor={timezoneId}>
                 <span>Timezone</span>
-                <select
+                <TimezoneSelect
+                  id={timezoneId}
                   value={timezone}
-                  onChange={(event) => setTimezone(event.target.value)}
+                  onChange={changeTimezone}
                   disabled={!canOperate}
-                >
-                  <option value="UTC">UTC</option>
-                  <option value="Asia/Jakarta">Asia/Jakarta</option>
-                  <option value="Asia/Singapore">Asia/Singapore</option>
-                  <option value="Europe/London">Europe/London</option>
-                  <option value="America/New_York">America/New_York</option>
-                  <option value="America/Los_Angeles">America/Los_Angeles</option>
-                </select>
+                />
                 <small>Schedules are one-time only; recurrence is not available.</small>
               </label>
             </div>

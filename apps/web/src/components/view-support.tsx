@@ -7,6 +7,15 @@ import { LoadingRows, StateNotice, StatusBadge } from "./ui"
 
 export type ScheduleStateTone = "success" | "warning" | "error" | "info"
 
+export function resolvePreferredTimezone(
+  saved: string | null,
+  browserTimeZone: string | null | undefined,
+): string {
+  if (saved) return saved
+  if (browserTimeZone) return browserTimeZone
+  return "UTC"
+}
+
 export function formatScheduleDate(value: string, timeZone: string): string {
   return new Intl.DateTimeFormat("en-GB", {
     timeZone,
