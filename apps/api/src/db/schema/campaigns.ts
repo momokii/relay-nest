@@ -5,7 +5,12 @@ import { scheduledJobs } from "./scheduling"
 import { accountScopeEnum, createdAt, id } from "./shared"
 import { sessions } from "./transport"
 
-export const campaignStateEnum = pgEnum("campaign_state", ["scheduled", "sent", "failed"])
+export const campaignStateEnum = pgEnum("campaign_state", [
+  "scheduled",
+  "sent",
+  "failed",
+  "cancelled",
+])
 
 export const campaigns = pgTable("campaigns", {
   id: id(),
@@ -17,6 +22,7 @@ export const campaigns = pgTable("campaigns", {
     .notNull()
     .references(() => contactGroups.id),
   wahaGroupId: text("waha_group_id"),
+  wahaGroupSubject: text("waha_group_subject"),
   messageCiphertext: text("message_ciphertext").notNull(),
   messageNonce: text("message_nonce").notNull(),
   messageAuthTag: text("message_auth_tag").notNull(),

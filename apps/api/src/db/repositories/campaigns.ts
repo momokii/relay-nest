@@ -1,9 +1,11 @@
 import { createEnvelopeCipher, type EncryptedEnvelope } from "@waha-command-center/config"
-import { and, desc, eq } from "drizzle-orm"
+import { and, desc, eq, inArray } from "drizzle-orm"
 
 import type { PersistenceDatabase } from "../client"
-import { campaigns } from "../schema"
+import { campaigns, scheduledJobs } from "../schema"
 import type { AccountScope } from "../schema/shared"
+
+const MESSAGE_PREVIEW_LIMIT = 120
 
 export type CampaignRecord = {
   readonly id: string
@@ -11,24 +13,34 @@ export type CampaignRecord = {
   readonly sessionId: string
   readonly contactGroupId: string
   readonly wahaGroupId: string | null
+  readonly wahaGroupSubject: string | null
   readonly trigger: unknown
   readonly scheduledAt: Date
-  readonly state: "scheduled" | "sent" | "failed"
+  readonly state: "scheduled" | "sent" | "failed" | "cancelled"
   readonly createdBy: string
   readonly schedulerJobId: string | null
   readonly followUpMessage: string | null
+  readonly messagePreview: string | null
+  readonly timezone: string | null
 }
 
 export function createCampaignRepository(db: PersistenceDatabase, masterKey: Buffer | undefined) {
   const cipher = createEnvelopeCipher(masterKey)
   const envelope = (value: string, scope: AccountScope): EncryptedEnvelope =>
     cipher.encrypt(value, { accountScope: scope })
-  const safe = (row: typeof campaigns.$inferSelect): CampaignRecord => ({
+  const truncatePreview = (plaintext: string): string =>
+    plaintext.length > MESSAGE_PREVIEW_LIMIT ? plaintext.slice(0, MESSAGE_PREVIEW_LIMIT) : plaintext
+  // Security: preview plaintext exists only in memory; never log or persist envelope material.
+  const safe = (
+    row: typeof campaigns.$inferSelect,
+    timezone: string | null = null,
+  ): CampaignRecord => ({
     id: row.id,
     accountScope: row.accountScope,
     sessionId: row.sessionId,
     contactGroupId: row.contactGroupId,
     wahaGroupId: row.wahaGroupId,
+    wahaGroupSubject: row.wahaGroupSubject,
     trigger: row.trigger,
     scheduledAt: row.scheduledAt,
     state: row.state,
@@ -47,6 +59,19 @@ export function createCampaignRepository(db: PersistenceDatabase, masterKey: Buf
             { accountScope: row.accountScope },
           )
         : null,
+    messagePreview: truncatePreview(
+      cipher.decrypt(
+        {
+          version: 1,
+          algorithm: "aes-256-gcm",
+          ciphertext: row.messageCiphertext,
+          nonce: row.messageNonce,
+          authTag: row.messageAuthTag,
+        },
+        { accountScope: row.accountScope },
+      ),
+    ),
+    timezone,
   })
   return {
     create: async (input: {
@@ -54,6 +79,7 @@ export function createCampaignRepository(db: PersistenceDatabase, masterKey: Buf
       readonly sessionId: string
       readonly contactGroupId: string
       readonly wahaGroupId: string | null
+      readonly wahaGroupSubject: string | null
       readonly message: string
       readonly followUpMessage?: string | undefined
       readonly trigger: unknown
@@ -71,6 +97,7 @@ export function createCampaignRepository(db: PersistenceDatabase, masterKey: Buf
           sessionId: input.sessionId,
           contactGroupId: input.contactGroupId,
           wahaGroupId: input.wahaGroupId,
+          wahaGroupSubject: input.wahaGroupSubject,
           messageCiphertext: message.ciphertext,
           messageNonce: message.nonce,
           messageAuthTag: message.authTag,
@@ -86,12 +113,13 @@ export function createCampaignRepository(db: PersistenceDatabase, masterKey: Buf
       return safe(row)
     },
     find: async (id: string, accountScope: AccountScope) => {
-      const [row] = await db
-        .select()
+      const [result] = await db
+        .select({ campaign: campaigns, timezone: scheduledJobs.timezone })
         .from(campaigns)
+        .leftJoin(scheduledJobs, eq(campaigns.schedulerJobId, scheduledJobs.id))
         .where(and(eq(campaigns.id, id), eq(campaigns.accountScope, accountScope)))
         .limit(1)
-      return row ? safe(row) : null
+      return result ? safe(result.campaign, result.timezone) : null
     },
     list: async (
       accountScope: AccountScope,
@@ -99,20 +127,27 @@ export function createCampaignRepository(db: PersistenceDatabase, masterKey: Buf
       pageSize: number,
       offset: number,
     ) => {
-      const rows = await db
-        .select()
+      const results = await db
+        .select({ campaign: campaigns, timezone: scheduledJobs.timezone })
         .from(campaigns)
+        .leftJoin(scheduledJobs, eq(campaigns.schedulerJobId, scheduledJobs.id))
         .where(and(eq(campaigns.accountScope, accountScope), eq(campaigns.createdBy, createdBy)))
         .orderBy(desc(campaigns.createdAt))
         .limit(pageSize)
         .offset(offset)
-      return rows.map(safe)
+      return results.map((result) => safe(result.campaign, result.timezone))
     },
     cancel: async (id: string, accountScope: AccountScope) => {
       const [row] = await db
         .update(campaigns)
-        .set({ state: "failed" })
-        .where(and(eq(campaigns.id, id), eq(campaigns.accountScope, accountScope)))
+        .set({ state: "cancelled" })
+        .where(
+          and(
+            eq(campaigns.id, id),
+            eq(campaigns.accountScope, accountScope),
+            eq(campaigns.state, "scheduled"),
+          ),
+        )
         .returning()
       return row ? safe(row) : null
     },
@@ -140,7 +175,7 @@ export function createCampaignRepository(db: PersistenceDatabase, masterKey: Buf
             ...(wahaGroupId ? [eq(campaigns.wahaGroupId, wahaGroupId)] : []),
           ),
         )
-      return rows.map(safe)
+      return rows.map((row) => safe(row))
     },
     attachSchedulerJob: async (id: string, accountScope: AccountScope, schedulerJobId: string) => {
       const [row] = await db
@@ -148,7 +183,13 @@ export function createCampaignRepository(db: PersistenceDatabase, masterKey: Buf
         .set({ schedulerJobId })
         .where(and(eq(campaigns.id, id), eq(campaigns.accountScope, accountScope)))
         .returning()
-      return row ? safe(row) : null
+      if (!row) return null
+      const [job] = await db
+        .select({ timezone: scheduledJobs.timezone })
+        .from(scheduledJobs)
+        .where(eq(scheduledJobs.id, schedulerJobId))
+        .limit(1)
+      return safe(row, job?.timezone ?? null)
     },
     markSent: (id: string, accountScope: AccountScope) =>
       db
@@ -160,5 +201,18 @@ export function createCampaignRepository(db: PersistenceDatabase, masterKey: Buf
         .update(campaigns)
         .set({ state: "failed" })
         .where(and(eq(campaigns.id, id), eq(campaigns.accountScope, accountScope))),
+    remove: async (id: string, accountScope: AccountScope) => {
+      const rows = await db
+        .delete(campaigns)
+        .where(
+          and(
+            eq(campaigns.id, id),
+            eq(campaigns.accountScope, accountScope),
+            inArray(campaigns.state, ["cancelled", "sent", "failed"]),
+          ),
+        )
+        .returning({ id: campaigns.id })
+      return rows.length > 0
+    },
   }
 }

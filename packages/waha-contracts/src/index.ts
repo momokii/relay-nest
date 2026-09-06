@@ -163,6 +163,7 @@ export const wahaGroupSchema = z
   .object({
     id: wahaGroupIdSchema,
     name: z.string().min(1).optional(),
+    subject: z.string().min(1).optional(),
     participants: z.array(z.string()).optional(),
   })
   .passthrough()

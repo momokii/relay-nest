@@ -78,8 +78,17 @@ received the message.
 ### Delivery evidence
 
 The evidence available about message progress. The product distinguishes
-`scheduled`, `attempting`, `submitted`, `acknowledged`, `failed`, `unknown`, and
-`cancelled`; an HTTP response alone is not recipient-delivery evidence.
+`scheduled`, `queued`, `attempting`, `submitted`, `acknowledged`, `failed`,
+`unknown`, and `cancelled`; an HTTP response alone is not recipient-delivery
+evidence.
+
+### Combined schedule history
+
+One scoped dashboard table that lists scheduled, in-flight, and completed
+one-time texts together. Rows carry previews only; opening a row reveals the
+full record with the actions its state allows: edit and cancel for scheduled
+or queued jobs, delete for terminal records, and no actions while a dispatch
+is in flight.
 
 ### Recovery state
 

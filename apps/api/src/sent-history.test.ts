@@ -4,7 +4,11 @@ import { describe, expect, it } from "vitest"
 
 import type { AuthPrincipal } from "./auth/service"
 import type { SentHistoryRow } from "./sent-history"
-import { projectSentHistoryRow, registerSentHistoryRoutes } from "./sent-history"
+import {
+  projectSentHistoryDetail,
+  projectSentHistoryRow,
+  registerSentHistoryRoutes,
+} from "./sent-history"
 
 const cipher = createEnvelopeCipher(Buffer.alloc(32, 7))
 const principal: AuthPrincipal = {
@@ -21,7 +25,14 @@ const principal: AuthPrincipal = {
 function row(
   key: Buffer,
   state: SentHistoryRow["job"]["state"],
-  options: Readonly<{ id?: string; createdAt?: string; message?: string }> = {},
+  options: Readonly<{
+    id?: string
+    createdAt?: string
+    message?: string
+    nextAttemptAt?: Date
+    failureCode?: string
+    recoveryCode?: string
+  }> = {},
 ): SentHistoryRow {
   const rowCipher = createEnvelopeCipher(key)
   const phone = rowCipher.encrypt("628123456789", { accountScope: "personal" })
@@ -48,12 +59,12 @@ function row(
       idempotencyKey: "history-test",
       state,
       attempts: 1,
-      nextAttemptAt: null,
+      nextAttemptAt: options.nextAttemptAt ?? null,
       leaseOwner: null,
       leaseExpiresAt: null,
       providerMessageId: null,
-      recoveryCode: null,
-      failureCode: null,
+      recoveryCode: options.recoveryCode ?? null,
+      failureCode: options.failureCode ?? null,
       editVersion: 0,
       createdAt: new Date(options.createdAt ?? "2026-09-01T09:00:00.000Z"),
       updatedAt: new Date(options.createdAt ?? "2026-09-01T09:00:00.000Z"),
@@ -89,12 +100,60 @@ describe("sent-history projection", () => {
       snippet80: `first line ${"x".repeat(80)}`.slice(0, 80),
       attempts: 1,
       scheduledFor: new Date("2026-09-01T10:00:00.000Z"),
+      timezone: "UTC",
       createdAt: new Date("2026-09-01T09:00:00.000Z"),
+      updatedAt: new Date("2026-09-01T09:00:00.000Z"),
       state: "submitted",
+      nextAttemptAt: null,
+      failureCode: null,
+      recoveryCode: null,
       providerMessageId: "provider-1",
     })
     expect(result).not.toHaveProperty("recipientPhoneCiphertext")
     expect(result).not.toHaveProperty("message")
+  })
+
+  it("passes scheduling and failure metadata through the list projection", () => {
+    const nextAttemptAt = new Date("2026-09-01T10:05:00.000Z")
+    const result = projectSentHistoryRow(
+      row(Buffer.alloc(32, 7), "failed", {
+        failureCode: "waha_send_failed",
+        recoveryCode: "recover-abc",
+        nextAttemptAt,
+      }),
+      cipher,
+    )
+
+    expect(result.timezone).toBe("UTC")
+    expect(result.nextAttemptAt).toEqual(nextAttemptAt)
+    expect(result.failureCode).toBe("waha_send_failed")
+    expect(result.recoveryCode).toBe("recover-abc")
+    expect(result.updatedAt).toEqual(new Date("2026-09-01T09:00:00.000Z"))
+  })
+
+  it("detail projection returns every list field plus the full decrypted message", () => {
+    const result = projectSentHistoryDetail(
+      row(Buffer.alloc(32, 7), "submitted", {
+        message: "first line\nsecond line must appear in full",
+      }),
+      cipher,
+    )
+
+    expect(result.message).toBe("first line\nsecond line must appear in full")
+    expect(result.snippet80).toBe("first line")
+    expect(result.recipientPhone).toBe("628123456789")
+    expect(result.timezone).toBe("UTC")
+    expect(result.state).toBe("submitted")
+    expect(result).not.toHaveProperty("messageCiphertext")
+    expect(result).not.toHaveProperty("messageNonce")
+    expect(result).not.toHaveProperty("messageAuthTag")
+  })
+
+  it("detail projection redacts message and phone when the encryption key is wrong", () => {
+    const result = projectSentHistoryDetail(row(Buffer.alloc(32, 8), "failed"), cipher)
+
+    expect(result.message).toBeNull()
+    expect(result.recipientPhone).toBeNull()
   })
 
   it("preserves submitted as the canonical scheduled-job state", () => {
@@ -130,6 +189,7 @@ describe("sent-history projection", () => {
             hasMore: false,
           }
         },
+        findForUser: async () => null,
       },
       cipher,
     )
@@ -162,6 +222,7 @@ describe("sent-history projection", () => {
           queried = true
           return { jobs: [], hasMore: false }
         },
+        findForUser: async () => null,
       },
       cipher,
     )
@@ -192,6 +253,7 @@ describe("sent-history projection", () => {
           queried = true
           return { jobs: [], hasMore: false }
         },
+        findForUser: async () => null,
       },
       cipher,
     )
@@ -220,6 +282,7 @@ describe("sent-history projection", () => {
           jobs: [row(Buffer.alloc(32, 7), "submitted")],
           hasMore: false,
         }),
+        findForUser: async () => null,
       },
       cipher,
     )
@@ -253,6 +316,7 @@ describe("sent-history projection", () => {
           expect(limit).toBe(1)
           return { jobs: [second], hasMore: false }
         },
+        findForUser: async () => null,
       },
       cipher,
     )
@@ -282,7 +346,7 @@ describe("sent-history projection", () => {
     registerSentHistoryRoutes(
       app,
       { authenticate: async () => principal, verifyCsrf: async () => true },
-      { listForUser: async () => ({ jobs: [], hasMore: false }) },
+      { listForUser: async () => ({ jobs: [], hasMore: false }), findForUser: async () => null },
       cipher,
     )
 
@@ -291,6 +355,140 @@ describe("sent-history projection", () => {
     })
 
     expect(response.statusCode).toBe(400)
+    await app.close()
+  })
+
+  it("detail route returns the full decrypted message for a granted row", async () => {
+    const app = Fastify()
+    const detailRow = row(Buffer.alloc(32, 7), "submitted", {
+      message: "first line\nsecond line must appear in full",
+    })
+    let requestedJobId: string | undefined
+    let requestedUserId: string | undefined
+    let requestedScope: string | undefined
+    registerSentHistoryRoutes(
+      app,
+      { authenticate: async () => principal, verifyCsrf: async () => true },
+      {
+        listForUser: async () => ({ jobs: [], hasMore: false }),
+        findForUser: async (jobId, userId, scope) => {
+          requestedJobId = jobId
+          requestedUserId = userId
+          requestedScope = scope
+          return detailRow
+        },
+      },
+      cipher,
+    )
+
+    const response = await app.inject({
+      url: "/scoped/sent-history/11111111-1111-4111-8111-111111111111?scope=personal",
+    })
+    const body = response.json<ReturnType<typeof projectSentHistoryDetail>>()
+
+    expect(response.statusCode).toBe(200)
+    expect(requestedJobId).toBe("11111111-1111-4111-8111-111111111111")
+    expect(requestedUserId).toBe(principal.userId)
+    expect(requestedScope).toBe("personal")
+    expect(body.message).toBe("first line\nsecond line must appear in full")
+    expect(body.recipientPhone).toBe("628123456789")
+    expect(body).not.toHaveProperty("messageCiphertext")
+    expect(body).not.toHaveProperty("messageNonce")
+    await app.close()
+  })
+
+  it("detail route returns 401 for an unauthenticated caller", async () => {
+    const app = Fastify()
+    let queried = false
+    registerSentHistoryRoutes(
+      app,
+      { authenticate: async () => null, verifyCsrf: async () => true },
+      {
+        listForUser: async () => ({ jobs: [], hasMore: false }),
+        findForUser: async () => {
+          queried = true
+          return null
+        },
+      },
+      cipher,
+    )
+
+    const response = await app.inject({
+      url: "/scoped/sent-history/11111111-1111-4111-8111-111111111111?scope=personal",
+    })
+
+    expect(response.statusCode).toBe(401)
+    expect(queried).toBe(false)
+    await app.close()
+  })
+
+  it("detail route denies a scope before querying when the caller has no scoped role", async () => {
+    const app = Fastify()
+    let queried = false
+    registerSentHistoryRoutes(
+      app,
+      { authenticate: async () => principal, verifyCsrf: async () => true },
+      {
+        listForUser: async () => ({ jobs: [], hasMore: false }),
+        findForUser: async () => {
+          queried = true
+          return null
+        },
+      },
+      cipher,
+    )
+
+    const response = await app.inject({
+      url: "/scoped/sent-history/11111111-1111-4111-8111-111111111111?scope=business",
+    })
+
+    expect(response.statusCode).toBe(403)
+    expect(queried).toBe(false)
+    await app.close()
+  })
+
+  it("detail route returns 404 for an unknown id or a job without a caller grant", async () => {
+    const app = Fastify()
+    registerSentHistoryRoutes(
+      app,
+      { authenticate: async () => principal, verifyCsrf: async () => true },
+      {
+        listForUser: async () => ({ jobs: [], hasMore: false }),
+        findForUser: async () => null,
+      },
+      cipher,
+    )
+
+    const response = await app.inject({
+      url: "/scoped/sent-history/11111111-1111-4111-8111-111111111111?scope=personal",
+    })
+
+    expect(response.statusCode).toBe(404)
+    await app.close()
+  })
+
+  it("detail route rejects a non-uuid job id with HTTP 400 before querying", async () => {
+    const app = Fastify()
+    let queried = false
+    registerSentHistoryRoutes(
+      app,
+      { authenticate: async () => principal, verifyCsrf: async () => true },
+      {
+        listForUser: async () => ({ jobs: [], hasMore: false }),
+        findForUser: async () => {
+          queried = true
+          return null
+        },
+      },
+      cipher,
+    )
+
+    const response = await app.inject({
+      url: "/scoped/sent-history/not-a-uuid?scope=personal",
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(queried).toBe(false)
     await app.close()
   })
 })

@@ -26,7 +26,12 @@ const scheduleSchema = z.object({
   failureCode: z.string().nullable(),
 })
 
+// The API answers a confirmed delete with the removed schedule view, not a
+// delete flag; the controller consumes only the id when dropping the row.
+const scheduleRemovedSchema = scheduleSchema
+
 export type ScheduleView = z.infer<typeof scheduleSchema>
+export type ScheduleRemoval = z.infer<typeof scheduleRemovedSchema>
 export type ScheduleEditInput = Readonly<{
   scheduledFor: string
   timezone: string
@@ -46,6 +51,11 @@ export type DashboardScheduleApi = Readonly<{
     sessionId: string,
     jobId: string,
   ) => Promise<ApiResult<ScheduleView>>
+  remove: (
+    scope: AccountScope,
+    sessionId: string,
+    jobId: string,
+  ) => Promise<ApiResult<ScheduleRemoval>>
 }>
 
 export function createDashboardScheduleApi(baseUrl = ""): DashboardScheduleApi {
@@ -68,6 +78,10 @@ export function createDashboardScheduleApi(baseUrl = ""): DashboardScheduleApi {
     cancel: (scope, sessionId, jobId) =>
       requestJson(scoped(`${schedulePath(sessionId, jobId)}/cancel`, scope), scheduleSchema, {
         method: "POST",
+      }),
+    remove: (scope, sessionId, jobId) =>
+      requestJson(scoped(schedulePath(sessionId, jobId), scope), scheduleRemovedSchema, {
+        method: "DELETE",
       }),
   }
 }

@@ -7,6 +7,53 @@ file as a general progress journal; progress belongs in `CURRENT_STATUS.md`.
 
 ## Current Decisions
 
+### Decision: D3/D4 — combined schedule history actions and delete-vs-retention
+
+**Date:** 2026-09-06
+
+D3: the dashboard surfaces one combined schedule history table on the Send and
+Schedule pages instead of separate schedule and sent-history panels. Rows carry
+previews only; opening a row opens a full-detail modal whose actions are
+derived from state: scheduled/queued offer edit and cancel, terminal states
+(submitted, acknowledged, failed, unknown, cancelled) offer delete, and
+in-flight `attempting` offers neither.
+
+D4: per-row delete is an explicit, confirmation-gated operator action for
+terminal records only; it emits a content-free `schedule.deleted` audit event
+so accountability outlives the removed row. Cancellation never deletes: the
+record stays as `cancelled` evidence. Bulk lifecycle remains governed by
+retention policy; row delete does not replace it.
+
+**Context:** After schedule detail/edit/cancel/delete APIs and the combined
+history reader shipped, the UI still showed two overlapping panels, and a
+delete action without clear retention semantics risked confusing record
+removal with delivery-evidence retention.
+
+**Rationale:** A state-derived single table keeps one mental model per scope;
+gating actions on the server-authoritative state keeps the browser from
+inventing authority. Keeping cancelled rows and audit events preserves the
+product rule that delivery evidence is never silently rewritten or erased.
+
+**Alternatives Rejected:** Keeping the two separate panels (duplicate
+navigation, split evidence); allowing delete of scheduled/queued jobs (would
+erase pending consent-based dispatches outside the retention lifecycle);
+silent deletes without confirmation or audit (fails the accountability rule).
+
+**Security Implications:** All actions remain same-origin, CSRF-protected,
+scope-checked, and authorization-checked server-side; delete and cancel are
+Admin/Operator command actions behind session grants. The modal reveals full
+decrypted message content only inside the authenticated scope that already
+owns it. No autonomous sending, retention override, or audit rewrite is
+introduced.
+
+**Impact:** `schedule-jobs-panel.tsx` and `sent-history-panel.tsx` stay
+deleted; `schedule-history-panel.tsx`, `schedule-detail-modal.tsx`, and
+`schedule-delete-confirm.tsx` are the single presentation path. The web delete
+contract parses the removed schedule view returned by the API. Regression
+coverage lives in `tests/e2e/schedule-dashboard.spec.ts`,
+`tests/schedule-detail-modal.test.ts`, and
+`tests/task-14-dashboard-api.test.ts`.
+
 ### Decision: Live chat directory remains single-target and group-disabled
 
 **Date:** 2026-08-30

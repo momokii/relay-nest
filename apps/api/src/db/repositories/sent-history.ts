@@ -54,5 +54,30 @@ export function createSentHistoryRepository(db: PersistenceDatabase) {
         hasMore,
       }
     },
+    findForUser: async (jobId: string, userId: string, accountScope: AccountScope) => {
+      const [row] = await db
+        .select()
+        .from(scheduledJobs)
+        .innerJoin(
+          sessionGrants,
+          and(
+            eq(sessionGrants.userId, userId),
+            eq(sessionGrants.sessionId, scheduledJobs.sessionId),
+            eq(sessionGrants.accountScope, scheduledJobs.accountScope),
+          ),
+        )
+        .where(and(eq(scheduledJobs.id, jobId), eq(scheduledJobs.accountScope, accountScope)))
+        .limit(1)
+      if (!row) return null
+      const [attempt] = await db
+        .select()
+        .from(dispatchAttempts)
+        .where(
+          and(eq(dispatchAttempts.jobId, jobId), eq(dispatchAttempts.accountScope, accountScope)),
+        )
+        .orderBy(desc(dispatchAttempts.attemptNumber), desc(dispatchAttempts.attemptedAt))
+        .limit(1)
+      return { job: row.scheduled_jobs, attempt: attempt ?? null }
+    },
   }
 }

@@ -1,8 +1,38 @@
 import type * as React from "react"
 
 import type { SessionView } from "../dashboard-api"
+import type { SentHistoryState } from "../dashboard-session-api"
 import type { ResourceState } from "../dashboard-state"
 import { LoadingRows, StateNotice, StatusBadge } from "./ui"
+
+export type ScheduleStateTone = "success" | "warning" | "error" | "info"
+
+export function formatScheduleDate(value: string): string {
+  return new Date(value).toLocaleString()
+}
+
+export function scheduleStateTone(state: SentHistoryState): ScheduleStateTone {
+  switch (state) {
+    case "acknowledged":
+      return "success"
+    case "failed":
+      return "error"
+    case "scheduled":
+    case "queued":
+    case "attempting":
+      return "warning"
+    case "submitted":
+    case "unknown":
+    case "cancelled":
+      return "info"
+    default:
+      return assertNeverState(state)
+  }
+}
+
+function assertNeverState(value: never): never {
+  throw new Error(`Unexpected schedule state: ${String(value)}`)
+}
 
 export function ResourceStateBody<T>({
   state,

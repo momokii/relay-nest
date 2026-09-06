@@ -9,8 +9,9 @@ sessions with hard-separated Personal and Business account scopes.
 Implemented work currently covers original Todos 1-14: product/domain decisions, the
 typed Node.js/TypeScript foundation, authentication and roles, per-session
 grants, server-side WAHA integration, session lifecycle, one-time durable text
-scheduling, contact resolution, webhook ingestion, delivery evidence, and
-SMTP/Telegram notifications.
+scheduling with a combined schedule history (scoped detail, cancel, and
+delete-by-state controls), contact resolution, webhook ingestion, delivery
+evidence, and SMTP/Telegram notifications.
 
 Todo 12 is implemented and synchronized in semantic commits: scoped retention metadata,
 preview- and confirmation-gated purge, immutable content-free purge

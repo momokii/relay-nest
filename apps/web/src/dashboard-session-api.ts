@@ -54,10 +54,18 @@ const sentHistoryItemSchema = z.object({
   recipientPhone: z.string().nullable(),
   snippet80: z.string().nullable(),
   scheduledFor: z.string(),
+  timezone: z.string(),
   createdAt: z.string(),
+  updatedAt: z.string(),
   state: sentHistoryStateSchema,
   attempts: z.number().int().nonnegative(),
+  nextAttemptAt: z.string().nullable(),
+  failureCode: z.string().nullable(),
+  recoveryCode: z.string().nullable(),
   providerMessageId: z.string().nullable(),
+})
+const sentHistoryDetailSchema = sentHistoryItemSchema.extend({
+  message: z.string().nullable(),
 })
 const sentHistorySchema = z.object({
   items: z.array(sentHistoryItemSchema),
@@ -81,6 +89,7 @@ export type SessionCreateInput = z.infer<typeof createSessionSchema>
 export type SessionChat = z.infer<typeof chatSchema>
 export type MessageView = z.infer<typeof messageSchema>
 export type SentHistoryItem = z.infer<typeof sentHistoryItemSchema>
+export type SentHistoryDetail = z.infer<typeof sentHistoryDetailSchema>
 export type SentHistoryState = z.infer<typeof sentHistoryStateSchema>
 export type SentHistoryPage = z.infer<typeof sentHistorySchema>
 
@@ -115,6 +124,7 @@ export type DashboardSessionApi = Readonly<{
     page: number,
     pageSize?: number,
   ) => Promise<ApiResult<SentHistoryPage>>
+  sentHistoryDetail: (scope: AccountScope, jobId: string) => Promise<ApiResult<SentHistoryDetail>>
   messageMediaUrl: (
     scope: AccountScope,
     sessionId: string,
@@ -180,6 +190,8 @@ export function createDashboardSessionApi(baseUrl = ""): DashboardSessionApi {
         `${url("/scoped/sent-history")}?scope=${scope}&page=${page}&pageSize=${pageSize}`,
         sentHistorySchema,
       ),
+    sentHistoryDetail: (scope, jobId) =>
+      requestJson(scoped(`/scoped/sent-history/${jobId}`, scope), sentHistoryDetailSchema),
     messageMediaUrl: (scope, sessionId, ref, messageId) =>
       scoped(
         `/scoped/sessions/${sessionId}/chats/${encodeURIComponent(ref)}/messages/${encodeURIComponent(messageId)}/media`,

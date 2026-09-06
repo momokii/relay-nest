@@ -1,5 +1,73 @@
 # Current Status
 
+## Session update: combined schedule history Task 5 (e2e, docs, verification)
+
+- Rewrote `tests/e2e/schedule-dashboard.spec.ts` as four route-mocked browser
+  tests in the `sent-history.spec.ts` style: mixed-state rows across two pages
+  with badge tones, full-detail modal (recipient, full message, timezone,
+  failure code, `aria-modal`), cancel offered only on scheduled/queued with a
+  200 round-trip reconciling row and modal to `cancelled`, delete offered only
+  on terminal rows behind the confirm gate with the row removed after DELETE,
+  and intact pagination with edge-disabled controls.
+- `tests/e2e/seed-schedules.ts` now seeds mixed-state rows: a mutable
+  `scheduled` job, the existing `submitted` evidence row, a `failed` row with
+  `waha_unavailable`/attempts=2, and the `unknown`/`lease_expired` recovery
+  row — all still opaque-ciphertext (no decryptable fixture content).
+- Fixed a real web-side contract defect found while wiring delete coverage:
+  the API answers `DELETE .../messages/schedules/:jobId` with the removed
+  schedule view, but the web client parsed `{deleted: true, id}` so every
+  delete rendered "Schedule deletion unavailable" and never dropped the row.
+  `apps/web/src/dashboard-schedule-api.ts` now parses the actual response
+  shape; no API delete/cancel logic was changed. Pinned by
+  `tests/task-14-dashboard-api.test.ts` "parses the removed schedule view
+  after a confirmed delete".
+- Verification: focused Playwright `4/4` passed (temp config, route-mocked, no
+  database needed); focused Vitest `21/21` (`task-14-dashboard-api`,
+  `schedule-detail-modal`, `schedule-history-controller`); workspace typecheck
+  green; scoped Biome green; `git diff --check` clean. The literal
+  `feature --test-file tests/e2e/schedule-dashboard.spec.ts` invocation cannot
+  run because vitest's include patterns exclude `.spec.ts` browser files
+  (exit 1 before any check); the equivalent adjusted command ran the focused
+  Vitest test through `feature` against `tests/task-14-dashboard-api.test.ts`
+  with the same `--paths`, plus the focused Playwright run.
+- Visual QA: dual read-only review passes over the code, CSS, tests, and
+  captures returned PASS (design-system/functional, HIGH) and REVISE
+  (visual fidelity, MEDIUM, two blockers). Both blockers were fixed and
+  re-verified: (1) the capture hook had taken both screenshots with the modal
+  open — `table.png` is now a genuine no-modal capture; (2) at 1280px the
+  Send page two-column grid (`minmax(22rem, 0.75fr)`) clipped the combined
+  table's State/Attempts/Provider ID/Actions columns with no visible
+  affordance — `.send-page` now uses the same single-column treatment as
+  `.schedule-page`, so the history table renders full width with all seven
+  columns and badge tones visible. The review's minor findings were also
+  applied: `PROVIDER ID` header no longer wraps (`th` nowrap), the pagination
+  label stays on one line, and the modal state badge is a compact pill
+  (`justify-self: start`) instead of a stretched bar. Remaining known
+  non-blocking follow-up (both passes): no focus trap in the modal and the
+  delete-confirm dialog takes no focus on open — matches the pre-existing
+  `chat-history-overlay` pattern; recommend a shared focus-managed overlay
+  primitive later. Fresh captures: `/tmp/opencode/qa-schedule-history/`.
+- Docs updated: README implemented-scope sentence mentions the combined
+  schedule history; `CONTEXT.md` gained the "Combined schedule history" term
+  and `queued` in the delivery-evidence states; `DECISIONS_LOG.md` records
+  D3/D4 (combined table actions; delete-vs-retention).
+- The plan file `.omo/plans/schedule-history-combined-table.md` referenced by
+  the task is not present in the repository; implementation was driven by the
+  task's acceptance list plus the shipped T1-T4 code. Known stale-out-of-scope
+  item: `tests/e2e/dashboard.spec.ts` still asserts the removed schedules
+  combobox/panel ("combobox Schedule", "No schedules") in its create/edit/
+  cancel test and will fail in a full `test:e2e` run until it is updated the
+  same way.
+- Cleanup: stale web preview on port 4173 and the leftover disposable E2E API
+  on port 4317 (both from a previous session) were stopped; the disposable
+  `relaynest-e2e-postgres-3714362` container was stopped (removed via its
+  `--rm` flag); stale `.tmp/playwright` auth/seed artifacts,
+  `.tmp/playwright-t5.config.ts`, and repo `test-results/` were removed. The
+  operator's `relaynest-dev`/`relaynest` Compose stacks are deliberate running
+  deployments and were left untouched. Temp Playwright config and QA captures
+  live under `/tmp/opencode/` (outside the repo). No commit or push was
+  performed.
+
 ## Repository truth
 
 - Branch: `main`, tracking `origin/main`; local and remote branches are synchronized.
@@ -163,6 +231,32 @@ Last updated: 2026-08-17
   external scanners remain explicitly unclaimed.
 - Push is blocked pending an explicit decision on protected-record handling,
   whether the WAHA seam is sufficient for Todo 12, and a valid security review.
+
+## Session update: T5 campaign delete menu wiring
+
+- Added `CampaignApi.remove` in `apps/web/src/campaign-api.ts`; it preserves the
+  active account scope and sends the CSRF/same-origin-aware dashboard request to
+  `DELETE /scoped/campaigns/:id`.
+- `CampaignList` now renders Delete only for terminal `sent`, `failed`, and
+  `cancelled` rows, while scheduled rows retain Cancel. `CampaignPage` passes
+  the scope-filtered sessions, wires `api.remove`, and reloads after deletion.
+- Full `tests/campaign-delete.test.ts`: `12 passed`; the focused feature command
+  passed its selected test and scoped Biome, then failed the workspace typecheck
+  on the pre-existing out-of-scope API error
+  `apps/api/src/campaigns.ts(152,48): TS2339 Property 'subject' does not exist`.
+  The web production build passed and scoped Biome passed for all three changed
+  web files (`Checked 3 files ... exit=0`).
+- The requested pre-change focused command did not go RED because its existing
+  test name targets the already-implemented server service, not the missing UI
+  wiring. This discrepancy is recorded exactly in
+  `.omo/evidence/task-T5-campaign-menu-fix.md`.
+- Manual curl boundary captures returned `401 {"error":"unauthenticated"}` for
+  the running disposable stack without credentials, `403 {"error":"forbidden"}`
+  for cross-origin/invalid-CSRF input, and `401` for malformed input before
+  authentication. An authenticated create/cancel/delete run and browser QA were
+  blocked by the unavailable authenticated fixture and missing Chrome binary; no
+  secrets or ciphertext were exposed. Evidence:
+  `.omo/evidence/task-T5-campaign-menu-fix.md`.
 
 ## Session update: Todo 14 session lifecycle/status preview
 

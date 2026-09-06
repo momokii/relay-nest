@@ -1,23 +1,37 @@
 import type * as React from "react"
-import type { Campaign } from "../campaign-api"
+import { type Campaign, campaignTitle, isTerminal } from "../campaign-api"
+import type { SessionView } from "../dashboard-api"
 import { Panel, StateNotice, StatusBadge } from "./ui"
+
+const BADGE_TONES: Record<Campaign["state"], "success" | "warning" | "error" | "info"> = {
+  scheduled: "info",
+  sent: "success",
+  failed: "error",
+  cancelled: "info",
+}
 
 export function CampaignList({
   campaigns,
   contactGroups,
+  sessions,
   onCancel,
+  onDelete,
   onChangeGroup,
 }: Readonly<{
   campaigns: readonly Campaign[]
   contactGroups: readonly { id: string; name: string }[]
+  sessions: readonly SessionView[]
   onCancel: (id: string) => void
+  onDelete: (id: string) => void
   onChangeGroup: (id: string, contactGroupId: string) => void
 }>): React.JSX.Element {
   const groupName = (id: string) =>
     contactGroups.find((group) => group.id === id)?.name ?? id.slice(0, 8)
+  const sessionName = (id: string) =>
+    sessions.find((session) => session.id === id)?.name ?? id.slice(0, 8)
   return (
     <Panel
-      eyebrow="Durable jobs"
+      eyebrow="Campaigns"
       title="Campaign history"
       description="Only campaigns returned for the active account scope are shown."
     >
@@ -42,12 +56,19 @@ export function CampaignList({
               }}
             >
               <div style={{ display: "grid", gap: "var(--space-1)" }}>
-                <strong>{campaign.wahaGroupId || "Custom group"}</strong>
+                <strong>{campaignTitle(campaign)}</strong>
                 <small style={{ color: "var(--color-muted)" }}>
-                  Contact group: <strong>{groupName(campaign.contactGroupId)}</strong> ·{" "}
-                  {new Date(campaign.scheduledAt).toLocaleString()} · trigger:{" "}
+                  Contact group: <strong>{groupName(campaign.contactGroupId)}</strong> · Session:{" "}
+                  <strong>{sessionName(campaign.sessionId)}</strong> ·{" "}
+                  {new Date(campaign.scheduledAt).toLocaleString()}
+                  {campaign.timezone ? ` · ${campaign.timezone}` : ""} · trigger:{" "}
                   {campaign.trigger.type === "emoji" ? "per emoji" : "any emoji"}
                 </small>
+                {campaign.messagePreview ? (
+                  <small style={{ color: "var(--color-muted)" }}>
+                    Message: {campaign.messagePreview}
+                  </small>
+                ) : null}
                 <label
                   style={{
                     display: "flex",
@@ -81,24 +102,24 @@ export function CampaignList({
                 </label>
               </div>
               <div style={{ display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
-                <StatusBadge
-                  label={campaign.state}
-                  tone={
-                    campaign.state === "failed"
-                      ? "error"
-                      : campaign.state === "acknowledged"
-                        ? "success"
-                        : "warning"
-                  }
-                />
-                <button
-                  className="button button-secondary"
-                  type="button"
-                  onClick={() => onCancel(campaign.id)}
-                  disabled={campaign.state === "cancelled"}
-                >
-                  Cancel
-                </button>
+                <StatusBadge label={campaign.state} tone={BADGE_TONES[campaign.state]} />
+                {!isTerminal(campaign) ? (
+                  <button
+                    className="button button-secondary"
+                    type="button"
+                    onClick={() => onCancel(campaign.id)}
+                  >
+                    Cancel
+                  </button>
+                ) : (
+                  <button
+                    className="button button-secondary"
+                    type="button"
+                    onClick={() => onDelete(campaign.id)}
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             </article>
           ))}

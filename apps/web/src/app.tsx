@@ -6,7 +6,7 @@ import { AuthBoundary } from "./components/auth-boundary"
 import { DashboardView } from "./components/dashboard-view"
 import { useDashboardController } from "./dashboard-controller"
 import { useDashboardOperationsController } from "./operations-controller"
-import { useDashboardScheduleController } from "./schedule-controller"
+import { useDashboardScheduleHistoryController } from "./schedule-history-controller"
 import { useDashboardSessionController } from "./session-controller"
 import "./styles.css"
 
@@ -14,7 +14,7 @@ export function App(): React.JSX.Element {
   const dashboard = useDashboardController()
   const admin = useDashboardAdminController()
   const session = useDashboardSessionController(dashboard.scope)
-  const schedule = useDashboardScheduleController(dashboard.scope, dashboard.sessions)
+  const schedule = useDashboardScheduleHistoryController(dashboard.scope)
   const operations = useDashboardOperationsController(dashboard.scope, dashboard.role)
   if (!dashboard.activePrincipal) return <AuthBoundary state={dashboard.principal} />
   return (

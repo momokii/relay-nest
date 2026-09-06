@@ -2,7 +2,7 @@ import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-
 
 import type { PersistenceDatabase } from "../client"
 import { withPersistenceErrors } from "../repository-support"
-import { dispatchAttempts, scheduledJobs } from "../schema"
+import { campaigns, dispatchAttempts, scheduledJobs } from "../schema"
 import type { AccountScope } from "../schema/shared"
 
 const claimableStates = ["scheduled", "queued"] as const
@@ -213,6 +213,23 @@ export function createSchedulingRepositories(db: PersistenceDatabase) {
           .returning()
         return job ?? null
       },
+      remove: async (id: string, accountScope: AccountScope) =>
+        db.transaction(async (tx) => {
+          await tx
+            .update(campaigns)
+            .set({ schedulerJobId: null })
+            .where(eq(campaigns.schedulerJobId, id))
+          await tx
+            .delete(dispatchAttempts)
+            .where(
+              and(eq(dispatchAttempts.jobId, id), eq(dispatchAttempts.accountScope, accountScope)),
+            )
+          const deleted = await tx
+            .delete(scheduledJobs)
+            .where(and(eq(scheduledJobs.id, id), eq(scheduledJobs.accountScope, accountScope)))
+            .returning({ id: scheduledJobs.id })
+          return deleted.length > 0
+        }),
       edit: async (
         id: string,
         accountScope: AccountScope,

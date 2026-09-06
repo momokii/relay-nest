@@ -9,11 +9,18 @@ type SeedScheduleStatesInput = Readonly<{
 }>
 
 export async function seedScheduleStates(input: SeedScheduleStatesInput): Promise<void> {
+  await createOpaqueSchedule(input, "2099-12-29T00:00:00.000Z", "scheduled")
   const terminal = await createOpaqueSchedule(input, "2099-12-30T00:00:00.000Z", "terminal")
   await input.database.sql`
     UPDATE scheduled_jobs
     SET state = 'submitted', updated_at = ${new Date(Date.now() - 60_000).toISOString()}
     WHERE id = ${terminal.id}
+  `
+  const failed = await createOpaqueSchedule(input, "2099-12-30T01:00:00.000Z", "failed")
+  await input.database.sql`
+    UPDATE scheduled_jobs
+    SET state = 'failed', failure_code = 'waha_unavailable', attempts = 2
+    WHERE id = ${failed.id}
   `
   const recovery = await createOpaqueSchedule(input, "2099-12-31T00:00:00.000Z", "recovery")
   await input.database.sql`

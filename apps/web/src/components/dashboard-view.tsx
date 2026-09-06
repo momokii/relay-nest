@@ -25,11 +25,11 @@ import type {
 } from "../dashboard-session-api"
 import type { ActionState, ResourceState } from "../dashboard-state"
 import type { DashboardOperationsController } from "../operations-controller"
-import type { DashboardScheduleController } from "../schedule-controller"
+import type { DashboardScheduleHistoryController } from "../schedule-history-controller"
 import { pageDefinition, renderDashboardPage } from "./dashboard-view-router"
 
 export type DashboardViewProps = Readonly<
-  DashboardScheduleController &
+  DashboardScheduleHistoryController &
     DashboardOperationsController & {
       activeView: DashboardViewId
       scope: AccountScope

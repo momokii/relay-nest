@@ -228,7 +228,7 @@ export function createApiApp(
   registerAiApprovalRoutes(app, auth, aiApprovalService)
   if (sessionService) registerSessionRoutes(app, auth, sessionService)
   if (configuredMessagingService) registerMessagingRoutes(app, auth, configuredMessagingService)
-  registerScheduledRoutes(app, auth, repositories.scheduledJobs)
+  registerScheduledRoutes(app, auth, repositories)
   registerSentHistoryRoutes(
     app,
     auth,

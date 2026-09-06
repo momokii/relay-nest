@@ -20,7 +20,6 @@ type PageContext = Pick<
   | "scope"
   | "role"
   | "sessions"
-  | "selectedSessionId"
   | "analytics"
   | "notifications"
   | "retention"
@@ -49,15 +48,17 @@ type PageContext = Pick<
   | "sessionHistoryAction"
   | "onLifecycle"
   | "onLoadHistory"
-  | "schedules"
-  | "selectedScheduleId"
+  | "history"
+  | "page"
   | "detail"
   | "editAction"
   | "cancelAction"
-  | "selectSchedule"
-  | "selectSession"
-  | "editSchedule"
-  | "cancelSchedule"
+  | "deleteAction"
+  | "loadPage"
+  | "selectJob"
+  | "editJob"
+  | "cancelJob"
+  | "deleteJob"
   | "notificationHistory"
   | "notificationSettingsAction"
   | "notificationPreferencesAction"
@@ -123,6 +124,17 @@ export function renderDashboardPage(
           onSetConsent={context.onSetContactConsent}
           onSend={context.onSend}
           onSchedule={context.onSchedule}
+          history={context.history}
+          page={context.page}
+          detail={context.detail}
+          editAction={context.editAction}
+          cancelAction={context.cancelAction}
+          deleteAction={context.deleteAction}
+          loadPage={context.loadPage}
+          selectJob={context.selectJob}
+          editJob={context.editJob}
+          cancelJob={context.cancelJob}
+          deleteJob={context.deleteJob}
         />
       )
     case "schedule":
@@ -131,7 +143,6 @@ export function renderDashboardPage(
           scope={context.scope}
           role={context.role}
           sessions={context.sessions}
-          selectedSessionId={context.selectedSessionId}
           action={context.scheduleAction}
           contactAction={context.contactAction}
           consentAction={context.contactConsentAction}
@@ -139,15 +150,17 @@ export function renderDashboardPage(
           onSetConsent={context.onSetContactConsent}
           onSend={context.onSend}
           onSchedule={context.onSchedule}
-          schedules={context.schedules}
-          selectedScheduleId={context.selectedScheduleId}
+          history={context.history}
+          page={context.page}
           detail={context.detail}
           editAction={context.editAction}
           cancelAction={context.cancelAction}
-          selectSession={context.selectSession}
-          selectSchedule={context.selectSchedule}
-          editSchedule={context.editSchedule}
-          cancelSchedule={context.cancelSchedule}
+          deleteAction={context.deleteAction}
+          loadPage={context.loadPage}
+          selectJob={context.selectJob}
+          editJob={context.editJob}
+          cancelJob={context.cancelJob}
+          deleteJob={context.deleteJob}
         />
       )
     case "campaigns":

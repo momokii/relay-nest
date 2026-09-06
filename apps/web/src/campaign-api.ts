@@ -3,17 +3,21 @@ import { type ApiResult, requestJson } from "./dashboard-api"
 import type { AccountScope } from "./dashboard-model"
 
 const triggerSchema = z.object({ type: z.string(), emojiMap: z.record(z.string()).optional() })
+const campaignStateSchema = z.enum(["scheduled", "sent", "failed", "cancelled"])
 const campaignSchema = z.object({
   id: z.string(),
   accountScope: z.enum(["personal", "business"]),
   sessionId: z.string(),
   contactGroupId: z.string(),
-  wahaGroupId: z.string(),
+  wahaGroupId: z.string().nullable(),
+  wahaGroupSubject: z.string().nullable(),
   trigger: triggerSchema,
   scheduledAt: z.string(),
-  state: z.string(),
+  state: campaignStateSchema,
   createdBy: z.string().optional(),
   schedulerJobId: z.string().nullable().optional(),
+  messagePreview: z.string().nullable(),
+  timezone: z.string().nullable(),
 })
 const pageSchema = z.object({
   items: z.array(campaignSchema),
@@ -41,9 +45,24 @@ const contactGroupMemberSchema = z.object({
 })
 
 export type Campaign = z.infer<typeof campaignSchema>
+export type CampaignState = z.infer<typeof campaignStateSchema>
 export type ContactGroup = z.infer<typeof contactGroupSchema>
 export type WahaGroup = z.infer<typeof wahaGroupSchema>
 export type ContactGroupMember = z.infer<typeof contactGroupMemberSchema>
+
+const TERMINAL_CAMPAIGN_STATES: readonly CampaignState[] = ["sent", "failed", "cancelled"]
+
+export function isTerminal(campaign: Pick<Campaign, "state">): boolean {
+  return TERMINAL_CAMPAIGN_STATES.includes(campaign.state)
+}
+
+export function campaignTitle(
+  campaign: Pick<Campaign, "wahaGroupSubject" | "wahaGroupId">,
+): string {
+  const subject = campaign.wahaGroupSubject?.trim()
+  return subject ? subject : campaign.wahaGroupId || "Custom group"
+}
+
 export type CampaignInput = Readonly<{
   sessionId: string
   contactGroupId: string
@@ -59,7 +78,12 @@ export type CampaignApi = Readonly<{
   list: (scope: AccountScope) => Promise<ApiResult<readonly Campaign[]>>
   create: (scope: AccountScope, input: CampaignInput) => Promise<ApiResult<Campaign>>
   cancel: (scope: AccountScope, id: string) => Promise<ApiResult<Campaign>>
-  updateContactGroup: (scope: AccountScope, id: string, contactGroupId: string) => Promise<ApiResult<Campaign>>
+  remove: (scope: AccountScope, id: string) => Promise<ApiResult<{ ok: boolean }>>
+  updateContactGroup: (
+    scope: AccountScope,
+    id: string,
+    contactGroupId: string,
+  ) => Promise<ApiResult<Campaign>>
   contactGroups: (scope: AccountScope) => Promise<ApiResult<readonly ContactGroup[]>>
   createContactGroup: (scope: AccountScope, name: string) => Promise<ApiResult<ContactGroup>>
   deleteContactGroup: (scope: AccountScope, groupId: string) => Promise<ApiResult<{ ok: boolean }>>
@@ -101,6 +125,10 @@ export function createCampaignApi(baseUrl = ""): CampaignApi {
     cancel: (scope, id) =>
       requestJson(scoped(`/scoped/campaigns/${id}/cancel`, scope), campaignSchema, {
         method: "POST",
+      }),
+    remove: (scope, id) =>
+      requestJson(scoped(`/scoped/campaigns/${id}`, scope), z.object({ ok: z.boolean() }), {
+        method: "DELETE",
       }),
     contactGroups: async (scope) => {
       const result = await requestJson(

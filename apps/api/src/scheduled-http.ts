@@ -12,6 +12,10 @@ import {
 } from "./waha/session-http-support"
 
 type ScheduledJobsRepository = ReturnType<typeof createRepositories>["scheduledJobs"]
+type ScheduledRouteRepositories = Pick<
+  ReturnType<typeof createRepositories>,
+  "scheduledJobs" | "auditEntries"
+>
 type StoredSchedule = NonNullable<Awaited<ReturnType<ScheduledJobsRepository["find"]>>>
 type ScheduleAuth = Pick<AuthService, "authorize"> & {
   readonly authenticate: (token: string | undefined) => Promise<AuthPrincipal | null>
@@ -23,8 +27,18 @@ const editScheduleSchema = z.object({
   scheduledFor: z.coerce.date(),
   timezone: z.string().min(1).max(80),
 })
+const deletableStates: readonly StoredSchedule["state"][] = [
+  "submitted",
+  "acknowledged",
+  "failed",
+  "unknown",
+  "cancelled",
+]
 function isMutableState(state: StoredSchedule["state"]): boolean {
   return state === "scheduled" || state === "queued"
+}
+function isDeletableState(state: StoredSchedule["state"]): boolean {
+  return deletableStates.includes(state)
 }
 
 function safeSchedule(job: StoredSchedule) {
@@ -57,8 +71,9 @@ async function authorizeSchedule(
 export function registerScheduledRoutes(
   app: FastifyInstance,
   auth: ScheduleAuth,
-  repository: ScheduledJobsRepository,
+  repositories: ScheduledRouteRepositories,
 ): void {
+  const repository = repositories.scheduledJobs
   app.get("/scoped/sessions/:sessionId/messages/schedules", async (request, reply) => {
     const principal = await authenticate(auth, request, reply)
     if (!principal) return
@@ -119,12 +134,58 @@ export function registerScheduledRoutes(
       const current = await repository.find(jobId, scope)
       if (!current || current.sessionId !== sessionId)
         return reply.code(404).send({ error: "not_found" })
-      if (current.state === "cancelled") return reply.send(safeSchedule(current))
+      if (current.state === "cancelled") {
+        await repositories.auditEntries.append({
+          action: "schedule.cancelled",
+          subjectType: "scheduled_job",
+          subjectId: jobId,
+          accountScope: scope,
+          sessionId,
+          actorUserId: principal.userId,
+        })
+        return reply.send(safeSchedule(current))
+      }
       if (!isMutableState(current.state) || current.leaseOwner)
         return reply.code(409).send({ error: "schedule_locked" })
       const cancelled = await repository.cancel(jobId, scope)
       if (!cancelled) return reply.code(409).send({ error: "schedule_locked" })
+      await repositories.auditEntries.append({
+        action: "schedule.cancelled",
+        subjectType: "scheduled_job",
+        subjectId: jobId,
+        accountScope: scope,
+        sessionId,
+        actorUserId: principal.userId,
+      })
       return reply.send(safeSchedule(cancelled))
     },
   )
+
+  app.delete("/scoped/sessions/:sessionId/messages/schedules/:jobId", async (request, reply) => {
+    if (!sameOrigin(request)) return reply.code(403).send({ error: "forbidden" })
+    const principal = await authenticate(auth, request, reply)
+    if (!principal) return
+    if (!(await csrfValid(auth, principal, request)))
+      return reply.code(403).send({ error: "forbidden" })
+    const { sessionId, jobId } = scheduleIdParamsSchema.parse(request.params)
+    const { scope } = scopeQuerySchema.parse(request.query)
+    if (!(await authorizeSchedule(auth, principal, sessionId, scope, "command")))
+      return reply.code(403).send({ error: "forbidden" })
+    const current = await repository.find(jobId, scope)
+    if (!current || current.sessionId !== sessionId)
+      return reply.code(404).send({ error: "not_found" })
+    if (!isDeletableState(current.state) || current.leaseOwner)
+      return reply.code(409).send({ error: "schedule_locked" })
+    const removed = await repository.remove(jobId, scope)
+    if (!removed) return reply.code(404).send({ error: "not_found" })
+    await repositories.auditEntries.append({
+      action: "schedule.deleted",
+      subjectType: "scheduled_job",
+      subjectId: jobId,
+      accountScope: scope,
+      sessionId,
+      actorUserId: principal.userId,
+    })
+    return reply.send(safeSchedule(current))
+  })
 }

@@ -195,6 +195,41 @@ describe("Todo 14 authenticated dashboard adapters", () => {
     vi.unstubAllGlobals()
   })
 
+  it("parses the removed schedule view after a confirmed delete", async () => {
+    // Given the API answers a confirmed delete with the removed schedule view
+    vi.stubGlobal("document", { cookie: "waha_csrf=csrf-token" })
+    const fetchMock = vi.fn().mockResolvedValue(
+      response({
+        id: jobId,
+        sessionId,
+        accountScope: "personal",
+        scheduledFor: "2026-08-18T10:00:00.000Z",
+        timezone: "UTC",
+        state: "failed",
+        attempts: 2,
+        nextAttemptAt: null,
+        providerMessageId: null,
+        recoveryCode: null,
+        failureCode: "waha_unavailable",
+      }),
+    )
+    vi.stubGlobal("fetch", fetchMock)
+
+    // When the Personal schedule is deleted
+    const result = await createDashboardScheduleApi().remove("personal", sessionId, jobId)
+
+    // Then the removed record is parsed and the request stays scoped and CSRF-protected
+    expect(result).toMatchObject({ kind: "ready", data: { id: jobId, state: "failed" } })
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/scoped/sessions/${sessionId}/messages/schedules/${jobId}?scope=personal`,
+      expect.objectContaining({
+        method: "DELETE",
+        headers: expect.objectContaining({ "x-csrf-token": "csrf-token" }),
+      }),
+    )
+    vi.unstubAllGlobals()
+  })
+
   it("reads notification history without exposing provider settings in the route", async () => {
     // Given an authenticated redacted notification history response
     const fetchMock = vi.fn().mockResolvedValue(response([]))

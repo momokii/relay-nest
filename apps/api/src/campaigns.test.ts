@@ -51,7 +51,10 @@ function service(overrides: Partial<Parameters<typeof createCampaignService>[0]>
     sessions: { find: async () => session },
     contactGroups: { hasGrant: async () => true },
     authorize: async () => ({ allowed: true }),
-    scheduler: { schedule: async () => ({ jobId: "job-1", duplicate: false }) },
+    scheduler: {
+      schedule: async () => ({ jobId: "job-1", duplicate: false }),
+      cancel: async () => null,
+    },
     wahaForSession: async () => ({
       groups: async () => [{ id: input.wahaGroupId }],
       sendText: async () => ({ id: "message-1" }),

@@ -1,10 +1,13 @@
 import { createApiApp } from "../apps/api/src/app"
 import { createDatabase } from "../apps/api/src/db/client"
 import { createRepositories } from "../apps/api/src/db/repositories"
+import { resolveEncryptionMasterKey } from "../packages/config/src/index"
 
 const databaseUrl = process.env.TASK14_DATABASE_URL
 export const database = databaseUrl ? createDatabase(databaseUrl) : undefined
-export const repositories = database ? createRepositories(database.db) : undefined
+const encryptionMasterKey = databaseUrl ? resolveEncryptionMasterKey(process.env) : undefined
+export const repositories =
+  database && encryptionMasterKey ? createRepositories(database.db, encryptionMasterKey) : undefined
 export const app = database ? createApiApp(database) : undefined
 
 export type ScheduleContext = Readonly<{

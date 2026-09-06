@@ -48,6 +48,17 @@ type CampaignRouteService = Pick<ReturnType<typeof createCampaignService>, "sche
     id: string,
     scope: "personal" | "business",
   ) => Promise<CampaignRecord>
+  readonly updateContactGroup?: (
+    principal: CampaignPrincipal,
+    id: string,
+    scope: "personal" | "business",
+    contactGroupId: string,
+  ) => Promise<CampaignRecord>
+  readonly remove?: (
+    principal: CampaignPrincipal,
+    id: string,
+    scope: "personal" | "business",
+  ) => Promise<void>
 }
 
 type CampaignRouteAuth = Pick<AuthService, "authenticate" | "verifyCsrf">
@@ -59,11 +70,14 @@ function safeCampaign(campaign: CampaignRecord) {
     sessionId: campaign.sessionId,
     contactGroupId: campaign.contactGroupId,
     wahaGroupId: campaign.wahaGroupId,
+    wahaGroupSubject: campaign.wahaGroupSubject ?? null,
     trigger: campaign.trigger,
     scheduledAt: campaign.scheduledAt,
     state: campaign.state,
     createdBy: campaign.createdBy,
     schedulerJobId: campaign.schedulerJobId,
+    messagePreview: campaign.messagePreview ?? null,
+    timezone: campaign.timezone ?? null,
   }
 }
 
@@ -172,6 +186,51 @@ export function registerCampaignRoutes(
     } catch (error) {
       if (error instanceof CampaignForbiddenError)
         return reply.code(403).send({ error: "forbidden" })
+      if (error instanceof CampaignInputError)
+        return reply.code(400).send({ error: "invalid request" })
+      throw error
+    }
+  })
+
+  app.patch("/scoped/campaigns/:id", async (request, reply) => {
+    const principal = await principalForMutation(auth, request, reply)
+    if (!principal) return
+    const { id } = campaignParamsSchema.parse(request.params)
+    const { scope } = scopeQuerySchema.parse(request.query)
+    const parsed = z.object({ contactGroupId: z.string().uuid() }).safeParse(request.body)
+    if (!parsed.success) return reply.code(400).send({ error: "invalid request" })
+    if (!service.updateContactGroup) return unavailable(reply)
+    try {
+      const campaign = await service.updateContactGroup(
+        principal,
+        id,
+        scope,
+        parsed.data.contactGroupId,
+      )
+      return reply.send(safeCampaign(campaign))
+    } catch (error) {
+      if (error instanceof CampaignForbiddenError)
+        return reply.code(403).send({ error: "forbidden" })
+      if (error instanceof CampaignInputError)
+        return reply.code(400).send({ error: "invalid request" })
+      throw error
+    }
+  })
+
+  app.delete("/scoped/campaigns/:id", async (request, reply) => {
+    const principal = await principalForMutation(auth, request, reply)
+    if (!principal) return
+    const { id } = campaignParamsSchema.parse(request.params)
+    const { scope } = scopeQuerySchema.parse(request.query)
+    if (!service.remove) return unavailable(reply)
+    try {
+      await service.remove(principal, id, scope)
+      return reply.send({ ok: true })
+    } catch (error) {
+      if (error instanceof CampaignForbiddenError)
+        return reply.code(403).send({ error: "forbidden" })
+      if (error instanceof CampaignInputError)
+        return reply.code(400).send({ error: "invalid request" })
       throw error
     }
   })
@@ -198,17 +257,7 @@ export function registerCampaignRoutes(
               accountScope: scope,
             },
       )
-      return reply.code(201).send({
-        id: campaign.id,
-        accountScope: campaign.accountScope,
-        sessionId: campaign.sessionId,
-        contactGroupId: campaign.contactGroupId,
-        wahaGroupId: campaign.wahaGroupId,
-        trigger: campaign.trigger,
-        scheduledAt: campaign.scheduledAt,
-        state: campaign.state,
-        schedulerJobId: campaign.schedulerJobId,
-      })
+      return reply.code(201).send(safeCampaign(campaign))
     } catch (error) {
       if (error instanceof CampaignInputError)
         return reply.code(400).send({ error: "invalid request" })
