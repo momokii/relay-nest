@@ -237,6 +237,37 @@ describe("sent-history projection", () => {
     await app.close()
   })
 
+  it("search matches a job reference id substring", async () => {
+    // Given two granted rows whose ids differ and a search for one reference prefix
+    const app = Fastify()
+    const target = row(Buffer.alloc(32, 7), "submitted", {
+      id: "685d2eaf-8649-4ec7-85e9-69a12e7a5722",
+    })
+    const other = row(Buffer.alloc(32, 7), "submitted", {
+      id: "99999999-9999-4999-8999-999999999999",
+    })
+    registerSentHistoryRoutes(
+      app,
+      { authenticate: async () => principal, verifyCsrf: async () => true },
+      {
+        listForUser: async () => ({ jobs: [target, other], hasMore: false, total: 0 }),
+        findForUser: async () => null,
+      },
+      cipher,
+    )
+
+    // When the operator searches by the reference shown after submit
+    const response = await app.inject({
+      url: "/scoped/sent-history?scope=personal&q=685d2eaf",
+    })
+    const body = response.json<{ readonly items: readonly { readonly id: string }[] }>()
+
+    // Then only the referenced job is returned
+    expect(response.statusCode).toBe(200)
+    expect(body.items.map((item) => item.id)).toEqual(["685d2eaf-8649-4ec7-85e9-69a12e7a5722"])
+    await app.close()
+  })
+
   it("denies a scope before querying or decrypting when the caller has no scoped role", async () => {
     const app = Fastify()
     let queried = false

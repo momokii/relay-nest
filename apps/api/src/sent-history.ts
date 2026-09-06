@@ -253,7 +253,12 @@ export function registerSentHistoryRoutes(
         db && masterKey ? await resolveRecipientNames(db, masterKey, cipher, items) : new Map()
       const filtered = decryptedForSearch.filter(({ row, phone, message }) => {
         const name = contactMap.get(row.job.id)?.toLowerCase() ?? ""
-        return phone.includes(qLower) || message.includes(qLower) || name.includes(qLower)
+        return (
+          row.job.id.toLowerCase().includes(qLower) ||
+          phone.includes(qLower) ||
+          message.includes(qLower) ||
+          name.includes(qLower)
+        )
       })
       const start = (query.page - 1) * pageSize
       const paged = filtered.slice(start, start + pageSize)
