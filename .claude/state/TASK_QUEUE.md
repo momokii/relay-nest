@@ -54,6 +54,7 @@ stable fork-pool full suite passed `33 files, 138 tests`.
 | Todo 10 release matrix | VERIFIED WITH BLOCKERS/LIMITATIONS | Todo 9 verification tooling |
 | Todo 11 F1-F4 final gates | BLOCKED; reports recorded | Todos 14-16 |
 | Todo 13 analytics projections | DONE | Todos 8-12 |
+| Analytics evidence follow-ups: per-session evidence, timeline, method-specific acknowledgments, and webhook-empty guidance | PENDING | User scope confirmation |
 | Todo 14 dashboard and human-approved AI seam | DONE | Todos 5, 7, 9-13 |
 | Todo 15 Compose deployment and operations | IMPLEMENTATION VERIFIED; protected plan checkbox OPEN | Release evidence reconciliation |
 | Todo 16 release verification | VERIFIED WITH BLOCKERS/LIMITATIONS; protected checkbox OPEN | Todos 11-15 |
