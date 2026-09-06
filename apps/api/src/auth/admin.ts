@@ -92,6 +92,27 @@ export class AdminService {
     return Boolean(role)
   }
 
+  async listUsers(): Promise<readonly AdminUserRecord[]> {
+    const rows = await this.db
+      .select({
+        user: {
+          id: users.id,
+          email: users.email,
+          displayName: users.displayName,
+          active: users.active,
+          createdAt: users.createdAt,
+        },
+        role: {
+          accountScope: userRoles.accountScope,
+          role: userRoles.role,
+        },
+      })
+      .from(users)
+      .leftJoin(userRoles, eq(userRoles.userId, users.id))
+      .orderBy(users.createdAt, users.id, userRoles.accountScope)
+    return groupUserRows(rows)
+  }
+
   async canDisable(principalId: string, targetUserId: string): Promise<boolean> {
     const targetRoles = await this.db
       .select({ accountScope: userRoles.accountScope })
@@ -105,4 +126,50 @@ export class AdminService {
 
 export class AdminFailure extends Error {
   readonly name = "AdminFailure"
+}
+
+export type AdminUserRole = { readonly accountScope: AccountScope; readonly role: UserRole }
+
+export type AdminUserRecord = {
+  readonly id: string
+  readonly email: string
+  readonly displayName: string
+  readonly active: boolean
+  readonly createdAt: Date
+  readonly roles: readonly AdminUserRole[]
+}
+
+type UserWithRoleRow = {
+  readonly user: {
+    readonly id: string
+    readonly email: string
+    readonly displayName: string
+    readonly active: boolean
+    readonly createdAt: Date
+  }
+  readonly role: AdminUserRole | null
+}
+
+export function groupUserRows(rows: readonly UserWithRoleRow[]): readonly AdminUserRecord[] {
+  const grouped = new Map<string, AdminUserRecord>()
+  for (const row of rows) {
+    const existing = grouped.get(row.user.id)
+    if (!existing) {
+      grouped.set(row.user.id, {
+        ...row.user,
+        roles: row.role ? [row.role] : [],
+      })
+      continue
+    }
+    const role = row.role
+    if (
+      role &&
+      !existing.roles.some(
+        (candidate) => candidate.accountScope === role.accountScope && candidate.role === role.role,
+      )
+    ) {
+      grouped.set(row.user.id, { ...existing, roles: [...existing.roles, role] })
+    }
+  }
+  return [...grouped.values()]
 }

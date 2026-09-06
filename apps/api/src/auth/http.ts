@@ -1,9 +1,16 @@
 import { workspaceConfig } from "@waha-command-center/config"
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify"
 import { z } from "zod"
-
+import type { AccountScope } from "../db/schema/shared"
 import type { AdminService } from "./admin"
+import type { UserRole } from "./authorization"
 import { AuthFailure, type AuthPrincipal, type AuthService, RateLimitFailure } from "./service"
+
+export function canListUsers(
+  rolesByScope: Readonly<Record<AccountScope, readonly UserRole[]>>,
+): boolean {
+  return Object.values(rolesByScope).some((roles) => roles.includes("admin"))
+}
 
 const scopeSchema = z.enum(["personal", "business"])
 const credentialsSchema = z.object({
@@ -110,6 +117,20 @@ export function registerAuthRoutes(
       return reply.code(403).send({ error: "forbidden" })
     await auth.disableUser(params.userId, principal.userId)
     return reply.code(204).send()
+  })
+
+  app.get("/admin/users", async (request, reply) => {
+    const principal = await authenticate(auth, request, reply)
+    if (!principal) return
+    if (!canListUsers(principal.rolesByScope)) return reply.code(403).send({ error: "forbidden" })
+    const users = await admin.listUsers()
+    return reply.send({
+      users: users.map((user) => ({
+        ...user,
+        createdAt: user.createdAt.toISOString(),
+        roles: [...user.roles],
+      })),
+    })
   })
 
   app.post("/admin/grants", async (request, reply) => {
