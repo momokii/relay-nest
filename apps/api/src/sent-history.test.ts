@@ -57,6 +57,7 @@ function row(
       scheduledFor: new Date("2026-09-01T10:00:00.000Z"),
       timezone: "UTC",
       idempotencyKey: "history-test",
+      origin: "scheduled",
       state,
       attempts: 1,
       nextAttemptAt: options.nextAttemptAt ?? null,
@@ -105,6 +106,7 @@ describe("sent-history projection", () => {
       createdAt: new Date("2026-09-01T09:00:00.000Z"),
       updatedAt: new Date("2026-09-01T09:00:00.000Z"),
       state: "submitted",
+      origin: "scheduled",
       nextAttemptAt: null,
       failureCode: null,
       recoveryCode: null,
@@ -187,7 +189,8 @@ describe("sent-history projection", () => {
           requestedLimit = limit
           return {
             jobs: scope === "personal" ? [row(Buffer.alloc(32, 7), "submitted")] : [],
-            hasMore: false, total: 0,
+            hasMore: false,
+            total: 0,
           }
         },
         findForUser: async () => null,
@@ -281,7 +284,8 @@ describe("sent-history projection", () => {
       {
         listForUser: async () => ({
           jobs: [row(Buffer.alloc(32, 7), "submitted")],
-          hasMore: false, total: 0,
+          hasMore: false,
+          total: 0,
         }),
         findForUser: async () => null,
       },
@@ -347,7 +351,10 @@ describe("sent-history projection", () => {
     registerSentHistoryRoutes(
       app,
       { authenticate: async () => principal, verifyCsrf: async () => true },
-      { listForUser: async () => ({ jobs: [], hasMore: false, total: 0 }), findForUser: async () => null },
+      {
+        listForUser: async () => ({ jobs: [], hasMore: false, total: 0 }),
+        findForUser: async () => null,
+      },
       cipher,
     )
 

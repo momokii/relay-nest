@@ -1,18 +1,24 @@
-import { createBlindIndex, type createEnvelopeCipher, EnvelopeEncryptionError } from "@waha-command-center/config"
+import {
+  createBlindIndex,
+  type createEnvelopeCipher,
+  EnvelopeEncryptionError,
+} from "@waha-command-center/config"
 import { eq } from "drizzle-orm"
 import type { FastifyInstance } from "fastify"
 import { z } from "zod"
 
 import type { AuthService } from "./auth/service"
-import type { createRepositories } from "./db/repositories"
 import type { PersistenceDatabase } from "./db/client"
+import type { createRepositories } from "./db/repositories"
 import { contacts } from "./db/schema"
 import { authenticate, scopeQuerySchema, scopeSchema } from "./waha/session-http-support"
 
 type SentHistoryRepository = ReturnType<typeof createRepositories>["sentHistory"]
 type Cipher = ReturnType<typeof createEnvelopeCipher>
 type AccountScope = z.infer<typeof scopeSchema>
-export type SentHistoryRow = Awaited<ReturnType<SentHistoryRepository["listForUser"]>>["jobs"][number]
+export type SentHistoryRow = Awaited<
+  ReturnType<SentHistoryRepository["listForUser"]>
+>["jobs"][number]
 
 const sentHistoryQuerySchema = z.object({
   scope: scopeSchema,
@@ -20,10 +26,20 @@ const sentHistoryQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(1000).default(20),
   q: z.string().max(200).optional(),
   state: z
-    .enum(["scheduled", "queued", "attempting", "submitted", "acknowledged", "failed", "unknown", "cancelled"])
+    .enum([
+      "scheduled",
+      "queued",
+      "attempting",
+      "submitted",
+      "acknowledged",
+      "failed",
+      "unknown",
+      "cancelled",
+    ])
     .optional(),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
+  origin: z.enum(["immediate", "scheduled"]).optional(),
 })
 
 const sentHistoryDetailParamsSchema = z.object({ jobId: z.string().uuid() })
@@ -50,7 +66,11 @@ function decrypt(
   }
 }
 
-export function projectSentHistoryRow(row: SentHistoryRow, cipher: Cipher, recipientName?: string | null) {
+export function projectSentHistoryRow(
+  row: SentHistoryRow,
+  cipher: Cipher,
+  recipientName?: string | null,
+) {
   const recipientPhone = decrypt(
     cipher,
     row.job.recipientPhoneCiphertext,
@@ -82,10 +102,15 @@ export function projectSentHistoryRow(row: SentHistoryRow, cipher: Cipher, recip
     failureCode: row.job.failureCode,
     recoveryCode: row.job.recoveryCode,
     providerMessageId: row.job.providerMessageId ?? row.attempt?.providerMessageId ?? null,
+    origin: row.job.origin,
   }
 }
 
-export function projectSentHistoryDetail(row: SentHistoryRow, cipher: Cipher, recipientName?: string | null) {
+export function projectSentHistoryDetail(
+  row: SentHistoryRow,
+  cipher: Cipher,
+  recipientName?: string | null,
+) {
   const message = decrypt(
     cipher,
     row.job.messageCiphertext,
@@ -115,7 +140,9 @@ async function resolveRecipientNames(
         row.job.recipientPhoneAuthTag,
         row.job.accountScope,
       )
-      return phone ? { jobId: row.job.id, phone, sessionId: row.job.sessionId, scope: row.job.accountScope } : null
+      return phone
+        ? { jobId: row.job.id, phone, sessionId: row.job.sessionId, scope: row.job.accountScope }
+        : null
     })
     .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
   if (phoneEntries.length === 0) return new Map()
@@ -184,16 +211,24 @@ export function registerSentHistoryRoutes(
     if (!cipher) return reply.code(503).send({ error: "encryption unavailable" })
     const pageSize = Math.min(query.pageSize, SENT_HISTORY_PAGE_SIZE_CAP)
 
-    const filters: { state?: string; from?: Date; to?: Date } = {}
+    const filters: { state?: string; from?: Date; to?: Date; origin?: "immediate" | "scheduled" } =
+      {}
     if (query.state) filters.state = query.state
     if (query.from) filters.from = query.from
     if (query.to) filters.to = query.to
+    if (query.origin) filters.origin = query.origin
 
     const fetchLimit = query.q ? 200 : pageSize
     const fetchOffset = query.q ? 0 : (query.page - 1) * pageSize
 
-    const result = await repository.listForUser(principal.userId, query.scope, fetchLimit, fetchOffset, filters)
-    let items = result.jobs.filter((row) => row.job.accountScope === query.scope)
+    const result = await repository.listForUser(
+      principal.userId,
+      query.scope,
+      fetchLimit,
+      fetchOffset,
+      filters,
+    )
+    const items = result.jobs.filter((row) => row.job.accountScope === query.scope)
 
     if (query.q) {
       const qLower = query.q.toLowerCase()
@@ -214,7 +249,8 @@ export function registerSentHistoryRoutes(
         )
         return { row, phone: phone?.toLowerCase() ?? "", message: message?.toLowerCase() ?? "" }
       })
-      const contactMap = db && masterKey ? await resolveRecipientNames(db, masterKey, cipher, items) : new Map()
+      const contactMap =
+        db && masterKey ? await resolveRecipientNames(db, masterKey, cipher, items) : new Map()
       const filtered = decryptedForSearch.filter(({ row, phone, message }) => {
         const name = contactMap.get(row.job.id)?.toLowerCase() ?? ""
         return phone.includes(qLower) || message.includes(qLower) || name.includes(qLower)
@@ -234,11 +270,14 @@ export function registerSentHistoryRoutes(
       })
     }
 
-    const contactMap = db && masterKey ? await resolveRecipientNames(db, masterKey, cipher, items) : new Map()
+    const contactMap =
+      db && masterKey ? await resolveRecipientNames(db, masterKey, cipher, items) : new Map()
     const pagedItems = query.q ? items : items.slice(0, pageSize)
     const hasMore = query.q ? result.hasMore : items.length > pageSize || result.hasMore
     return reply.send({
-      items: pagedItems.slice(0, pageSize).map((row) => projectSentHistoryRow(row, cipher, contactMap.get(row.job.id) ?? null)),
+      items: pagedItems
+        .slice(0, pageSize)
+        .map((row) => projectSentHistoryRow(row, cipher, contactMap.get(row.job.id) ?? null)),
       page: query.page,
       pageSize,
       hasMore: query.q ? hasMore : result.hasMore,

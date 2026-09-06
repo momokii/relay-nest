@@ -15,6 +15,7 @@ export function createSentHistoryRepository(db: PersistenceDatabase) {
         readonly state?: string
         readonly from?: Date
         readonly to?: Date
+        readonly origin?: "immediate" | "scheduled"
       } = {},
     ) => {
       const boundedLimit = Math.min(Math.max(limit, 1), 50)
@@ -23,6 +24,7 @@ export function createSentHistoryRepository(db: PersistenceDatabase) {
       if (filters.state) conditions.push(eq(scheduledJobs.state, filters.state as never))
       if (filters.from) conditions.push(gte(scheduledJobs.scheduledFor, filters.from))
       if (filters.to) conditions.push(lte(scheduledJobs.scheduledFor, filters.to))
+      if (filters.origin) conditions.push(eq(scheduledJobs.origin, filters.origin))
       const jobs = await db
         .select()
         .from(scheduledJobs)

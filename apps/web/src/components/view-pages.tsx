@@ -9,6 +9,7 @@ import type {
   SessionView,
 } from "../dashboard-api"
 import type { AccountScope, DashboardRole } from "../dashboard-model"
+import type { SentHistoryOrigin } from "../dashboard-session-api"
 import type { ActionState, ResourceState } from "../dashboard-state"
 import type { DashboardScheduleHistoryController } from "../schedule-history-controller"
 import { ScheduleHistoryPanel } from "./schedule-history-panel"
@@ -85,6 +86,7 @@ type ScheduleHistoryProps = Pick<
 
 function ScheduleHistorySection({
   scope,
+  origin,
   history,
   page,
   pageSize,
@@ -106,12 +108,14 @@ function ScheduleHistorySection({
   editJob,
   cancelJob,
   deleteJob,
-}: ScheduleHistoryProps & Readonly<{ scope: AccountScope }>): React.JSX.Element {
+}: ScheduleHistoryProps &
+  Readonly<{ scope: AccountScope; origin: SentHistoryOrigin }>): React.JSX.Element {
   const [openJobId, setOpenJobId] = useState("")
   return (
     <ScheduleHistoryPanel
       key={scope}
       scope={scope}
+      origin={origin}
       history={history}
       page={page}
       pageSize={pageSize}
@@ -169,7 +173,7 @@ export function SendPage(
   return (
     <div className="page-grid send-page">
       <MessageComposer key={props.scope} mode="send" {...props} />
-      <ScheduleHistorySection {...props} />
+      <ScheduleHistorySection {...props} origin="immediate" />
     </div>
   )
 }
@@ -197,7 +201,7 @@ export function SchedulePage(
 ): React.JSX.Element {
   return (
     <div className="page-grid schedule-page">
-      <ScheduleHistorySection {...props} />
+      <ScheduleHistorySection {...props} origin="scheduled" />
       <MessageComposer key={props.scope} mode="schedule" {...props} />
     </div>
   )

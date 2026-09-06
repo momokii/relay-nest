@@ -18,6 +18,7 @@ export type EncryptedScheduleInput = OneTimeSchedule & {
   readonly recipientPhone: string
   readonly message: string
   readonly idempotencyKey: string
+  readonly origin?: "immediate" | "scheduled"
 }
 
 export function createEncryptedSchedulerRepository(
@@ -102,6 +103,7 @@ export function createEncryptedSchedulerRepository(
         scheduledFor: schedule.scheduledFor,
         timezone: schedule.timezone,
         idempotencyKey: input.idempotencyKey,
+        origin: input.origin ?? "scheduled",
         nextAttemptAt: schedule.scheduledFor,
       })
     } catch (error) {
@@ -141,6 +143,7 @@ export function createEncryptedSchedulerRepository(
         scheduledFor: schedule.scheduledFor,
         timezone: schedule.timezone,
         idempotencyKey: input.idempotencyKey,
+        origin: "scheduled",
         state: input.state,
         attempts: input.attempts,
         nextAttemptAt: input.nextAttemptAt ?? schedule.scheduledFor,

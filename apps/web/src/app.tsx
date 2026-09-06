@@ -14,7 +14,10 @@ export function App(): React.JSX.Element {
   const dashboard = useDashboardController()
   const admin = useDashboardAdminController()
   const session = useDashboardSessionController(dashboard.scope)
-  const schedule = useDashboardScheduleHistoryController(dashboard.scope)
+  const schedule = useDashboardScheduleHistoryController(
+    dashboard.scope,
+    dashboard.activeView === "send" ? "immediate" : "scheduled",
+  )
   const operations = useDashboardOperationsController(dashboard.scope, dashboard.role)
   if (!dashboard.activePrincipal) return <AuthBoundary state={dashboard.principal} />
   return (

@@ -11,6 +11,7 @@ import {
   createDashboardSessionApi,
   type SentHistoryDetail,
   type SentHistoryItem,
+  type SentHistoryOrigin,
   type SentHistoryPage,
   type SentHistoryState,
 } from "./dashboard-session-api"
@@ -87,6 +88,7 @@ function withSchedule<T extends SentHistoryItem>(item: T, updated: ScheduleView)
 
 export function useDashboardScheduleHistoryController(
   scope: AccountScope,
+  origin: SentHistoryOrigin,
 ): DashboardScheduleHistoryController {
   const sessionApi = useMemo(() => createDashboardSessionApi(import.meta.env.VITE_API_BASE_URL), [])
   const scheduleApi = useMemo(
@@ -129,7 +131,13 @@ export function useDashboardScheduleHistoryController(
     setCancelAction({ kind: "idle" })
     setDeleteAction({ kind: "idle" })
     setHistory({ kind: "loading" })
-    const filters: { q?: string; state?: SentHistoryState; from?: string; to?: string } = {}
+    const filters: {
+      q?: string
+      state?: SentHistoryState
+      from?: string
+      to?: string
+      origin: SentHistoryOrigin
+    } = { origin }
     if (debouncedQ) filters.q = debouncedQ
     if (stateFilter) filters.state = stateFilter
     if (from) filters.from = from
@@ -150,7 +158,7 @@ export function useDashboardScheduleHistoryController(
         if (detailId === detailRequestId.current) setDetail(resourceFromResult(detailResult))
       })
     })
-  }, [page, pageSize, debouncedQ, stateFilter, from, to, scope, sessionApi])
+  }, [page, pageSize, debouncedQ, stateFilter, from, to, scope, origin, sessionApi])
 
   const loadPage = (nextPage: number): void => {
     historyRequestId.current += 1

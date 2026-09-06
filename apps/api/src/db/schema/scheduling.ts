@@ -1,6 +1,13 @@
 import { integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core"
 
-import { accountScopeEnum, createdAt, deliveryStateEnum, id, updatedAt } from "./shared"
+import {
+  accountScopeEnum,
+  createdAt,
+  deliveryStateEnum,
+  id,
+  jobOriginEnum,
+  updatedAt,
+} from "./shared"
 import { sessions } from "./transport"
 
 export const scheduledJobs = pgTable("scheduled_jobs", {
@@ -20,6 +27,7 @@ export const scheduledJobs = pgTable("scheduled_jobs", {
   timezone: text("timezone").notNull(),
   idempotencyKey: text("idempotency_key").notNull().unique(),
   state: deliveryStateEnum("state").notNull().default("scheduled"),
+  origin: jobOriginEnum("origin").notNull().default("scheduled"),
   attempts: integer("attempts").notNull().default(0),
   nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }),
   leaseOwner: text("lease_owner"),

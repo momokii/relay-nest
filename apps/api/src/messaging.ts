@@ -172,6 +172,7 @@ export function createMessagingService(options: MessagingServiceOptions) {
         scheduledFor: input.scheduledFor,
         timezone: input.timezone,
         idempotencyKey: input.idempotencyKey,
+        origin: "scheduled",
       })
       await options.audit({
         actorUserId: principal.userId,
@@ -205,6 +206,7 @@ export function createMessagingService(options: MessagingServiceOptions) {
         scheduledFor: now(),
         timezone: "UTC",
         idempotencyKey: input.idempotencyKey,
+        origin: "immediate",
       })
       if (scheduled.duplicate) return { state: "unknown", recoveryCode: "duplicate_command" }
       const outcome = await options.scheduler.dispatch(scheduled.jobId)

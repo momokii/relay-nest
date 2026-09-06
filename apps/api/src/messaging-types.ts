@@ -74,6 +74,7 @@ export type MessagingScheduler = {
     readonly scheduledFor: Date
     readonly timezone: string
     readonly idempotencyKey: string
+    readonly origin: "immediate" | "scheduled"
   }) => Promise<{ readonly jobId: string; readonly duplicate: boolean }>
   readonly dispatch: (jobId: string) => Promise<{
     readonly state: "submitted" | "acknowledged" | "failed" | "unknown"

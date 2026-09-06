@@ -2,7 +2,12 @@ import type * as React from "react"
 
 import type { AccountScope } from "../dashboard-model"
 import type { ScheduleEditInput, ScheduleRemoval, ScheduleView } from "../dashboard-schedule-api"
-import type { SentHistoryDetail, SentHistoryPage, SentHistoryState } from "../dashboard-session-api"
+import type {
+  SentHistoryDetail,
+  SentHistoryOrigin,
+  SentHistoryPage,
+  SentHistoryState,
+} from "../dashboard-session-api"
 import type { ActionState, ResourceState } from "../dashboard-state"
 import { ScheduleDetailModal } from "./schedule-detail-modal"
 import { InfoHint, Panel, StateNotice, StatusBadge } from "./ui"
@@ -10,6 +15,7 @@ import { formatScheduleDate, scheduleStateTone } from "./view-support"
 
 export type ScheduleHistoryPanelProps = Readonly<{
   scope: AccountScope
+  origin: SentHistoryOrigin
   history: ResourceState<SentHistoryPage>
   page: number
   pageSize: number
@@ -55,6 +61,7 @@ function formatRecipient(item: {
 
 export function ScheduleHistoryPanel({
   scope,
+  origin,
   history,
   page,
   pageSize,
@@ -84,8 +91,12 @@ export function ScheduleHistoryPanel({
   return (
     <Panel
       eyebrow={`${scope} scope`}
-      title="Schedule history"
-      description="One combined history of scheduled, in-flight, and completed texts. Rows show a preview only; open a row for the full record and actions."
+      title={origin === "immediate" ? "Send history" : "Schedule history"}
+      description={
+        origin === "immediate"
+          ? "Direct sends only. Rows show a preview and their transport outcome; open a row for the full record."
+          : "Scheduled texts only, including pending and completed lifecycle records. Rows show a preview; open a row for the full record and actions."
+      }
     >
       <div className="schedule-filters">
         <label
@@ -174,7 +185,16 @@ export function ScheduleHistoryPanel({
         />
       ) : null}
       {history.kind === "ready" ? (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-3)", color: "var(--color-muted)", fontSize: "var(--type-small)" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "var(--space-3)",
+            color: "var(--color-muted)",
+            fontSize: "var(--type-small)",
+          }}
+        >
           <span>
             {history.kind === "ready" && typeof history.data.total === "number"
               ? `Total: ${history.data.total} ${history.data.total === 1 ? "message" : "messages"}${q || stateFilter || from || to ? " (filtered)" : ""} · showing ${items.length} on this page`

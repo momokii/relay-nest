@@ -12,6 +12,7 @@ export const deliveryStateEnum = pgEnum("delivery_state", [
   "unknown",
   "cancelled",
 ])
+export const jobOriginEnum = pgEnum("job_origin", ["immediate", "scheduled"])
 export const notificationChannelEnum = pgEnum("notification_channel", ["email", "telegram"])
 export const notificationStateEnum = pgEnum("notification_state", [
   "queued",

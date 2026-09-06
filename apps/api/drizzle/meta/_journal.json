@@ -99,6 +99,13 @@
       "when": 1786908000000,
       "tag": "0014_campaign_waha_group_subject",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": 7,
+      "when": 1786909000000,
+      "tag": "0015_job_origin",
+      "breakpoints": true
     }
   ]
 }

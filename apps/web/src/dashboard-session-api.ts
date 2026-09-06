@@ -47,6 +47,7 @@ const sentHistoryStateSchema = z.enum([
   "unknown",
   "cancelled",
 ])
+const sentHistoryOriginSchema = z.enum(["immediate", "scheduled"])
 const sentHistoryItemSchema = z.object({
   id: z.string(),
   sessionId: z.string(),
@@ -64,6 +65,7 @@ const sentHistoryItemSchema = z.object({
   failureCode: z.string().nullable(),
   recoveryCode: z.string().nullable(),
   providerMessageId: z.string().nullable(),
+  origin: sentHistoryOriginSchema,
 })
 const sentHistoryDetailSchema = sentHistoryItemSchema.extend({
   message: z.string().nullable(),
@@ -93,6 +95,7 @@ export type MessageView = z.infer<typeof messageSchema>
 export type SentHistoryItem = z.infer<typeof sentHistoryItemSchema>
 export type SentHistoryDetail = z.infer<typeof sentHistoryDetailSchema>
 export type SentHistoryState = z.infer<typeof sentHistoryStateSchema>
+export type SentHistoryOrigin = z.infer<typeof sentHistoryOriginSchema>
 export type SentHistoryPage = z.infer<typeof sentHistorySchema>
 
 export type SentHistoryFilters = Readonly<{
@@ -100,6 +103,7 @@ export type SentHistoryFilters = Readonly<{
   state?: SentHistoryState
   from?: string
   to?: string
+  origin?: SentHistoryOrigin
 }>
 
 export type DashboardSessionApi = Readonly<{
@@ -205,6 +209,7 @@ export function createDashboardSessionApi(baseUrl = ""): DashboardSessionApi {
       if (filters.state) params.set("state", filters.state)
       if (filters.from) params.set("from", filters.from)
       if (filters.to) params.set("to", filters.to)
+      if (filters.origin) params.set("origin", filters.origin)
       return requestJson(`${url("/scoped/sent-history")}?${params.toString()}`, sentHistorySchema)
     },
     sentHistoryDetail: (scope, jobId) =>
