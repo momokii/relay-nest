@@ -61,6 +61,7 @@ export type DashboardScheduleHistoryController = Readonly<{
   setTo: (value: string) => void
   setPageSize: (value: number) => void
   loadPage: (page: number) => void
+  refresh: () => void
   selectJob: (jobId: string) => void
   editJob: (
     scope: AccountScope,
@@ -110,6 +111,7 @@ export function useDashboardScheduleHistoryController(
   const [stateFilter, setStateFilter] = useState<SentHistoryState | "">("")
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
+  const [refreshTick, setRefreshTick] = useState(0)
   const historyRequestId = useRef(0)
   const detailRequestId = useRef(0)
 
@@ -121,6 +123,23 @@ export function useDashboardScheduleHistoryController(
   useEffect(() => {
     setPage(1)
   }, [debouncedQ, stateFilter, from, to, pageSize, scope])
+
+  // Query identity for the history fetch. refreshTick is part of the key so a
+  // submit-triggered refresh re-runs the effect even when no filter changed.
+  const historyQuery = useMemo(
+    () => ({
+      page,
+      pageSize,
+      q: debouncedQ,
+      state: stateFilter,
+      from,
+      to,
+      scope,
+      origin,
+      refreshTick,
+    }),
+    [page, pageSize, debouncedQ, stateFilter, from, to, scope, origin, refreshTick],
+  )
 
   useEffect(() => {
     const requestId = ++historyRequestId.current
@@ -137,32 +156,40 @@ export function useDashboardScheduleHistoryController(
       from?: string
       to?: string
       origin: SentHistoryOrigin
-    } = { origin }
-    if (debouncedQ) filters.q = debouncedQ
-    if (stateFilter) filters.state = stateFilter
-    if (from) filters.from = from
-    if (to) filters.to = to
-    void sessionApi.sentHistory(scope, page, pageSize, filters).then((result) => {
-      if (requestId !== historyRequestId.current) return
-      setHistory(resourceFromResult(result))
-      if (result.kind !== "ready") return
-      const first = result.data.items[0]
-      if (!first) {
-        setDetail({ kind: "ready", data: undefined })
-        return
-      }
-      setSelectedJobId(first.id)
-      setDetail({ kind: "loading" })
-      const detailId = ++detailRequestId.current
-      void sessionApi.sentHistoryDetail(scope, first.id).then((detailResult) => {
-        if (detailId === detailRequestId.current) setDetail(resourceFromResult(detailResult))
+    } = { origin: historyQuery.origin }
+    if (historyQuery.q) filters.q = historyQuery.q
+    if (historyQuery.state) filters.state = historyQuery.state
+    if (historyQuery.from) filters.from = historyQuery.from
+    if (historyQuery.to) filters.to = historyQuery.to
+    void sessionApi
+      .sentHistory(historyQuery.scope, historyQuery.page, historyQuery.pageSize, filters)
+      .then((result) => {
+        if (requestId !== historyRequestId.current) return
+        setHistory(resourceFromResult(result))
+        if (result.kind !== "ready") return
+        const first = result.data.items[0]
+        if (!first) {
+          setDetail({ kind: "ready", data: undefined })
+          return
+        }
+        setSelectedJobId(first.id)
+        setDetail({ kind: "loading" })
+        const detailId = ++detailRequestId.current
+        void sessionApi.sentHistoryDetail(historyQuery.scope, first.id).then((detailResult) => {
+          if (detailId === detailRequestId.current) setDetail(resourceFromResult(detailResult))
+        })
       })
-    })
-  }, [page, pageSize, debouncedQ, stateFilter, from, to, scope, origin, sessionApi])
+  }, [historyQuery, sessionApi])
 
   const loadPage = (nextPage: number): void => {
     historyRequestId.current += 1
     setPage(nextPage)
+  }
+
+  const refresh = (): void => {
+    historyRequestId.current += 1
+    setPage(1)
+    setRefreshTick((tick) => tick + 1)
   }
 
   const selectJob = (jobId: string): void => {
@@ -264,6 +291,7 @@ export function useDashboardScheduleHistoryController(
     setTo,
     setPageSize,
     loadPage,
+    refresh,
     selectJob,
     editJob,
     cancelJob,

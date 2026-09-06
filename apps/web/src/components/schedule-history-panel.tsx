@@ -46,7 +46,7 @@ export type ScheduleHistoryPanelProps = Readonly<{
   onDelete: (scope: AccountScope, sessionId: string, jobId: string) => Promise<void>
 }>
 
-function truncatedProviderId(value: string | null): string {
+function truncatedCode(value: string | null): string {
   if (!value) return "—"
   return value.length > 24 ? `${value.slice(0, 21)}…` : value
 }
@@ -118,7 +118,7 @@ export function ScheduleHistoryPanel({
           </span>
           <input
             aria-label="Search schedule history"
-            placeholder="Message or recipient…"
+            placeholder="Message, recipient, or reference…"
             value={q}
             onChange={(event) => setQ(event.target.value)}
           />
@@ -243,6 +243,12 @@ export function ScheduleHistoryPanel({
                     </span>
                   </th>
                   <th scope="col">
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
+                      Reference
+                      <InfoHint message="One-time job reference shown after submit. Search this value in the box above to find the row; hover for the full ID." />
+                    </span>
+                  </th>
+                  <th scope="col">
                     <span className="visually-hidden">Actions</span>
                   </th>
                 </tr>
@@ -274,8 +280,11 @@ export function ScheduleHistoryPanel({
                     <td>{item.attempts}</td>
                     <td>
                       <code title={item.providerMessageId ?? undefined}>
-                        {truncatedProviderId(item.providerMessageId)}
+                        {truncatedCode(item.providerMessageId)}
                       </code>
+                    </td>
+                    <td>
+                      <code title={item.id}>{truncatedCode(item.id)}</code>
                     </td>
                     <td>
                       <button

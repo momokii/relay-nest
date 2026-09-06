@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 
 import {
   type AnalyticsView,
+  type ApiResult,
   type ContactView,
   createDashboardApi,
   type Principal,
@@ -62,8 +63,8 @@ export type DashboardController = Readonly<{
   refreshSessions: (request: DashboardScopeRequest) => Promise<void>
   toggleNav: () => void
   logout: () => Promise<void>
-  send: (input: SendInput) => Promise<void>
-  schedule: (input: ScheduleInput) => Promise<void>
+  send: (input: SendInput) => Promise<ApiResult<SendResult>>
+  schedule: (input: ScheduleInput) => Promise<ApiResult<SendResult>>
   resolveContact: (scope: AccountScope, sessionId: string, recipient: string) => Promise<void>
   setContactConsent: (
     scope: AccountScope,
@@ -107,17 +108,31 @@ export function useDashboardController(): DashboardController {
     if (typeof window !== "undefined") {
       const hash = window.location.hash.replace(/^#/, "")
       const view = hash.split("?")[0]?.split("&")[0]
-      const valid: readonly string[] = ["overview", "sessions", "contacts", "send", "schedule", "campaigns", "analytics", "notifications", "retention", "users", "settings"]
+      const valid: readonly string[] = [
+        "overview",
+        "sessions",
+        "contacts",
+        "send",
+        "schedule",
+        "campaigns",
+        "analytics",
+        "notifications",
+        "retention",
+        "users",
+        "settings",
+      ]
       if (view && (valid as readonly string[]).includes(view)) return view as DashboardViewId
     }
     return "overview"
   })
   const [scope, setScope] = useState<AccountScope>("personal")
-  const [analyticsWindow, setAnalyticsWindow] = useState<{ from: string; to: string } | undefined>(() => {
-    const to = new Date()
-    const from = new Date(to.getTime() - 24 * 60 * 60 * 1000)
-    return { from: from.toISOString(), to: to.toISOString() }
-  })
+  const [analyticsWindow, setAnalyticsWindow] = useState<{ from: string; to: string } | undefined>(
+    () => {
+      const to = new Date()
+      const from = new Date(to.getTime() - 24 * 60 * 60 * 1000)
+      return { from: from.toISOString(), to: to.toISOString() }
+    },
+  )
 
   useEffect(() => {
     const hash = `#${activeView}`
@@ -130,7 +145,19 @@ export function useDashboardController(): DashboardController {
     const onHashChange = (): void => {
       const hash = window.location.hash.replace(/^#/, "")
       const view = hash.split("?")[0]?.split("&")[0]
-      const valid: readonly string[] = ["overview", "sessions", "contacts", "send", "schedule", "campaigns", "analytics", "notifications", "retention", "users", "settings"]
+      const valid: readonly string[] = [
+        "overview",
+        "sessions",
+        "contacts",
+        "send",
+        "schedule",
+        "campaigns",
+        "analytics",
+        "notifications",
+        "retention",
+        "users",
+        "settings",
+      ]
       if (view && (valid as readonly string[]).includes(view)) {
         setActiveView((current) => {
           const next = view as DashboardViewId
@@ -265,13 +292,17 @@ export function useDashboardController(): DashboardController {
     }
   }, [api, notificationsApi, retentionApi, role, scope, activePrincipal])
 
-  const send = async (input: SendInput): Promise<void> => {
+  const send = async (input: SendInput): Promise<ApiResult<SendResult>> => {
     setSendAction({ kind: "submitting" })
-    setSendAction(actionFromResult(await api.sendImmediate(input)))
+    const result = await api.sendImmediate(input)
+    setSendAction(actionFromResult(result))
+    return result
   }
-  const schedule = async (input: ScheduleInput): Promise<void> => {
+  const schedule = async (input: ScheduleInput): Promise<ApiResult<SendResult>> => {
     setScheduleAction({ kind: "submitting" })
-    setScheduleAction(actionFromResult(await api.scheduleMessage(input)))
+    const result = await api.scheduleMessage(input)
+    setScheduleAction(actionFromResult(result))
+    return result
   }
   const resolveContact = async (
     selectedScope: AccountScope,

@@ -36,8 +36,14 @@ export function App(): React.JSX.Element {
         {...dashboard}
         {...admin}
         principal={dashboard.activePrincipal}
-        onSend={dashboard.send}
-        onSchedule={dashboard.schedule}
+        onSend={async (input) => {
+          const result = await dashboard.send(input)
+          if (result.kind === "ready") schedule.refresh()
+        }}
+        onSchedule={async (input) => {
+          const result = await dashboard.schedule(input)
+          if (result.kind === "ready") schedule.refresh()
+        }}
         onResolveContact={dashboard.resolveContact}
         onSetContactConsent={dashboard.setContactConsent}
         onPreviewPurge={dashboard.previewPurge}
