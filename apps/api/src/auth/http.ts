@@ -119,6 +119,25 @@ export function registerAuthRoutes(
     return reply.code(204).send()
   })
 
+  app.post("/admin/users/:userId/reset-password", async (request, reply) => {
+    if (!sameOrigin(request)) return reply.code(403).send({ error: "forbidden" })
+    const principal = await authenticate(auth, request, reply)
+    if (!principal) return
+    const params = z.object({ userId: z.string().uuid() }).parse(request.params)
+    const body = z.object({ password: z.string().min(12).max(128) }).parse(request.body)
+    if (
+      !(await admin.canDisable(principal.userId, params.userId)) ||
+      !(await requireCsrf(auth, request, principal.sessionToken))
+    )
+      return reply.code(403).send({ error: "forbidden" })
+    await admin.resetPassword({
+      userId: params.userId,
+      password: body.password,
+      actorUserId: principal.userId,
+    })
+    return reply.code(204).send()
+  })
+
   app.get("/admin/users", async (request, reply) => {
     const principal = await authenticate(auth, request, reply)
     if (!principal) return
@@ -128,6 +147,7 @@ export function registerAuthRoutes(
       users: users.map((user) => ({
         ...user,
         createdAt: user.createdAt.toISOString(),
+        lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
         roles: [...user.roles],
       })),
     })

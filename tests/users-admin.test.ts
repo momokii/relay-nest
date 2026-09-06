@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { groupUserRows, type UserWithRoleRow } from "../apps/api/src/auth/admin"
+import { groupUserRows, mergeLastLogins, type UserWithRoleRow } from "../apps/api/src/auth/admin"
 import { canListUsers } from "../apps/api/src/auth/http"
 
 const baseUser = {
@@ -49,6 +49,28 @@ describe("groupUserRows", () => {
     expect(users[1]).toMatchObject({ id: "22222222-2222-4222-8222-222222222222", active: false })
     expect(users[1]?.roles).toEqual([])
     expect(JSON.stringify(users)).not.toContain("passwordHash")
+  })
+})
+
+describe("mergeLastLogins", () => {
+  it("attaches each user's last login and defaults unknown users to never", () => {
+    // Given two users where only one has a recorded login
+    const users = groupUserRows([
+      row({ accountScope: "personal", role: "operator" }),
+      row(null, {
+        id: "22222222-2222-4222-8222-222222222222",
+        email: "fresh@example.test",
+        displayName: "Fresh",
+      }),
+    ])
+    const lastLogins = new Map([[baseUser.id, new Date("2026-09-06T02:00:00.000Z")]])
+
+    // When the login audit map is merged
+    const merged = mergeLastLogins(users, lastLogins)
+
+    // Then the known login is attached and the other user is null
+    expect(merged[0]?.lastLoginAt).toEqual(new Date("2026-09-06T02:00:00.000Z"))
+    expect(merged[1]?.lastLoginAt).toBeNull()
   })
 })
 

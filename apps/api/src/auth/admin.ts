@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm"
+import { and, eq, isNull, sql } from "drizzle-orm"
 import type { PersistenceDatabase } from "../db/client"
-import { sessionGrants, sessions, userRoles, users } from "../db/schema"
+import { auditEntries, authSessions, sessionGrants, sessions, userRoles, users } from "../db/schema"
 import type { AccountScope } from "../db/schema/shared"
 import type { UserRole } from "./authorization"
 import { hashPassword } from "./password"
@@ -92,7 +92,7 @@ export class AdminService {
     return Boolean(role)
   }
 
-  async listUsers(): Promise<readonly AdminUserRecord[]> {
+  async listUsers(): Promise<readonly AdminUserWithLogin[]> {
     const rows = await this.db
       .select({
         user: {
@@ -110,7 +110,55 @@ export class AdminService {
       .from(users)
       .leftJoin(userRoles, eq(userRoles.userId, users.id))
       .orderBy(users.createdAt, users.id, userRoles.accountScope)
-    return groupUserRows(rows)
+    const logins = await this.db
+      .select({
+        subjectId: auditEntries.subjectId,
+        lastLoginAt: sql<string>`max(${auditEntries.createdAt})`,
+      })
+      .from(auditEntries)
+      .where(eq(auditEntries.action, "auth.login"))
+      .groupBy(auditEntries.subjectId)
+    const lastLogins = new Map<string, Date | null>()
+    for (const login of logins) {
+      const parsed = login.lastLoginAt ? new Date(login.lastLoginAt) : null
+      lastLogins.set(login.subjectId, parsed && !Number.isNaN(parsed.getTime()) ? parsed : null)
+    }
+    return mergeLastLogins(groupUserRows(rows), lastLogins)
+  }
+
+  async resetPassword(input: {
+    readonly userId: string
+    readonly password: string
+    readonly actorUserId: string
+  }): Promise<void> {
+    await this.db.transaction(async (transaction) => {
+      const updated = await transaction
+        .update(users)
+        .set({ passwordHash: await hashPassword(input.password) })
+        .where(eq(users.id, input.userId))
+        .returning({ id: users.id })
+      if (!updated[0]) throw new AdminFailure("user not found")
+      await transaction
+        .update(authSessions)
+        .set({ revokedAt: new Date() })
+        .where(and(eq(authSessions.userId, input.userId), isNull(authSessions.revokedAt)))
+    })
+    for (const accountScope of ["personal", "business"] as const) {
+      await this.audit({
+        actorUserId: input.actorUserId,
+        action: "auth.sessions_revoked",
+        subjectType: "user",
+        subjectId: input.userId,
+        accountScope,
+      })
+      await this.audit({
+        actorUserId: input.actorUserId,
+        action: "auth.password_reset",
+        subjectType: "user",
+        subjectId: input.userId,
+        accountScope,
+      })
+    }
   }
 
   async canDisable(principalId: string, targetUserId: string): Promise<boolean> {
@@ -137,6 +185,15 @@ export type AdminUserRecord = {
   readonly active: boolean
   readonly createdAt: Date
   readonly roles: readonly AdminUserRole[]
+}
+
+export type AdminUserWithLogin = AdminUserRecord & { readonly lastLoginAt: Date | null }
+
+export function mergeLastLogins(
+  users: readonly AdminUserRecord[],
+  lastLogins: ReadonlyMap<string, Date | null>,
+): readonly AdminUserWithLogin[] {
+  return users.map((user) => ({ ...user, lastLoginAt: lastLogins.get(user.id) ?? null }))
 }
 
 type UserWithRoleRow = {
