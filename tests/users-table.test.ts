@@ -72,18 +72,23 @@ describe("users access page", () => {
     )
 
     // When the page renders
-    // Then the table exposes lifecycle data and per-row actions without credentials
+    // Then the table exposes lifecycle data, filters, and the kebab action menu
     expect(markup).toContain("operator@example.test")
     expect(markup).toContain("personal · operator")
     expect(markup).toContain(">active<")
     expect(markup).toContain(">disabled<")
     expect(markup).toContain("never")
+    expect(markup).toContain('aria-label="Actions for Operator"')
     expect(markup).toContain("Grant session")
     expect(markup).toContain("Reset password")
     expect(markup).toContain(">Disable<")
     expect(markup).toContain("Create user")
     expect(markup).toContain('placeholder="Email, name, or user ID…"')
-    expect(markup).toContain("Total: 2 users")
+    expect(markup).toContain('aria-label="Filter by status"')
+    expect(markup).toContain('aria-label="Filter by role"')
+    expect(markup).toContain("All statuses")
+    expect(markup).toContain("All roles")
+    expect(markup).toContain("Total: 2 users · showing 2 on this page")
     expect(markup).toContain('title="685d2eaf-8649-4ec7-85e9-69a12e7a5722"')
     expect(markup).not.toContain("passwordHash")
   })

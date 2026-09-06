@@ -570,6 +570,29 @@ select {
 .users-table {
   min-width: 760px;
 }
+.row-menu {
+  position: relative;
+  display: inline-flex;
+}
+.row-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 30;
+  min-width: 11rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--depth-rest);
+}
+.row-menu-item {
+  justify-content: flex-start;
+  width: 100%;
+}
 .user-access-modal {
   width: min(560px, 92vw);
   max-height: 86vh;

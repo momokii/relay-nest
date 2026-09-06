@@ -1,5 +1,6 @@
 import type * as React from "react"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { MoreVertical } from "lucide-react"
 import type {
   AdminCreateUserInput,
   AdminGrantInput,
@@ -7,7 +8,7 @@ import type {
   AdminUserRecord,
 } from "../dashboard-admin-api"
 import type { SessionView } from "../dashboard-api"
-import type { DashboardRole } from "../dashboard-model"
+import { type DashboardRole, ROLES } from "../dashboard-model"
 import type { ActionState, ResourceState } from "../dashboard-state"
 import { Panel, StateNotice, StatusBadge } from "./ui"
 import {
@@ -20,6 +21,8 @@ import {
 
 const PAGE_SIZES = [10, 20, 50] as const
 
+type StatusFilter = "" | "active" | "disabled"
+
 function truncatedId(value: string): string {
   return value.length > 24 ? `${value.slice(0, 21)}…` : value
 }
@@ -28,18 +31,83 @@ function formatTimestamp(value: string): string {
   return new Date(value).toLocaleString()
 }
 
+function RowActions({
+  user,
+  busy,
+  onAction,
+}: Readonly<{
+  user: AdminUserRecord
+  busy: boolean
+  onAction: (modal: UsersModal) => void
+}>): React.JSX.Element {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onPointerDown = (event: PointerEvent): void => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node))
+        setOpen(false)
+    }
+    document.addEventListener("pointerdown", onPointerDown)
+    return () => document.removeEventListener("pointerdown", onPointerDown)
+  }, [open])
+  const choose = (next: UsersModal): void => {
+    setOpen(false)
+    onAction(next)
+  }
+  return (
+    <div className="row-menu" ref={containerRef}>
+      <button
+        type="button"
+        className="button button-secondary"
+        aria-label={`Actions for ${user.displayName}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        disabled={busy}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <MoreVertical size={16} aria-hidden="true" focusable="false" />
+      </button>
+      <div className="row-menu-list" role="menu" hidden={!open}>
+        <button
+          type="button"
+          role="menuitem"
+          className="button button-secondary row-menu-item"
+          onClick={() => choose({ kind: "grant", user })}
+        >
+          Grant session
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          className="button button-secondary row-menu-item"
+          onClick={() => choose({ kind: "reset", user })}
+        >
+          Reset password
+        </button>
+        {user.active ? (
+          <button
+            type="button"
+            role="menuitem"
+            className="button button-danger row-menu-item"
+            onClick={() => choose({ kind: "disable", user })}
+          >
+            Disable
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 function UsersTable({
   users,
   busy,
-  onGrant,
-  onReset,
-  onDisable,
+  onAction,
 }: Readonly<{
   users: readonly AdminUserRecord[]
   busy: boolean
-  onGrant: (user: AdminUserRecord) => void
-  onReset: (user: AdminUserRecord) => void
-  onDisable: (user: AdminUserRecord) => void
+  onAction: (modal: UsersModal) => void
 }>): React.JSX.Element {
   return (
     <div className="sent-history-table-wrap">
@@ -94,34 +162,7 @@ function UsersTable({
               <td>{formatTimestamp(user.createdAt)}</td>
               <td>{user.lastLoginAt ? formatTimestamp(user.lastLoginAt) : <small>never</small>}</td>
               <td>
-                <div className="form-actions">
-                  <button
-                    type="button"
-                    className="button button-secondary"
-                    disabled={busy}
-                    onClick={() => onGrant(user)}
-                  >
-                    Grant session
-                  </button>
-                  <button
-                    type="button"
-                    className="button button-secondary"
-                    disabled={busy}
-                    onClick={() => onReset(user)}
-                  >
-                    Reset password
-                  </button>
-                  {user.active ? (
-                    <button
-                      type="button"
-                      className="button button-danger"
-                      disabled={busy}
-                      onClick={() => onDisable(user)}
-                    >
-                      Disable
-                    </button>
-                  ) : null}
-                </div>
+                <RowActions user={user} busy={busy} onAction={onAction} />
               </td>
             </tr>
           ))}
@@ -160,6 +201,8 @@ export function UsersPage({
   const [q, setQ] = useState("")
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState<number>(10)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("")
+  const [roleFilter, setRoleFilter] = useState<DashboardRole | "">("")
   if (role !== "admin")
     return (
       <Panel eyebrow="Restricted surface" title="Users and grants">
@@ -173,14 +216,19 @@ export function UsersPage({
 
   const allUsers = users.kind === "ready" ? users.data : []
   const needle = q.trim().toLowerCase()
-  const filtered = needle
-    ? allUsers.filter(
-        (user) =>
-          user.email.toLowerCase().includes(needle) ||
-          user.displayName.toLowerCase().includes(needle) ||
-          user.id.toLowerCase().includes(needle),
-      )
-    : allUsers
+  const filtered = allUsers.filter((user) => {
+    if (needle && !(
+      user.email.toLowerCase().includes(needle) ||
+      user.displayName.toLowerCase().includes(needle) ||
+      user.id.toLowerCase().includes(needle)
+    ))
+      return false
+    if (statusFilter === "active" && !user.active) return false
+    if (statusFilter === "disabled" && user.active) return false
+    if (roleFilter && !user.roles.some((role) => role.role === roleFilter)) return false
+    return true
+  })
+  const filtersActive = q.trim() !== "" || statusFilter !== "" || roleFilter !== ""
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize))
   const safePage = Math.min(page, pageCount)
   const paged = filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
@@ -227,6 +275,39 @@ export function UsersPage({
               ))}
             </select>
           </label>
+          <label className="schedule-filter-field">
+            <span>Status</span>
+            <select
+              aria-label="Filter by status"
+              value={statusFilter}
+              onChange={(event) => {
+                setStatusFilter(event.target.value as StatusFilter)
+                setPage(1)
+              }}
+            >
+              <option value="">All statuses</option>
+              <option value="active">active</option>
+              <option value="disabled">disabled</option>
+            </select>
+          </label>
+          <label className="schedule-filter-field">
+            <span>Role</span>
+            <select
+              aria-label="Filter by role"
+              value={roleFilter}
+              onChange={(event) => {
+                setRoleFilter(event.target.value as DashboardRole | "")
+                setPage(1)
+              }}
+            >
+              <option value="">All roles</option>
+              {ROLES.map((candidate) => (
+                <option key={candidate} value={candidate}>
+                  {candidate}
+                </option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
             className="button button-primary"
@@ -254,14 +335,15 @@ export function UsersPage({
             <UsersTable
               users={paged}
               busy={busy}
-              onGrant={(user) => setModal({ kind: "grant", user })}
-              onReset={(user) => setModal({ kind: "reset", user })}
-              onDisable={(user) => setModal({ kind: "disable", user })}
+              onAction={(next) => setModal(next)}
             />
             <nav className="sent-history-pagination" aria-label="Users pagination">
               <span>
-                Total: {filtered.length} {filtered.length === 1 ? "user" : "users"}
-                {q ? " (filtered)" : ""} · showing {paged.length} on this page
+                Total: {allUsers.length} {allUsers.length === 1 ? "user" : "users"}
+                {filtersActive
+                  ? ` · ${filtered.length} ${filtered.length === 1 ? "match" : "matches"}`
+                  : ""}{" "}
+                · showing {paged.length} on this page
               </span>
               <div className="form-actions">
                 <button
