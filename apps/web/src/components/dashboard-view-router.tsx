@@ -28,6 +28,7 @@ type PageContext = Pick<
   | "purgePreview"
   | "purgeAction"
   | "clearPurgePreview"
+  | "users"
   | "onSend"
   | "onSchedule"
   | "onResolveContact"
@@ -251,6 +252,7 @@ export function renderDashboardPage(
       return (
         <UsersPage
           role={context.role}
+          users={context.users}
           createUserAction={context.createUserAction}
           grantAction={context.grantAction}
           disableAction={context.disableAction}

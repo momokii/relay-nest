@@ -10,6 +10,17 @@ const adminUserSchema = z.object({
 })
 
 export type AdminUser = z.infer<typeof adminUserSchema>
+
+const adminUserRecordSchema = z.object({
+  id: z.string(),
+  email: z.string(),
+  displayName: z.string(),
+  active: z.boolean(),
+  createdAt: z.string(),
+  roles: z.array(z.object({ accountScope: z.string(), role: z.string() })),
+})
+
+export type AdminUserRecord = z.infer<typeof adminUserRecordSchema>
 export type AdminCreateUserInput = Readonly<{
   email: string
   password: string
@@ -35,6 +46,7 @@ export type DashboardAdminApi = Readonly<{
   createGrant: (input: AdminGrantInput) => Promise<ApiResult<null>>
   disableUser: (userId: string) => Promise<ApiResult<null>>
   listConnections: () => Promise<ApiResult<readonly ConnectionSummary[]>>
+  listUsers: () => Promise<ApiResult<readonly AdminUserRecord[]>>
 }>
 
 export function createDashboardAdminApi(baseUrl = ""): DashboardAdminApi {
@@ -63,6 +75,13 @@ export function createDashboardAdminApi(baseUrl = ""): DashboardAdminApi {
         }),
       )
       return result.kind === "ready" ? { kind: "ready", data: result.data.connections } : result
+    },
+    listUsers: async () => {
+      const result = await requestJson(
+        url("/admin/users"),
+        z.object({ users: z.array(adminUserRecordSchema) }),
+      )
+      return result.kind === "ready" ? { kind: "ready", data: result.data.users } : result
     },
   }
 }

@@ -1,10 +1,71 @@
 import type * as React from "react"
 import { type FormEvent, useState } from "react"
 
-import type { AdminCreateUserInput, AdminGrantInput, AdminUser } from "../dashboard-admin-api"
+import type {
+  AdminCreateUserInput,
+  AdminGrantInput,
+  AdminUser,
+  AdminUserRecord,
+} from "../dashboard-admin-api"
 import { ACCOUNT_SCOPES, type AccountScope, type DashboardRole, ROLES } from "../dashboard-model"
-import type { ActionState } from "../dashboard-state"
+import type { ActionState, ResourceState } from "../dashboard-state"
 import { Panel, StateNotice, StatusBadge } from "./ui"
+
+function truncatedId(value: string): string {
+  return value.length > 24 ? `${value.slice(0, 21)}…` : value
+}
+
+function UsersTable({ users }: Readonly<{ users: readonly AdminUserRecord[] }>): React.JSX.Element {
+  return (
+    <div className="sent-history-table-wrap">
+      <table className="sent-history-table" aria-label="Users">
+        <thead>
+          <tr>
+            <th scope="col">Email</th>
+            <th scope="col">Display name</th>
+            <th scope="col">Status</th>
+            <th scope="col">Roles</th>
+            <th scope="col">User ID</th>
+            <th scope="col">Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user) => (
+            <tr key={user.id}>
+              <td>{user.email}</td>
+              <td>{user.displayName}</td>
+              <td>
+                <StatusBadge
+                  label={user.active ? "active" : "disabled"}
+                  tone={user.active ? "success" : "warning"}
+                  info={
+                    user.active
+                      ? "The user can sign in."
+                      : "The user is disabled and all their sessions were revoked."
+                  }
+                />
+              </td>
+              <td>
+                <span className="status-list">
+                  {user.roles.map((role) => (
+                    <StatusBadge
+                      key={`${role.accountScope}-${role.role}`}
+                      label={`${role.accountScope} · ${role.role}`}
+                    />
+                  ))}
+                </span>
+              </td>
+              <td>
+                <code title={user.id}>{truncatedId(user.id)}</code>
+              </td>
+              <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
 type AdminActionState = ActionState<AdminUser | null>
 
@@ -47,6 +108,7 @@ function AdminActionFeedback({
 
 export function UsersPage({
   role,
+  users,
   createUserAction,
   grantAction,
   disableAction,
@@ -55,6 +117,7 @@ export function UsersPage({
   onDisableUser,
 }: Readonly<{
   role: DashboardRole
+  users: ResourceState<readonly AdminUserRecord[]>
   createUserAction: ActionState<AdminUser>
   grantAction: ActionState<null>
   disableAction: ActionState<null>
@@ -89,16 +152,27 @@ export function UsersPage({
       >
         <GrantForm action={grantAction} onSubmit={onCreateGrant} />
       </Panel>
-      <Panel eyebrow="Access lifecycle" title="Disable a user" tone="inset">
+      <Panel
+        eyebrow="Access lifecycle"
+        title="Disable a user"
+        tone="inset"
+        description="Disabling a user immediately revokes every session for that user; they can no longer sign in. Their history records stay in place."
+      >
         <DisableForm action={disableAction} onSubmit={onDisableUser} />
       </Panel>
-      <Panel eyebrow="Access records" title="Listing and revocation unavailable" tone="inset">
-        <StateNotice
-          title="No safe list or revoke route"
-          message="The backend exposes create, grant, and disable commands but no authenticated list or grant-revocation route. This UI does not invent access records."
-          tone="warning"
-        />
-        <StatusBadge label="No credentials or grants displayed" />
+      <Panel
+        eyebrow="Access records"
+        title="Users"
+        description="Every user with their roles per scope. Session grants are not listed and cannot be revoked from here yet; the backend has no grant-revocation route. No credentials are shown."
+      >
+        {users.kind === "ready" && users.data.length === 0 ? (
+          <StateNotice title="No users yet" message="Create the first user with the form above." />
+        ) : null}
+        {users.kind === "ready" && users.data.length > 0 ? <UsersTable users={users.data} /> : null}
+        {users.kind === "loading" ? <p className="panel-description">Loading users…</p> : null}
+        {users.kind === "unavailable" || users.kind === "denied" || users.kind === "error" ? (
+          <StateNotice title="Users unavailable" message={users.message} tone="warning" />
+        ) : null}
       </Panel>
     </div>
   )
@@ -254,6 +328,9 @@ function DisableForm({
       <label>
         <span>User ID</span>
         <input value={userId} onChange={(event) => setUserId(event.target.value)} required />
+        <small>
+          The user&apos;s ID from the Users table below — hover a row ID for the full value.
+        </small>
       </label>
       <button
         className="button button-secondary"

@@ -12,7 +12,7 @@ import "./styles.css"
 
 export function App(): React.JSX.Element {
   const dashboard = useDashboardController()
-  const admin = useDashboardAdminController()
+  const admin = useDashboardAdminController(dashboard.role === "admin")
   const session = useDashboardSessionController(dashboard.scope)
   const schedule = useDashboardScheduleHistoryController(
     dashboard.scope,

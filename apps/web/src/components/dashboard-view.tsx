@@ -1,6 +1,11 @@
 import type * as React from "react"
 
-import type { AdminCreateUserInput, AdminGrantInput, AdminUser } from "../dashboard-admin-api"
+import type {
+  AdminCreateUserInput,
+  AdminGrantInput,
+  AdminUser,
+  AdminUserRecord,
+} from "../dashboard-admin-api"
 import type {
   AnalyticsView,
   ContactView,
@@ -50,6 +55,7 @@ export type DashboardViewProps = Readonly<
       purgeAction: ActionState<{ readonly deletedCount: number }>
       clearPurgePreview: () => void
       createUserAction: ActionState<AdminUser>
+      users: ResourceState<readonly AdminUserRecord[]>
       grantAction: ActionState<null>
       disableAction: ActionState<null>
       sessionLifecycleAction: ActionState<SessionView | null>
