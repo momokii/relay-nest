@@ -38,6 +38,8 @@ import {
 export type DashboardController = Readonly<{
   activeView: DashboardViewId
   scope: AccountScope
+  analyticsWindow: { from: string; to: string } | undefined
+  setAnalyticsWindow: (window: { from: string; to: string } | undefined) => void
   isNavOpen: boolean
   principal: ResourceState<Principal>
   activePrincipal: Principal | undefined
@@ -111,6 +113,11 @@ export function useDashboardController(): DashboardController {
     return "overview"
   })
   const [scope, setScope] = useState<AccountScope>("personal")
+  const [analyticsWindow, setAnalyticsWindow] = useState<{ from: string; to: string } | undefined>(() => {
+    const to = new Date()
+    const from = new Date(to.getTime() - 24 * 60 * 60 * 1000)
+    return { from: from.toISOString(), to: to.toISOString() }
+  })
 
   useEffect(() => {
     const hash = `#${activeView}`
@@ -125,13 +132,15 @@ export function useDashboardController(): DashboardController {
       const view = hash.split("?")[0]?.split("&")[0]
       const valid: readonly string[] = ["overview", "sessions", "contacts", "send", "schedule", "campaigns", "analytics", "notifications", "retention", "users", "settings"]
       if (view && (valid as readonly string[]).includes(view)) {
-        const next = view as DashboardViewId
-        if (next !== activeView) setActiveView(next)
+        setActiveView((current) => {
+          const next = view as DashboardViewId
+          return next !== current ? next : current
+        })
       }
     }
     window.addEventListener("hashchange", onHashChange)
     return () => window.removeEventListener("hashchange", onHashChange)
-  }, [activeView])
+  }, [])
   const scopeRef = useRef<AccountScope>(scope)
   const scopeGenerationRef = useRef(0)
   const contactResolutionTokenRef = useRef(0)
@@ -218,11 +227,15 @@ export function useDashboardController(): DashboardController {
     setRetention({ kind: "loading" })
     setPurgePreview({ kind: "idle" })
     setPurgeAction({ kind: "idle" })
-    void Promise.all([api.getSessions(scope), api.getAnalytics(scope)])
+    void Promise.all([api.getSessions(scope), api.getAnalytics(scope, analyticsWindow)])
       .then(([sessionResult, analyticsResult]) => {
         if (!isCurrent) return
         setSessions(resourceFromResult(sessionResult))
         setAnalytics(resourceFromResult(analyticsResult))
+      })
+      .catch(() => {
+        if (!isCurrent) return
+        setAnalytics({ kind: "error", message: "Analytics could not be read." })
       })
       .catch(() => {
         if (!isCurrent) return
@@ -328,6 +341,8 @@ export function useDashboardController(): DashboardController {
   return {
     activeView,
     scope,
+    analyticsWindow,
+    setAnalyticsWindow,
     isNavOpen,
     principal,
     activePrincipal,

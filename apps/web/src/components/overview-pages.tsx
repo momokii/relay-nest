@@ -17,14 +17,53 @@ function formatDuration(ms: number): string {
   return `${Math.floor(hours / 24)} d`
 }
 
+function WindowPicker({
+  window: windowValue,
+  onChange,
+}: Readonly<{
+  window: { from: string; to: string } | undefined
+  onChange: (next: { from: string; to: string } | undefined) => void
+}>): React.JSX.Element {
+  const pick = (hours: number): void => {
+    const to = new Date()
+    const from = new Date(to.getTime() - hours * 60 * 60 * 1000)
+    onChange({ from: from.toISOString(), to: to.toISOString() })
+  }
+  return (
+    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+      <button type="button" className="button button-secondary" onClick={() => pick(24)}>
+        24h
+      </button>
+      <button type="button" className="button button-secondary" onClick={() => pick(24 * 7)}>
+        7d
+      </button>
+      <button type="button" className="button button-secondary" onClick={() => pick(24 * 30)}>
+        30d
+      </button>
+      <button
+        type="button"
+        className="button button-secondary"
+        onClick={() => onChange(undefined)}
+        title={windowValue ? `${windowValue.from} → ${windowValue.to}` : "Default 24h"}
+      >
+        Reset
+      </button>
+    </div>
+  )
+}
+
 export function OverviewPage({
   scope,
   sessions,
   analytics,
+  analyticsWindow,
+  onAnalyticsWindowChange,
 }: Readonly<{
   scope: AccountScope
   sessions: ResourceState<readonly SessionView[]>
   analytics: ResourceState<AnalyticsView>
+  analyticsWindow?: { from: string; to: string } | undefined
+  onAnalyticsWindowChange?: (next: { from: string; to: string } | undefined) => void
 }>): React.JSX.Element {
   const sessionList = sessions.kind === "ready" ? sessions.data : []
   const metrics = analytics.kind === "ready" ? analytics.data : undefined
@@ -34,6 +73,11 @@ export function OverviewPage({
         eyebrow="Scoped operating picture"
         title={`${scope[0]?.toUpperCase()}${scope.slice(1)} overview`}
         description="Only evidence inside the selected account scope appears here."
+        action={
+          onAnalyticsWindowChange ? (
+            <WindowPicker window={analyticsWindow} onChange={onAnalyticsWindowChange} />
+          ) : undefined
+        }
       >
         {analytics.kind === "loading" ? <LoadingRows count={4} /> : null}
         {analytics.kind === "denied" ? (
@@ -43,36 +87,52 @@ export function OverviewPage({
           <StateNotice title="Analytics unavailable" message={analytics.message} tone="warning" />
         ) : null}
         {metrics ? (
-          <div className="metric-grid">
-            <Metric
-              label="Message volume"
-              value={String(metrics.messageVolume.total)}
-              detail="Evidence-backed only"
-              info="Messages counted in this scope, from signed WhatsApp webhook events. Zero means no webhook activity has been ingested yet."
-            />
-            <Metric
-              label="Acknowledgments"
-              value={String(metrics.acknowledgments.acknowledged)}
-              detail="Not recipient delivery"
-              info="Messages the WhatsApp device or server acknowledged after submit. Transport evidence, not proof the recipient read the message."
-            />
-            <Metric
-              label="Failure rate"
-              value={
-                metrics.failureRate === null
-                  ? "Unknown"
-                  : `${Math.round(metrics.failureRate * 100)}%`
-              }
-              detail="Window-scoped"
-              info="Share of completed sends in this window whose dispatch failed. Unknown until at least one send completes in the window."
-            />
-            <Metric
-              label="Session uptime"
-              value={metrics.uptimeMs === null ? "Unknown" : formatDuration(metrics.uptimeMs)}
-              detail="Status history required"
-              info="Time sessions spent in an active status inside the window, reconstructed from recorded status history. Unknown without status history."
-            />
-          </div>
+          <>
+            <div className="metric-grid">
+              <Metric
+                label="Message volume"
+                value={String(metrics.messageVolume.total)}
+                detail="Evidence-backed only"
+                info="Messages counted in this scope, from signed WhatsApp webhook events. Zero means no webhook activity has been ingested yet."
+              />
+              <Metric
+                label="Acknowledgments"
+                value={String(metrics.acknowledgments.acknowledged)}
+                detail="Not recipient delivery"
+                info="Messages the WhatsApp device or server acknowledged after submit. Transport evidence, not proof the recipient read the message."
+              />
+              <Metric
+                label="Failure rate"
+                value={
+                  metrics.failureRate === null
+                    ? "Unknown"
+                    : `${Math.round(metrics.failureRate * 100)}%`
+                }
+                detail="Window-scoped"
+                info="Share of completed sends in this window whose dispatch failed. Unknown until at least one send completes in the window."
+              />
+              <Metric
+                label="Session uptime"
+                value={metrics.uptimeMs === null ? "Unknown" : formatDuration(metrics.uptimeMs)}
+                detail="Status history required"
+                info="Time sessions spent in an active status inside the window, reconstructed from recorded status history. Unknown without status history."
+              />
+            </div>
+            <div className="metric-grid" style={{ marginTop: "1rem" }}>
+              <Metric
+                label="Direct sends"
+                value={String(metrics.methodVolume.direct)}
+                detail={`${metrics.methodVolume.scheduled} scheduled`}
+                info="Direct = immediate send (scheduledFor ≈ createdAt). Scheduled = future one-time job. Both are evidence-backed via scheduled_jobs within the window."
+              />
+              <Metric
+                label="Scheduled lifecycle"
+                value={String(metrics.scheduledJobs.total)}
+                detail={`submitted ${metrics.scheduledJobs.submitted} · failed ${metrics.scheduledJobs.failed} · cancelled ${metrics.scheduledJobs.cancelled}`}
+                info="Lifecycle of one-time jobs updated in the window: scheduled/queued/attempting/submitted/acknowledged/failed/unknown/cancelled with retries count. Window-scoped via updatedAt."
+              />
+            </div>
+          </>
         ) : null}
       </Panel>
       <Panel

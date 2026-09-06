@@ -4,6 +4,7 @@ import {
   mergeOutcomes,
   messageRows,
   messageVolume,
+  methodVolume,
   outcomes,
   safetyIndicators,
   scoped,
@@ -56,6 +57,7 @@ function sessionProjection(input: AnalyticsInput, session: AnalyticsSession): Se
     cappingIndicators: safety.capping,
     contactActivity: contacts.length,
     scheduledJobs: outcomes(jobs),
+    methodVolume: methodVolume(jobs),
   }
 }
 
@@ -83,6 +85,10 @@ export function projectAnalytics(input: AnalyticsInput): AnalyticsProjection {
       cappingIndicators: total.cappingIndicators + session.cappingIndicators,
       contactActivity: total.contactActivity + session.contactActivity,
       scheduledJobs: mergeOutcomes(total.scheduledJobs, session.scheduledJobs),
+      methodVolume: {
+        direct: total.methodVolume.direct + session.methodVolume.direct,
+        scheduled: total.methodVolume.scheduled + session.methodVolume.scheduled,
+      },
     }),
     {
       messageVolume: { total: 0, inbound: 0, outbound: 0, unknownDirection: 0 },
@@ -92,6 +98,7 @@ export function projectAnalytics(input: AnalyticsInput): AnalyticsProjection {
       cappingIndicators: 0,
       contactActivity: 0,
       scheduledJobs: outcomes([]),
+      methodVolume: { direct: 0, scheduled: 0 },
     },
   )
   const completed =

@@ -56,6 +56,7 @@ const analyticsSchema = z.object({
     cancelled: z.number(),
     retries: z.number(),
   }),
+  methodVolume: z.object({ direct: z.number(), scheduled: z.number() }),
   sessions: z.array(z.unknown()),
 })
 
@@ -125,7 +126,10 @@ export type ScheduleInput = SendInput &
 export type DashboardApi = Readonly<{
   getPrincipal: () => Promise<ApiResult<Principal>>
   getSessions: (scope: AccountScope) => Promise<ApiResult<readonly SessionView[]>>
-  getAnalytics: (scope: AccountScope) => Promise<ApiResult<AnalyticsView>>
+  getAnalytics: (
+    scope: AccountScope,
+    window?: { from: string; to: string },
+  ) => Promise<ApiResult<AnalyticsView>>
   resolveContact: (
     scope: AccountScope,
     sessionId: string,
@@ -256,7 +260,12 @@ export function createDashboardApi(baseUrl = ""): DashboardApi {
       const result = await requestJson(scoped("/scoped/sessions", scope), z.array(sessionSchema))
       return result.kind === "ready" ? { kind: "ready", data: result.data } : result
     },
-    getAnalytics: (scope) => requestJson(scoped("/scoped/analytics", scope), analyticsSchema),
+    getAnalytics: (scope, window?: { from: string; to: string }) => {
+    const base = scoped("/scoped/analytics", scope)
+    if (!window) return requestJson(base, analyticsSchema)
+    const separator = base.includes("?") ? "&" : "?"
+    return requestJson(`${base}${separator}from=${encodeURIComponent(window.from)}&to=${encodeURIComponent(window.to)}`, analyticsSchema)
+  },
     resolveContact: (scope, sessionId, recipient) =>
       requestJson(`${url(`/scoped/sessions/${sessionId}/contact`)}?scope=${scope}`, contactSchema, {
         method: "POST",

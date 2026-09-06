@@ -24,6 +24,7 @@ export type AnalyticsDispatchAttempt = {
   readonly sessionId: string
   readonly accountScope: AccountScope
   readonly providerMessageId: string | null
+  readonly jobId: string | null
   readonly state: "attempting" | "submitted" | "acknowledged" | "failed" | "unknown"
   readonly attemptedAt: Date
 }
@@ -49,6 +50,8 @@ export type AnalyticsJob = {
     | "cancelled"
   readonly attempts: number
   readonly failureCode: string | null
+  readonly scheduledFor: Date
+  readonly createdAt: Date
   readonly updatedAt: Date
 }
 
@@ -108,6 +111,7 @@ export type SessionAnalytics = {
   readonly cappingIndicators: number
   readonly contactActivity: number
   readonly scheduledJobs: ScheduledJobOutcomes
+  readonly methodVolume: MethodVolume
 }
 
 export type ScheduledJobOutcomes = {
@@ -121,6 +125,11 @@ export type ScheduledJobOutcomes = {
   readonly unknown: number
   readonly cancelled: number
   readonly retries: number
+}
+
+export type MethodVolume = {
+  readonly direct: number
+  readonly scheduled: number
 }
 
 export type AnalyticsProjection = {
@@ -140,5 +149,6 @@ export type AnalyticsProjection = {
   readonly cappingIndicators: number
   readonly contactActivity: number
   readonly scheduledJobs: ScheduledJobOutcomes
+  readonly methodVolume: MethodVolume
   readonly sessions: readonly SessionAnalytics[]
 }

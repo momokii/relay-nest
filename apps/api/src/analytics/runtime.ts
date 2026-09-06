@@ -139,6 +139,8 @@ export function createAnalyticsSource(
             state: scheduledJobs.state,
             attempts: scheduledJobs.attempts,
             failureCode: scheduledJobs.failureCode,
+            scheduledFor: scheduledJobs.scheduledFor,
+            createdAt: scheduledJobs.createdAt,
             updatedAt: scheduledJobs.updatedAt,
           })
           .from(scheduledJobs)
@@ -174,6 +176,7 @@ export function createAnalyticsSource(
           sessionId: attempt.sessionId,
           accountScope: attempt.accountScope,
           providerMessageId: attempt.providerMessageId,
+          jobId: attempt.jobId,
           state: attemptState(attempt.state),
           attemptedAt: attempt.attemptedAt,
         })),

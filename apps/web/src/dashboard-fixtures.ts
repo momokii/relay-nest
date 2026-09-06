@@ -60,6 +60,7 @@ export const DEMO_ANALYTICS: AnalyticsView = {
     cancelled: 0,
     retries: 0,
   },
+  methodVolume: { direct: 0, scheduled: 0 },
   sessions: [],
 }
 

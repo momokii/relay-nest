@@ -176,6 +176,17 @@ export function outcomes(jobs: readonly AnalyticsJob[]): ScheduledJobOutcomes {
   return { total: jobs.length, ...counts, retries }
 }
 
+export function methodVolume(jobs: readonly AnalyticsJob[]): import("./types").MethodVolume {
+  let direct = 0
+  let scheduled = 0
+  for (const job of jobs) {
+    const delayMs = job.scheduledFor.getTime() - job.createdAt.getTime()
+    if (delayMs > 60_000) scheduled += 1
+    else direct += 1
+  }
+  return { direct, scheduled }
+}
+
 export function mergeOutcomes(
   left: ScheduledJobOutcomes,
   right: ScheduledJobOutcomes,

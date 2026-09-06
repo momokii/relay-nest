@@ -97,6 +97,7 @@ describe("sent-history projection", () => {
       sessionId: "22222222-2222-4222-8222-222222222222",
       scope: "personal",
       recipientPhone: "628123456789",
+      recipientName: null,
       snippet80: `first line ${"x".repeat(80)}`.slice(0, 80),
       attempts: 1,
       scheduledFor: new Date("2026-09-01T10:00:00.000Z"),
