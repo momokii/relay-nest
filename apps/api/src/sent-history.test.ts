@@ -212,6 +212,31 @@ describe("sent-history projection", () => {
     await app.close()
   })
 
+  it("passes an immediate origin filter to the scoped history repository", async () => {
+    const app = Fastify()
+    let requestedOrigin: "immediate" | "scheduled" | undefined
+    registerSentHistoryRoutes(
+      app,
+      { authenticate: async () => principal, verifyCsrf: async () => true },
+      {
+        listForUser: async (_userId, _scope, _limit, _offset, filters) => {
+          requestedOrigin = filters?.origin
+          return { jobs: [], hasMore: false, total: 0 }
+        },
+        findForUser: async () => null,
+      },
+      cipher,
+    )
+
+    const response = await app.inject({
+      url: "/scoped/sent-history?scope=personal&origin=immediate",
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(requestedOrigin).toBe("immediate")
+    await app.close()
+  })
+
   it("denies a scope before querying or decrypting when the caller has no scoped role", async () => {
     const app = Fastify()
     let queried = false
