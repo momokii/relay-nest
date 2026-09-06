@@ -73,12 +73,33 @@ export function OverviewPage({
         eyebrow="Scoped operating picture"
         title={`${scope[0]?.toUpperCase()}${scope.slice(1)} overview`}
         description="Only evidence inside the selected account scope appears here."
-        action={
-          onAnalyticsWindowChange ? (
-            <WindowPicker window={analyticsWindow} onChange={onAnalyticsWindowChange} />
-          ) : undefined
-        }
       >
+        {onAnalyticsWindowChange ? (
+          <div
+            style={{
+              display: "flex",
+              gap: "0.5rem",
+              flexWrap: "wrap",
+              alignItems: "center",
+              marginBottom: "1rem",
+              padding: "0.75rem",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-control)",
+              background: "var(--color-inset)",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "var(--type-small)",
+                color: "var(--color-muted)",
+                fontWeight: 600,
+              }}
+            >
+              Window:
+            </span>
+            <WindowPicker window={analyticsWindow} onChange={onAnalyticsWindowChange} />
+          </div>
+        ) : null}
         {analytics.kind === "loading" ? <LoadingRows count={4} /> : null}
         {analytics.kind === "denied" ? (
           <StateNotice title="Scope denied" message={analytics.message} tone="error" />
@@ -199,12 +220,33 @@ export function AnalyticsPage({
         eyebrow="Scoped projection"
         title="Analytics"
         description={`Window and scope are mandatory at the API boundary. ${WEBHOOK_EVIDENCE_NOTE}`}
-        action={
-          onAnalyticsWindowChange ? (
-            <WindowPicker window={analyticsWindow} onChange={onAnalyticsWindowChange} />
-          ) : undefined
-        }
       >
+        {onAnalyticsWindowChange ? (
+          <div
+            style={{
+              display: "flex",
+              gap: "0.5rem",
+              flexWrap: "wrap",
+              alignItems: "center",
+              marginBottom: "1rem",
+              padding: "0.75rem",
+              border: "1px solid var(--color-border)",
+              borderRadius: "var(--radius-control)",
+              background: "var(--color-inset)",
+            }}
+          >
+            <span
+              style={{
+                fontSize: "var(--type-small)",
+                color: "var(--color-muted)",
+                fontWeight: 600,
+              }}
+            >
+              Window:
+            </span>
+            <WindowPicker window={analyticsWindow} onChange={onAnalyticsWindowChange} />
+          </div>
+        ) : null}
         <ResourceStateBody
           state={analytics}
           emptyTitle="No analytics yet"
@@ -252,29 +294,49 @@ export function AnalyticsPage({
         ) : null}
       </Panel>
       <Panel eyebrow="Delivery evidence" title="Acknowledgment breakdown" tone="inset">
-        <div className="status-list">
-          <StatusBadge
-            label={`Submitted · ${data?.acknowledgments.submitted ?? "Unknown"}`}
-            info="WhatsApp accepted our submit — transport evidence, not recipient delivery proof."
-          />
-          <StatusBadge
-            label={`Acknowledged · ${data?.acknowledgments.acknowledged ?? "Unknown"}`}
-            tone="success"
-            info="Device/server acknowledged the message; still not read-receipt proof."
-          />
-          <StatusBadge
-            label={`Failed · ${data?.acknowledgments.failed ?? "Unknown"}`}
-            tone="error"
-            info="The WhatsApp provider reported this message could not be delivered."
-          />
-          <StatusBadge
-            label={`Unknown · ${data?.acknowledgments.unknown ?? "Unknown"}`}
-            tone="warning"
-            info="No delivery evidence exists for this message yet; it is never counted as delivered."
-          />
-        </div>
-        <p className="panel-description">
-          Acknowledgment is transport evidence, not proof of recipient delivery.
+        {(() => {
+          const total = data
+            ? data.acknowledgments.submitted +
+              data.acknowledgments.acknowledged +
+              data.acknowledgments.failed +
+              data.acknowledgments.unknown
+            : 0
+          const pct = (n: number): string => (total > 0 ? `${Math.round((n / total) * 100)}%` : "—")
+          const byMethod = data
+            ? `Direct ${data.methodVolume.direct} · Scheduled ${data.methodVolume.scheduled}`
+            : "No window"
+          return (
+            <>
+              <p className="panel-description" style={{ marginBottom: "0.75rem" }}>
+                By method: {byMethod} · Messages with transport evidence: {total || "0"}
+              </p>
+              <div className="status-list">
+                <StatusBadge
+                  label={`Submitted · ${data?.acknowledgments.submitted ?? "Unknown"} · ${data ? pct(data.acknowledgments.submitted) : "—"}`}
+                  info="WhatsApp accepted our submit — transport evidence, not recipient delivery proof."
+                />
+                <StatusBadge
+                  label={`Acknowledged · ${data?.acknowledgments.acknowledged ?? "Unknown"} · ${data ? pct(data.acknowledgments.acknowledged) : "—"}`}
+                  tone="success"
+                  info="Device/server acknowledged the message; still not read-receipt proof."
+                />
+                <StatusBadge
+                  label={`Failed · ${data?.acknowledgments.failed ?? "Unknown"} · ${data ? pct(data.acknowledgments.failed) : "—"}`}
+                  tone="error"
+                  info="The WhatsApp provider reported this message could not be delivered."
+                />
+                <StatusBadge
+                  label={`Unknown · ${data?.acknowledgments.unknown ?? "Unknown"} · ${data ? pct(data.acknowledgments.unknown) : "—"}`}
+                  tone="warning"
+                  info="No delivery evidence exists for this message yet; it is never counted as delivered."
+                />
+              </div>
+            </>
+          )
+        })()}
+        <p className="panel-description" style={{ marginTop: "0.75rem" }}>
+          Acknowledgment is transport evidence, not proof of recipient delivery. Percentages are
+          window-scoped.
         </p>
       </Panel>
     </div>

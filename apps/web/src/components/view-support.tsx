@@ -64,17 +64,24 @@ export function SessionRow({ session }: Readonly<{ session: SessionView }>): Rea
     <div className="session-row">
       <div>
         <strong>{session.name}</strong>
-        <span>{session.accountScope} scope</span>
+        <span>
+          {session.accountScope} scope · {session.id.slice(0, 8)}…
+        </span>
       </div>
       <div className="status-list">
-        <StatusBadge label={`Session · ${session.status}`} />
+        <StatusBadge
+          label={`Session · ${session.status}`}
+          info={`Current WAHA session status: ${session.status}. WORKING = ready to send, SCAN_QR_CODE = needs QR, etc.`}
+        />
         <StatusBadge
           label={`Health · ${session.serviceHealth}`}
           tone={session.serviceHealth === "healthy" ? "success" : "warning"}
+          info="Service health from WAHA: healthy = API reachable and authenticated, unknown/unhealthy = check WAHA logs."
         />
         <StatusBadge
           label={`Ready · ${session.sendingReadiness}`}
           tone={session.sendingReadiness === "ready" ? "success" : "warning"}
+          info="Sending readiness: ready = can submit via this session, blocked = timelock/capping or not WORKING."
         />
       </div>
     </div>
