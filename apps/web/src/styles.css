@@ -568,7 +568,12 @@ select {
   font-size: var(--type-caption);
 }
 .users-table {
-  min-width: 640px;
+  min-width: 760px;
+}
+.user-access-modal {
+  width: min(560px, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
 }
 .sent-history-pagination {
   display: flex;

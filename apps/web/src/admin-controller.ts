@@ -14,10 +14,12 @@ export type DashboardAdminController = Readonly<{
   createUserAction: ActionState<AdminUser>
   grantAction: ActionState<null>
   disableAction: ActionState<null>
+  resetPasswordAction: ActionState<null>
   users: ResourceState<readonly AdminUserRecord[]>
   createUser: (input: AdminCreateUserInput) => Promise<void>
   createGrant: (input: AdminGrantInput) => Promise<void>
   disableUser: (userId: string) => Promise<void>
+  resetPassword: (userId: string, password: string) => Promise<void>
 }>
 
 export function useDashboardAdminController(usersEnabled = false): DashboardAdminController {
@@ -25,6 +27,9 @@ export function useDashboardAdminController(usersEnabled = false): DashboardAdmi
   const [createUserAction, setCreateUserAction] = useState<ActionState<AdminUser>>({ kind: "idle" })
   const [grantAction, setGrantAction] = useState<ActionState<null>>({ kind: "idle" })
   const [disableAction, setDisableAction] = useState<ActionState<null>>({ kind: "idle" })
+  const [resetPasswordAction, setResetPasswordAction] = useState<ActionState<null>>({
+    kind: "idle",
+  })
   const [users, setUsers] = useState<ResourceState<readonly AdminUserRecord[]>>({ kind: "loading" })
 
   const refreshUsers = useCallback(() => {
@@ -52,14 +57,22 @@ export function useDashboardAdminController(usersEnabled = false): DashboardAdmi
     setDisableAction(actionFromResult(result))
     if (result.kind === "ready") refreshUsers()
   }
+  const resetPassword = async (userId: string, password: string): Promise<void> => {
+    setResetPasswordAction({ kind: "submitting" })
+    const result = await api.resetPassword(userId, password)
+    setResetPasswordAction(actionFromResult(result))
+    if (result.kind === "ready") refreshUsers()
+  }
 
   return {
     createUserAction,
     grantAction,
     disableAction,
+    resetPasswordAction,
     users,
     createUser,
     createGrant,
     disableUser,
+    resetPassword,
   }
 }

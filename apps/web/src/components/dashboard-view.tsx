@@ -58,6 +58,7 @@ export type DashboardViewProps = Readonly<
       users: ResourceState<readonly AdminUserRecord[]>
       grantAction: ActionState<null>
       disableAction: ActionState<null>
+      resetPasswordAction: ActionState<null>
       sessionLifecycleAction: ActionState<SessionView | null>
       sessionCreateAction: ActionState<SessionView>
       sessionHistoryAction: ActionState<readonly SessionStatusHistory[]>
@@ -75,6 +76,7 @@ export type DashboardViewProps = Readonly<
       onCreateUser: (input: AdminCreateUserInput) => Promise<void>
       onCreateGrant: (input: AdminGrantInput) => Promise<void>
       onDisableUser: (userId: string) => Promise<void>
+      onResetPassword: (userId: string, password: string) => Promise<void>
       onLifecycle: (
         scope: AccountScope,
         sessionId: string,

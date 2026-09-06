@@ -29,6 +29,9 @@ type PageContext = Pick<
   | "purgeAction"
   | "clearPurgePreview"
   | "users"
+  | "sessions"
+  | "resetPasswordAction"
+  | "onResetPassword"
   | "onSend"
   | "onSchedule"
   | "onResolveContact"
@@ -253,12 +256,15 @@ export function renderDashboardPage(
         <UsersPage
           role={context.role}
           users={context.users}
+          sessions={context.sessions}
           createUserAction={context.createUserAction}
           grantAction={context.grantAction}
           disableAction={context.disableAction}
+          resetPasswordAction={context.resetPasswordAction}
           onCreateUser={context.onCreateUser}
           onCreateGrant={context.onCreateGrant}
           onDisableUser={context.onDisableUser}
+          onResetPassword={context.onResetPassword}
         />
       )
     case "settings":

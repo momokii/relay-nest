@@ -17,6 +17,7 @@ const adminUserRecordSchema = z.object({
   displayName: z.string(),
   active: z.boolean(),
   createdAt: z.string(),
+  lastLoginAt: z.string().nullable(),
   roles: z.array(z.object({ accountScope: z.string(), role: z.string() })),
 })
 
@@ -45,6 +46,7 @@ export type DashboardAdminApi = Readonly<{
   createUser: (input: AdminCreateUserInput) => Promise<ApiResult<AdminUser>>
   createGrant: (input: AdminGrantInput) => Promise<ApiResult<null>>
   disableUser: (userId: string) => Promise<ApiResult<null>>
+  resetPassword: (userId: string, password: string) => Promise<ApiResult<null>>
   listConnections: () => Promise<ApiResult<readonly ConnectionSummary[]>>
   listUsers: () => Promise<ApiResult<readonly AdminUserRecord[]>>
 }>
@@ -67,6 +69,11 @@ export function createDashboardAdminApi(baseUrl = ""): DashboardAdminApi {
       }),
     disableUser: (userId) =>
       requestJson(url(`/admin/users/${userId}/disable`), z.null(), { method: "POST" }),
+    resetPassword: (userId, password) =>
+      requestJson(url(`/admin/users/${userId}/reset-password`), z.null(), {
+        method: "POST",
+        body: json({ password }),
+      }),
     listConnections: async () => {
       const result = await requestJson(
         url("/admin/connections"),
