@@ -323,6 +323,9 @@ select {
   color: var(--color-muted);
   font-size: var(--type-small);
 }
+.users-page .panel-description {
+  max-width: none;
+}
 .page-identity {
   display: grid;
   gap: var(--space-1);
