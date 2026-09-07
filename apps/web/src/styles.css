@@ -589,6 +589,13 @@ select {
   border-radius: var(--radius-panel);
   box-shadow: var(--depth-rest);
 }
+.row-menu-list[hidden] {
+  display: none;
+}
+.row-menu-list.row-menu-up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
 .row-menu-item {
   justify-content: flex-start;
   width: 100%;

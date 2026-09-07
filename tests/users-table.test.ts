@@ -79,6 +79,7 @@ describe("users access page", () => {
     expect(markup).toContain(">disabled<")
     expect(markup).toContain("never")
     expect(markup).toContain('aria-label="Actions for Operator"')
+    expect(markup).toContain("row-menu-up")
     expect(markup).toContain("Grant session")
     expect(markup).toContain("Reset password")
     expect(markup).toContain(">Disable<")

@@ -34,10 +34,12 @@ function formatTimestamp(value: string): string {
 function RowActions({
   user,
   busy,
+  openUp,
   onAction,
 }: Readonly<{
   user: AdminUserRecord
   busy: boolean
+  openUp: boolean
   onAction: (modal: UsersModal) => void
 }>): React.JSX.Element {
   const [open, setOpen] = useState(false)
@@ -68,7 +70,11 @@ function RowActions({
       >
         <MoreVertical size={16} aria-hidden="true" focusable="false" />
       </button>
-      <div className="row-menu-list" role="menu" hidden={!open}>
+      <div
+        className={openUp ? "row-menu-list row-menu-up" : "row-menu-list"}
+        role="menu"
+        hidden={!open}
+      >
         <button
           type="button"
           role="menuitem"
@@ -127,7 +133,7 @@ function UsersTable({
           </tr>
         </thead>
         <tbody>
-          {users.map((user) => (
+          {users.map((user, index) => (
             <tr key={user.id}>
               <td>{user.email}</td>
               <td>{user.displayName}</td>
@@ -162,7 +168,12 @@ function UsersTable({
               <td>{formatTimestamp(user.createdAt)}</td>
               <td>{user.lastLoginAt ? formatTimestamp(user.lastLoginAt) : <small>never</small>}</td>
               <td>
-                <RowActions user={user} busy={busy} onAction={onAction} />
+                <RowActions
+                  user={user}
+                  busy={busy}
+                  openUp={index === users.length - 1}
+                  onAction={onAction}
+                />
               </td>
             </tr>
           ))}
