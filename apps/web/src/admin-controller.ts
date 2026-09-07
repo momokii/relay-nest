@@ -14,11 +14,13 @@ export type DashboardAdminController = Readonly<{
   createUserAction: ActionState<AdminUser>
   grantAction: ActionState<null>
   disableAction: ActionState<null>
+  enableAction: ActionState<null>
   resetPasswordAction: ActionState<null>
   users: ResourceState<readonly AdminUserRecord[]>
   createUser: (input: AdminCreateUserInput) => Promise<void>
   createGrant: (input: AdminGrantInput) => Promise<void>
   disableUser: (userId: string) => Promise<void>
+  enableUser: (userId: string) => Promise<void>
   resetPassword: (userId: string, password: string) => Promise<void>
 }>
 
@@ -27,6 +29,7 @@ export function useDashboardAdminController(usersEnabled = false): DashboardAdmi
   const [createUserAction, setCreateUserAction] = useState<ActionState<AdminUser>>({ kind: "idle" })
   const [grantAction, setGrantAction] = useState<ActionState<null>>({ kind: "idle" })
   const [disableAction, setDisableAction] = useState<ActionState<null>>({ kind: "idle" })
+  const [enableAction, setEnableAction] = useState<ActionState<null>>({ kind: "idle" })
   const [resetPasswordAction, setResetPasswordAction] = useState<ActionState<null>>({
     kind: "idle",
   })
@@ -57,6 +60,12 @@ export function useDashboardAdminController(usersEnabled = false): DashboardAdmi
     setDisableAction(actionFromResult(result))
     if (result.kind === "ready") refreshUsers()
   }
+  const enableUser = async (userId: string): Promise<void> => {
+    setEnableAction({ kind: "submitting" })
+    const result = await api.enableUser(userId)
+    setEnableAction(actionFromResult(result))
+    if (result.kind === "ready") refreshUsers()
+  }
   const resetPassword = async (userId: string, password: string): Promise<void> => {
     setResetPasswordAction({ kind: "submitting" })
     const result = await api.resetPassword(userId, password)
@@ -68,11 +77,13 @@ export function useDashboardAdminController(usersEnabled = false): DashboardAdmi
     createUserAction,
     grantAction,
     disableAction,
+    enableAction,
     resetPasswordAction,
     users,
     createUser,
     createGrant,
     disableUser,
+    enableUser,
     resetPassword,
   }
 }

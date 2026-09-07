@@ -64,10 +64,12 @@ function pageProps(users: ResourceState<readonly AdminUserRecord[]>) {
     createUserAction: IDLE,
     grantAction: IDLE,
     disableAction: IDLE,
+    enableAction: IDLE,
     resetPasswordAction: IDLE,
     onCreateUser: IDLE_NOOP,
     onCreateGrant: IDLE_NOOP,
     onDisableUser: IDLE_NOOP,
+    onEnableUser: IDLE_NOOP,
     onResetPassword: IDLE_NOOP,
   }
 }
@@ -89,7 +91,6 @@ describe("users access page", () => {
     expect(markup).toContain(">disabled<")
     expect(markup).toContain("never")
     expect(markup).toContain('aria-label="Actions for Operator"')
-    expect(markup).toContain("row-menu-up")
     expect(markup).toContain("Grant session")
     expect(markup).toContain("Reset password")
     expect(markup).toContain(">Disable<")

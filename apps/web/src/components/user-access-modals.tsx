@@ -18,6 +18,7 @@ export type UsersModal =
   | { readonly kind: "grant"; readonly user: AdminUserRecord }
   | { readonly kind: "reset"; readonly user: AdminUserRecord }
   | { readonly kind: "disable"; readonly user: AdminUserRecord }
+  | { readonly kind: "enable"; readonly user: AdminUserRecord }
 
 type ModalShellProps = Readonly<{
   title: string
@@ -274,7 +275,7 @@ export function DisableUserModal({
     <ModalShell title={`Disable ${user.displayName}?`} onClose={onClose}>
       <StateNotice
         title="Every session for this user will be revoked"
-        message={`${user.email} can no longer sign in. Their history records stay in place. This cannot be undone from this menu.`}
+        message={`${user.email} can no longer sign in. Their history records stay in place. You can re-enable the account from this menu.`}
         tone="warning"
       />
       <div className="form-actions">
@@ -286,6 +287,42 @@ export function DisableUserModal({
           onClick={() => void onSubmit(user.id).then(onClose)}
         >
           {action.kind === "submitting" ? "Disabling…" : "Disable user"}
+        </button>
+        <button className="button button-secondary" type="button" onClick={onClose}>
+          Cancel
+        </button>
+      </div>
+    </ModalShell>
+  )
+}
+
+export function EnableUserModal({
+  user,
+  action,
+  onSubmit,
+  onClose,
+}: Readonly<{
+  user: AdminUserRecord
+  action: ActionState<null>
+  onSubmit: (userId: string) => Promise<void>
+  onClose: () => void
+}>): React.JSX.Element {
+  return (
+    <ModalShell title={`Enable ${user.displayName}?`} onClose={onClose}>
+      <StateNotice
+        title="This user will be able to sign in again"
+        message={`${user.email} can sign in after enabling. Previous sessions stay revoked — grant any needed WAHA sessions again if required.`}
+        tone="warning"
+      />
+      <div className="form-actions">
+        <button
+          className="button button-primary"
+          type="button"
+          disabled={action.kind === "submitting"}
+          aria-busy={action.kind === "submitting" ? "true" : "false"}
+          onClick={() => void onSubmit(user.id).then(onClose)}
+        >
+          {action.kind === "submitting" ? "Enabling…" : "Enable user"}
         </button>
         <button className="button button-secondary" type="button" onClick={onClose}>
           Cancel

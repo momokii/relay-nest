@@ -119,6 +119,20 @@ export function registerAuthRoutes(
     return reply.code(204).send()
   })
 
+  app.post("/admin/users/:userId/enable", async (request, reply) => {
+    if (!sameOrigin(request)) return reply.code(403).send({ error: "forbidden" })
+    const principal = await authenticate(auth, request, reply)
+    if (!principal) return
+    const params = z.object({ userId: z.string().uuid() }).parse(request.params)
+    if (
+      !(await admin.canDisable(principal.userId, params.userId)) ||
+      !(await requireCsrf(auth, request, principal.sessionToken))
+    )
+      return reply.code(403).send({ error: "forbidden" })
+    await auth.enableUser(params.userId, principal.userId)
+    return reply.code(204).send()
+  })
+
   app.post("/admin/users/:userId/reset-password", async (request, reply) => {
     if (!sameOrigin(request)) return reply.code(403).send({ error: "forbidden" })
     const principal = await authenticate(auth, request, reply)

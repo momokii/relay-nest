@@ -51,6 +51,7 @@ export function App(): React.JSX.Element {
         onCreateUser={admin.createUser}
         onCreateGrant={admin.createGrant}
         onDisableUser={admin.disableUser}
+        onEnableUser={admin.enableUser}
         onResetPassword={admin.resetPassword}
         {...session}
         {...schedule}

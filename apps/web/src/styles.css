@@ -570,19 +570,13 @@ select {
 .users-table {
   min-width: 880px;
 }
-/* Dropdown action menus must never be clipped by the table scroll container. */
-.users-page .sent-history-table-wrap {
-  overflow: visible;
-}
 .row-menu {
   position: relative;
   display: inline-flex;
 }
 .row-menu-list {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  z-index: 30;
+  position: fixed;
+  z-index: 60;
   min-width: 11rem;
   display: flex;
   flex-direction: column;
@@ -595,10 +589,6 @@ select {
 }
 .row-menu-list[hidden] {
   display: none;
-}
-.row-menu-list.row-menu-up {
-  top: auto;
-  bottom: calc(100% + 4px);
 }
 .row-menu-item {
   justify-content: flex-start;

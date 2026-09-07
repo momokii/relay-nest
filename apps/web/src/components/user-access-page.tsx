@@ -1,6 +1,7 @@
+import { MoreVertical } from "lucide-react"
 import type * as React from "react"
 import { useEffect, useRef, useState } from "react"
-import { MoreVertical } from "lucide-react"
+import { createPortal } from "react-dom"
 import type {
   AdminCreateUserInput,
   AdminGrantInput,
@@ -14,6 +15,7 @@ import { Panel, StateNotice, StatusBadge } from "./ui"
 import {
   CreateUserModal,
   DisableUserModal,
+  EnableUserModal,
   GrantSessionModal,
   ResetPasswordModal,
   type UsersModal,
@@ -31,77 +33,149 @@ function formatTimestamp(value: string): string {
   return new Date(value).toLocaleString()
 }
 
+const MENU_WIDTH_PX = 176
+const MENU_ITEM_HEIGHT_PX = 40
+
 function RowActions({
   user,
   busy,
-  openUp,
+  isLast,
   onAction,
 }: Readonly<{
   user: AdminUserRecord
   busy: boolean
-  openUp: boolean
+  isLast: boolean
   onAction: (modal: UsersModal) => void
 }>): React.JSX.Element {
   const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     if (!open) return
+    const close = (): void => setOpen(false)
     const onPointerDown = (event: PointerEvent): void => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node))
-        setOpen(false)
+      const target = event.target as Node
+      if (buttonRef.current?.contains(target) || menuRef.current?.contains(target)) return
+      close()
     }
+    window.addEventListener("scroll", close, true)
+    window.addEventListener("resize", close)
     document.addEventListener("pointerdown", onPointerDown)
-    return () => document.removeEventListener("pointerdown", onPointerDown)
+    return () => {
+      window.removeEventListener("scroll", close, true)
+      window.removeEventListener("resize", close)
+      document.removeEventListener("pointerdown", onPointerDown)
+    }
   }, [open])
+
+  const toggle = (): void => {
+    if (open) {
+      setOpen(false)
+      return
+    }
+    const rect = buttonRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const needed = user.active ? 3 * MENU_ITEM_HEIGHT_PX + 47 : 2 * MENU_ITEM_HEIGHT_PX + 32
+    const shouldOpenUp = isLast || (window.innerHeight - rect.bottom < needed && rect.top > needed)
+    const left = Math.min(
+      Math.max(8, rect.right - MENU_WIDTH_PX),
+      Math.max(8, window.innerWidth - MENU_WIDTH_PX - 8),
+    )
+    const top = shouldOpenUp ? Math.max(8, rect.top - needed - 4) : rect.bottom + 4
+    setPosition({ top, left })
+    setOpen(true)
+  }
+
   const choose = (next: UsersModal): void => {
     setOpen(false)
     onAction(next)
   }
-  return (
-    <div className="row-menu" ref={containerRef}>
+
+  const items = (
+    <>
       <button
         type="button"
-        className="button button-secondary"
-        aria-label={`Actions for ${user.displayName}`}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        disabled={busy}
-        onClick={() => setOpen((current) => !current)}
+        role="menuitem"
+        className="button button-secondary row-menu-item"
+        onClick={() => choose({ kind: "grant", user })}
       >
-        <MoreVertical size={16} aria-hidden="true" focusable="false" />
+        Grant session
       </button>
-      <div
-        className={openUp ? "row-menu-list row-menu-up" : "row-menu-list"}
-        role="menu"
-        hidden={!open}
+      <button
+        type="button"
+        role="menuitem"
+        className="button button-secondary row-menu-item"
+        onClick={() => choose({ kind: "reset", user })}
       >
+        Reset password
+      </button>
+      {user.active ? (
         <button
           type="button"
           role="menuitem"
-          className="button button-secondary row-menu-item"
-          onClick={() => choose({ kind: "grant", user })}
+          className="button button-danger row-menu-item"
+          onClick={() => choose({ kind: "disable", user })}
         >
-          Grant session
+          Disable
         </button>
+      ) : (
         <button
           type="button"
           role="menuitem"
-          className="button button-secondary row-menu-item"
-          onClick={() => choose({ kind: "reset", user })}
+          className="button button-primary row-menu-item"
+          onClick={() => choose({ kind: "enable", user })}
         >
-          Reset password
+          Enable
         </button>
-        {user.active ? (
-          <button
-            type="button"
-            role="menuitem"
-            className="button button-danger row-menu-item"
-            onClick={() => choose({ kind: "disable", user })}
-          >
-            Disable
-          </button>
-        ) : null}
+      )}
+    </>
+  )
+
+  const trigger = (
+    <button
+      ref={buttonRef}
+      type="button"
+      className="button button-secondary"
+      aria-label={`Actions for ${user.displayName}`}
+      aria-haspopup="menu"
+      aria-expanded={open}
+      disabled={busy}
+      onClick={toggle}
+    >
+      <MoreVertical size={16} aria-hidden="true" focusable="false" />
+    </button>
+  )
+
+  // Server render cannot portal; the static menu stays hidden and is only used
+  // by markup-level tests.
+  if (typeof document === "undefined") {
+    return (
+      <div className="row-menu">
+        {trigger}
+        <div className="row-menu-list" role="menu" hidden>
+          {items}
+        </div>
       </div>
+    )
+  }
+  return (
+    <div className="row-menu">
+      {trigger}
+      {open && position
+        ? createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              className="row-menu-list"
+              style={{ top: position.top, left: position.left }}
+            >
+              {items}
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   )
 }
@@ -187,7 +261,7 @@ function UsersTable({
                 <RowActions
                   user={user}
                   busy={busy}
-                  openUp={index === users.length - 1}
+                  isLast={index === users.length - 1}
                   onAction={onAction}
                 />
               </td>
@@ -206,10 +280,12 @@ export function UsersPage({
   createUserAction,
   grantAction,
   disableAction,
+  enableAction,
   resetPasswordAction,
   onCreateUser,
   onCreateGrant,
   onDisableUser,
+  onEnableUser,
   onResetPassword,
 }: Readonly<{
   role: DashboardRole
@@ -218,10 +294,12 @@ export function UsersPage({
   createUserAction: ActionState<AdminUser>
   grantAction: ActionState<null>
   disableAction: ActionState<null>
+  enableAction: ActionState<null>
   resetPasswordAction: ActionState<null>
   onCreateUser: (input: AdminCreateUserInput) => Promise<void>
   onCreateGrant: (input: AdminGrantInput) => Promise<void>
   onDisableUser: (userId: string) => Promise<void>
+  onEnableUser: (userId: string) => Promise<void>
   onResetPassword: (userId: string, password: string) => Promise<void>
 }>): React.JSX.Element {
   const [modal, setModal] = useState<UsersModal | null>(null)
@@ -244,11 +322,14 @@ export function UsersPage({
   const allUsers = users.kind === "ready" ? users.data : []
   const needle = q.trim().toLowerCase()
   const filtered = allUsers.filter((user) => {
-    if (needle && !(
-      user.email.toLowerCase().includes(needle) ||
-      user.displayName.toLowerCase().includes(needle) ||
-      user.id.toLowerCase().includes(needle)
-    ))
+    if (
+      needle &&
+      !(
+        user.email.toLowerCase().includes(needle) ||
+        user.displayName.toLowerCase().includes(needle) ||
+        user.id.toLowerCase().includes(needle)
+      )
+    )
       return false
     if (statusFilter === "active" && !user.active) return false
     if (statusFilter === "disabled" && user.active) return false
@@ -263,6 +344,7 @@ export function UsersPage({
     createUserAction.kind === "submitting" ||
     grantAction.kind === "submitting" ||
     disableAction.kind === "submitting" ||
+    enableAction.kind === "submitting" ||
     resetPasswordAction.kind === "submitting"
 
   return (
@@ -270,7 +352,7 @@ export function UsersPage({
       <Panel
         eyebrow="Access records"
         title="Users"
-        description="Every user with roles per scope, last login, and their lifecycle actions. Granting gives a user permission to operate one linked WhatsApp session; no credentials are shown. Grant revocation is not available yet."
+        description="Admin-created users and explicit session grants define access. Every row shows status, roles per scope, granted sessions, and last login. A user with no roles and no grants can sign in but sees no sessions and cannot send, schedule, or open Admin controls until an Admin grants a role and a session. Granting gives permission to operate one linked WAHA session (no secrets shown; revocation not available yet). Disabling revokes all sessions and blocks sign-ins — re-enable from the same menu to restore access (previous grants stay revoked)."
       >
         <div className="schedule-filters">
           <label className="schedule-filter-field schedule-filter-search">
@@ -359,11 +441,7 @@ export function UsersPage({
         ) : null}
         {users.kind === "ready" && filtered.length > 0 ? (
           <>
-            <UsersTable
-              users={paged}
-              busy={busy}
-              onAction={(next) => setModal(next)}
-            />
+            <UsersTable users={paged} busy={busy} onAction={(next) => setModal(next)} />
             <nav className="sent-history-pagination" aria-label="Users pagination">
               <span>
                 Total: {allUsers.length} {allUsers.length === 1 ? "user" : "users"}
@@ -423,6 +501,14 @@ export function UsersPage({
           user={modal.user}
           action={disableAction}
           onSubmit={onDisableUser}
+          onClose={() => setModal(null)}
+        />
+      ) : null}
+      {modal?.kind === "enable" ? (
+        <EnableUserModal
+          user={modal.user}
+          action={enableAction}
+          onSubmit={onEnableUser}
           onClose={() => setModal(null)}
         />
       ) : null}

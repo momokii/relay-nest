@@ -42,10 +42,12 @@ type PageContext = Pick<
   | "createUserAction"
   | "grantAction"
   | "disableAction"
+  | "enableAction"
   | "sessionCreateAction"
   | "onCreateUser"
   | "onCreateGrant"
   | "onDisableUser"
+  | "onEnableUser"
   | "onCreateSession"
   | "sessionLifecycleAction"
   | "sessionHistoryAction"
@@ -260,10 +262,12 @@ export function renderDashboardPage(
           createUserAction={context.createUserAction}
           grantAction={context.grantAction}
           disableAction={context.disableAction}
+          enableAction={context.enableAction}
           resetPasswordAction={context.resetPasswordAction}
           onCreateUser={context.onCreateUser}
           onCreateGrant={context.onCreateGrant}
           onDisableUser={context.onDisableUser}
+          onEnableUser={context.onEnableUser}
           onResetPassword={context.onResetPassword}
         />
       )

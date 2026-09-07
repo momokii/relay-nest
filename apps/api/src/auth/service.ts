@@ -224,6 +224,19 @@ export class AuthService {
     }
   }
 
+  async enableUser(userId: string, actorUserId: string): Promise<void> {
+    await this.db.update(users).set({ active: true }).where(eq(users.id, userId))
+    for (const accountScope of ["personal", "business"] as const) {
+      await this.audit({
+        actorUserId,
+        action: "auth.user_enabled",
+        subjectType: "user",
+        subjectId: userId,
+        accountScope,
+      })
+    }
+  }
+
   async authorize(
     principal: AuthPrincipal,
     sessionId: string,
