@@ -18,6 +18,8 @@ type PageContext = Pick<
   DashboardViewProps,
   | "scope"
   | "role"
+  | "principal"
+  | "isDemo"
   | "sessions"
   | "analytics"
   | "notifications"
@@ -272,7 +274,17 @@ export function renderDashboardPage(
         />
       )
     case "settings":
-      return <SettingsPage role={context.role} />
+      return (
+        <SettingsPage
+          role={context.role}
+          scope={context.scope}
+          principal={context.principal}
+          sessions={context.sessions}
+          users={context.users}
+          retention={context.retention}
+          isDemo={context.isDemo}
+        />
+      )
     default:
       return assertNever(view)
   }

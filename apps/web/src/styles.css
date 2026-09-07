@@ -359,7 +359,8 @@ select {
 .schedule-page,
 .send-page,
 .campaign-page,
-.users-page {
+.users-page,
+.settings-page {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-10);
 }

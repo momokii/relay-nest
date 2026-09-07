@@ -123,7 +123,7 @@ export function DashboardView({
           </span>
         </output>
       ) : null}
-      {renderDashboardPage(activeView, { scope, role, ...context })}
+      {renderDashboardPage(activeView, { scope, role, principal, isDemo, ...context })}
     </>
   )
 }
