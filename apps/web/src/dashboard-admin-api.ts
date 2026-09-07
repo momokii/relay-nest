@@ -19,6 +19,13 @@ const adminUserRecordSchema = z.object({
   createdAt: z.string(),
   lastLoginAt: z.string().nullable(),
   roles: z.array(z.object({ accountScope: z.string(), role: z.string() })),
+  grants: z.array(
+    z.object({
+      sessionId: z.string(),
+      sessionName: z.string(),
+      accountScope: z.string(),
+    }),
+  ),
 })
 
 export type AdminUserRecord = z.infer<typeof adminUserRecordSchema>

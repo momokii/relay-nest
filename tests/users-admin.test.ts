@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest"
 
-import { groupUserRows, mergeLastLogins, type UserWithRoleRow } from "../apps/api/src/auth/admin"
+import {
+  groupUserRows,
+  mergeGrants,
+  mergeLastLogins,
+  type UserWithRoleRow,
+} from "../apps/api/src/auth/admin"
 import { canListUsers } from "../apps/api/src/auth/http"
 
 const baseUser = {
@@ -71,6 +76,43 @@ describe("mergeLastLogins", () => {
     // Then the known login is attached and the other user is null
     expect(merged[0]?.lastLoginAt).toEqual(new Date("2026-09-06T02:00:00.000Z"))
     expect(merged[1]?.lastLoginAt).toBeNull()
+  })
+})
+
+describe("mergeGrants", () => {
+  it("attaches each user's grants and defaults users without grants to empty", () => {
+    // Given two users where only one holds a session grant
+    const users = mergeLastLogins(
+      groupUserRows([
+        row({ accountScope: "personal", role: "operator" }),
+        row(null, {
+          id: "22222222-2222-4222-8222-222222222222",
+          email: "fresh@example.test",
+          displayName: "Fresh",
+        }),
+      ]),
+      new Map(),
+    )
+
+    // When the grant rows are merged
+    const merged = mergeGrants(users, [
+      {
+        userId: baseUser.id,
+        sessionId: "33333333-3333-4333-8333-333333333333",
+        sessionName: "self im3",
+        accountScope: "personal",
+      },
+    ])
+
+    // Then only the granted user carries the grant
+    expect(merged[0]?.grants).toEqual([
+      {
+        sessionId: "33333333-3333-4333-8333-333333333333",
+        sessionName: "self im3",
+        accountScope: "personal",
+      },
+    ])
+    expect(merged[1]?.grants).toEqual([])
   })
 })
 

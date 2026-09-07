@@ -124,6 +124,7 @@ function UsersTable({
             <th scope="col">Display name</th>
             <th scope="col">Status</th>
             <th scope="col">Roles</th>
+            <th scope="col">Granted sessions</th>
             <th scope="col">User ID</th>
             <th scope="col">Created</th>
             <th scope="col">Last login</th>
@@ -157,6 +158,21 @@ function UsersTable({
                       <StatusBadge
                         key={`${role.accountScope}-${role.role}`}
                         label={`${role.accountScope} · ${role.role}`}
+                      />
+                    ))
+                  )}
+                </span>
+              </td>
+              <td>
+                <span className="status-list">
+                  {user.grants.length === 0 ? (
+                    <small>no grants</small>
+                  ) : (
+                    user.grants.map((grant) => (
+                      <StatusBadge
+                        key={`${grant.sessionId}-${grant.accountScope}`}
+                        label={`${grant.sessionName} · ${grant.accountScope}`}
+                        info="Sessions this user is allowed to operate, granted by an Admin."
                       />
                     ))
                   )}

@@ -19,6 +19,13 @@ const USERS: readonly AdminUserRecord[] = [
     createdAt: "2026-09-01T09:00:00.000Z",
     lastLoginAt: null,
     roles: [{ accountScope: "personal", role: "operator" }],
+    grants: [
+      {
+        sessionId: "aaaa1111-1111-4111-8111-111111111111",
+        sessionName: "self im3",
+        accountScope: "personal",
+      },
+    ],
   },
   {
     id: "99999999-9999-4999-8999-999999999999",
@@ -28,6 +35,7 @@ const USERS: readonly AdminUserRecord[] = [
     createdAt: "2026-09-02T09:00:00.000Z",
     lastLoginAt: "2026-09-06T02:00:00.000Z",
     roles: [],
+    grants: [],
   },
 ]
 
@@ -75,6 +83,8 @@ describe("users access page", () => {
     // Then the table exposes lifecycle data, filters, and the kebab action menu
     expect(markup).toContain("operator@example.test")
     expect(markup).toContain("personal · operator")
+    expect(markup).toContain("self im3 · personal")
+    expect(markup).toContain("no grants")
     expect(markup).toContain(">active<")
     expect(markup).toContain(">disabled<")
     expect(markup).toContain("never")

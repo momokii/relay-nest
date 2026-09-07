@@ -149,6 +149,7 @@ export function registerAuthRoutes(
         createdAt: user.createdAt.toISOString(),
         lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
         roles: [...user.roles],
+        grants: [...user.grants],
       })),
     })
   })

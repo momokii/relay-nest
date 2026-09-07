@@ -568,7 +568,11 @@ select {
   font-size: var(--type-caption);
 }
 .users-table {
-  min-width: 760px;
+  min-width: 880px;
+}
+/* Dropdown action menus must never be clipped by the table scroll container. */
+.users-page .sent-history-table-wrap {
+  overflow: visible;
 }
 .row-menu {
   position: relative;

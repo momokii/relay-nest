@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from "drizzle-orm"
+import { and, eq, inArray, isNull, sql } from "drizzle-orm"
 import type { PersistenceDatabase } from "../db/client"
 import { auditEntries, authSessions, sessionGrants, sessions, userRoles, users } from "../db/schema"
 import type { AccountScope } from "../db/schema/shared"
@@ -92,7 +92,7 @@ export class AdminService {
     return Boolean(role)
   }
 
-  async listUsers(): Promise<readonly AdminUserWithLogin[]> {
+  async listUsers(): Promise<readonly AdminUserWithAccess[]> {
     const rows = await this.db
       .select({
         user: {
@@ -123,7 +123,23 @@ export class AdminService {
       const parsed = login.lastLoginAt ? new Date(login.lastLoginAt) : null
       lastLogins.set(login.subjectId, parsed && !Number.isNaN(parsed.getTime()) ? parsed : null)
     }
-    return mergeLastLogins(groupUserRows(rows), lastLogins)
+    const withLogins = mergeLastLogins(groupUserRows(rows), lastLogins)
+    const userIds = withLogins.map((user) => user.id)
+    const grants =
+      userIds.length === 0
+        ? []
+        : await this.db
+            .select({
+              userId: sessionGrants.userId,
+              sessionId: sessionGrants.sessionId,
+              sessionName: sessions.name,
+              accountScope: sessionGrants.accountScope,
+            })
+            .from(sessionGrants)
+            .innerJoin(sessions, eq(sessions.id, sessionGrants.sessionId))
+            .where(inArray(sessionGrants.userId, userIds))
+            .orderBy(sessions.name, sessionGrants.accountScope)
+    return mergeGrants(withLogins, grants)
   }
 
   async resetPassword(input: {
@@ -189,11 +205,42 @@ export type AdminUserRecord = {
 
 export type AdminUserWithLogin = AdminUserRecord & { readonly lastLoginAt: Date | null }
 
+export type AdminUserGrant = {
+  readonly sessionId: string
+  readonly sessionName: string
+  readonly accountScope: AccountScope
+}
+
+export type AdminUserWithAccess = AdminUserWithLogin & {
+  readonly grants: readonly AdminUserGrant[]
+}
+
 export function mergeLastLogins(
   users: readonly AdminUserRecord[],
   lastLogins: ReadonlyMap<string, Date | null>,
 ): readonly AdminUserWithLogin[] {
   return users.map((user) => ({ ...user, lastLoginAt: lastLogins.get(user.id) ?? null }))
+}
+
+export type AdminUserGrantRow = { readonly userId: string } & AdminUserGrant
+
+export function mergeGrants(
+  users: readonly AdminUserWithLogin[],
+  grants: readonly AdminUserGrantRow[],
+): readonly AdminUserWithAccess[] {
+  const byUser = new Map<string, readonly AdminUserGrant[]>()
+  for (const grant of grants) {
+    const current = byUser.get(grant.userId) ?? []
+    byUser.set(grant.userId, [
+      ...current,
+      {
+        sessionId: grant.sessionId,
+        sessionName: grant.sessionName,
+        accountScope: grant.accountScope,
+      },
+    ])
+  }
+  return users.map((user) => ({ ...user, grants: byUser.get(user.id) ?? [] }))
 }
 
 type UserWithRoleRow = {
