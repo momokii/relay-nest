@@ -332,34 +332,45 @@ export function SettingsPage({
       </Panel>
 
       {isAdmin ? (
-        <Panel eyebrow="Security boundary" title="What this UI will not expose" tone="inset">
+        <Panel eyebrow="Admin diagnostics" title="Full data map — admin only" tone="inset">
           <ul className="plain-list">
             <li>
-              WAHA master keys, API keys, or raw session credentials — stay server-side in Docker
-              secrets
+              <strong>Users:</strong>{" "}
+              {userCount === null
+                ? "…"
+                : `${userCount} total · ${activeUsers ?? "…"} active · ${userCount - (activeUsers ?? 0)} disabled`}
+              {users.kind === "ready"
+                ? ` — ${users.data.filter((user) => user.roles.length === 0).length} no roles, ${users.data.filter((user) => user.grants.length === 0).length} no grants`
+                : ""}
             </li>
             <li>
-              Unrestricted raw WAHA endpoint launcher — only scoped, CSRF-gated actions are exposed
+              <strong>Sessions in {scope}:</strong>{" "}
+              {sessionCount === null ? "…" : `${sessionCount} total`}
+              {sessions.kind === "ready" && sessions.data.length > 0
+                ? ` — ${sessions.data.map((session) => `${session.name}:${session.status}`).join(" · ")}`
+                : ""}
             </li>
             <li>
-              Public registration or client-side authorization decisions — users are Admin-created
-              only
+              <strong>Retention:</strong>{" "}
+              {retention.kind === "ready"
+                ? retention.data
+                    .map((policy) => `${policy.category} ${policy.retentionDays}d`)
+                    .join(" · ")
+                : "loading…"}
             </li>
             <li>
-              Raw notification secrets — SMTP password and Telegram bot token are stored masked
-              (••••)
+              <strong>WAHA:</strong> internal `waha:3000`, dashboard `127.0.0.1:8080` loopback by
+              default, public via reverse-proxy TLS + firewall — credentials stay in Docker secrets
             </li>
             <li>
-              Browser-visible delivery proof — WAHA WORKING or HTTP 200 is not recipient-delivery
-              proof
+              <strong>Encryption:</strong> AES-256-GCM, key from Docker secret, per-scope AAD
+            </li>
+            <li>
+              <strong>Boundary:</strong> single tenant, Personal/Business hard-separated, no public
+              registration, no raw provider launcher
             </li>
           </ul>
-          <StatusBadge label="Admin warning visible" tone="warning" />
-          <p className="panel-description" style={{ maxWidth: "none", marginTop: "0.75rem" }}>
-            Bundled WAHA stays on the internal Compose network (`waha:3000`), dashboard binds to
-            loopback by default (`127.0.0.1:8080`), and public exposure requires reverse-proxy TLS +
-            firewall per `docs/operations.md`. Unofficial-client ban risk remains residual.
-          </p>
+          <StatusBadge label="Admin full data visible" tone="warning" />
         </Panel>
       ) : null}
     </div>
