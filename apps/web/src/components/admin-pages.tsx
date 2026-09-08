@@ -213,6 +213,7 @@ export function SettingsPage({
             </span>
           </div>
         </div>
+        <Divider />
         <StateNotice
           title={isAdmin ? "Admin has full change power" : "Viewer is read-only here"}
           message={
@@ -330,38 +331,37 @@ export function SettingsPage({
         />
       </Panel>
 
-      <Panel eyebrow="Security boundary" title="What this UI will not expose" tone="inset">
-        <ul className="plain-list">
-          <li>
-            WAHA master keys, API keys, or raw session credentials — stay server-side in Docker
-            secrets
-          </li>
-          <li>
-            Unrestricted raw WAHA endpoint launcher — only scoped, CSRF-gated actions are exposed
-          </li>
-          <li>
-            Public registration or client-side authorization decisions — users are Admin-created
-            only
-          </li>
-          <li>
-            Raw notification secrets — SMTP password and Telegram bot token are stored masked (••••)
-          </li>
-          <li>
-            Browser-visible delivery proof — WAHA WORKING or HTTP 200 is not recipient-delivery
-            proof
-          </li>
-        </ul>
-        {role === "admin" ? (
+      {isAdmin ? (
+        <Panel eyebrow="Security boundary" title="What this UI will not expose" tone="inset">
+          <ul className="plain-list">
+            <li>
+              WAHA master keys, API keys, or raw session credentials — stay server-side in Docker
+              secrets
+            </li>
+            <li>
+              Unrestricted raw WAHA endpoint launcher — only scoped, CSRF-gated actions are exposed
+            </li>
+            <li>
+              Public registration or client-side authorization decisions — users are Admin-created
+              only
+            </li>
+            <li>
+              Raw notification secrets — SMTP password and Telegram bot token are stored masked
+              (••••)
+            </li>
+            <li>
+              Browser-visible delivery proof — WAHA WORKING or HTTP 200 is not recipient-delivery
+              proof
+            </li>
+          </ul>
           <StatusBadge label="Admin warning visible" tone="warning" />
-        ) : (
-          <StatusBadge label="Viewer read-only" />
-        )}
-        <p className="panel-description" style={{ maxWidth: "none", marginTop: "0.75rem" }}>
-          Bundled WAHA stays on the internal Compose network (`waha:3000`), dashboard binds to
-          loopback by default (`127.0.0.1:8080`), and public exposure requires reverse-proxy TLS +
-          firewall per `docs/operations.md`. Unofficial-client ban risk remains residual.
-        </p>
-      </Panel>
+          <p className="panel-description" style={{ maxWidth: "none", marginTop: "0.75rem" }}>
+            Bundled WAHA stays on the internal Compose network (`waha:3000`), dashboard binds to
+            loopback by default (`127.0.0.1:8080`), and public exposure requires reverse-proxy TLS +
+            firewall per `docs/operations.md`. Unofficial-client ban risk remains residual.
+          </p>
+        </Panel>
+      ) : null}
     </div>
   )
 }
