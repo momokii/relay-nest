@@ -1,6 +1,6 @@
 import type * as React from "react"
-import { useState } from "react"
-
+import { useEffect, useState } from "react"
+import { createDashboardAdminApi } from "../dashboard-admin-api"
 import type { AccountScope, DashboardRole } from "../dashboard-model"
 import {
   RETENTION_CATEGORIES,
@@ -10,6 +10,7 @@ import {
   type RetentionPreview,
 } from "../dashboard-retention-api"
 import type { ActionState, ResourceState } from "../dashboard-state"
+import { resourceFromResult } from "../dashboard-state"
 import { RetentionPolicyForm } from "./retention-policy-form"
 import { Divider, Panel, StateNotice, StatusBadge } from "./ui"
 import { ResourceStateBody } from "./view-support"
@@ -190,6 +191,16 @@ export function SettingsPage({
     users.kind === "ready" ? users.data.filter((user) => user.active).length : null
   const retentionCount = retention.kind === "ready" ? retention.data.length : null
   const isAdmin = role === "admin"
+  const [connections, setConnections] = useState<
+    ResourceState<
+      readonly { readonly id: string; readonly name: string; readonly baseUrl: string }[]
+    >
+  >({ kind: "loading" })
+  useEffect(() => {
+    if (!isAdmin) return
+    const api = createDashboardAdminApi(import.meta.env.VITE_API_BASE_URL)
+    void api.listConnections().then((result) => setConnections(resourceFromResult(result)))
+  }, [isAdmin])
   return (
     <div className="page-grid settings-page">
       <Panel
@@ -330,6 +341,54 @@ export function SettingsPage({
           tone="warning"
         />
       </Panel>
+
+      {isAdmin ? (
+        <Panel eyebrow="WAHA" title="WAHA credentials — admin only">
+          <p className="panel-description" style={{ maxWidth: "none" }}>
+            Connection profile stays server-side. Base URL and name are shown here; API key is
+            AES-256-GCM encrypted at rest and loaded from Docker secret <code>waha_api_key</code> —
+            never exposed raw to the browser. Use this inventory to verify which WAHA you are linked
+            to.
+          </p>
+          {connections.kind === "loading" ? (
+            <p className="panel-description">Loading WAHA connections…</p>
+          ) : connections.kind === "ready" ? (
+            connections.data.length === 0 ? (
+              <StateNotice
+                title="No WAHA connections"
+                message="No active WAHA connection found. Seed the bundled WAHA or create one via the API with an encrypted API key."
+              />
+            ) : (
+              <div className="retention-list">
+                {connections.data.map((connection) => (
+                  <div className="retention-row" key={connection.id}>
+                    <span>
+                      <strong>{connection.name}</strong> —{" "}
+                      <code title={connection.baseUrl}>{connection.baseUrl}</code>
+                      <br />
+                      <small title={connection.id}>
+                        id {connection.id.slice(0, 8)}…{connection.id.slice(-4)}
+                      </small>{" "}
+                      · <code>API key •••• (Docker secret)</code>
+                    </span>
+                    <StatusBadge label="active" tone="success" />
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            <StateNotice
+              title="WAHA connections unavailable"
+              message={
+                connections.kind === "error" || connections.kind === "denied"
+                  ? connections.message
+                  : "Could not load WAHA connections."
+              }
+              tone="warning"
+            />
+          )}
+        </Panel>
+      ) : null}
 
       {isAdmin ? (
         <Panel eyebrow="Admin diagnostics" title="Full data map — admin only" tone="inset">
