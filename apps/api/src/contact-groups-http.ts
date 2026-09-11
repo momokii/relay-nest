@@ -30,7 +30,8 @@ export function registerContactGroupsRoutes(
     if (!sameOrigin(request)) return reply.code(403).send({ error: "forbidden" })
     const principal = await authenticate(auth, request, reply)
     if (!principal) return
-    if (!(await csrfValid(auth, principal, request))) return reply.code(403).send({ error: "forbidden" })
+    if (!(await csrfValid(auth, principal, request)))
+      return reply.code(403).send({ error: "forbidden" })
     const { scope } = scopeQuerySchema.parse(request.query)
     const parsed = contactGroupBodySchema.safeParse(request.body)
     if (!parsed.success) return reply.code(400).send({ error: "invalid request" })
@@ -63,13 +64,27 @@ export function registerContactGroupsRoutes(
     if (!sameOrigin(request)) return reply.code(403).send({ error: "forbidden" })
     const principal = await authenticate(auth, request, reply)
     if (!principal) return
-    if (!(await csrfValid(auth, principal, request))) return reply.code(403).send({ error: "forbidden" })
+    if (!(await csrfValid(auth, principal, request)))
+      return reply.code(403).send({ error: "forbidden" })
     const { groupId } = z.object({ groupId: z.string().uuid() }).parse(request.params)
     const { scope } = scopeQuerySchema.parse(request.query)
-    const parsed = z.object({ phone: z.string().min(8).max(20).optional(), contactId: z.string().uuid().optional() }).safeParse(request.body)
-    if (!parsed.success || (!parsed.data.phone && !parsed.data.contactId)) return reply.code(400).send({ error: "invalid request" })
+    const parsed = z
+      .object({
+        phone: z.string().min(8).max(20).optional(),
+        contactId: z.string().uuid().optional(),
+      })
+      .safeParse(request.body)
+    if (!parsed.success || (!parsed.data.phone && !parsed.data.contactId))
+      return reply.code(400).send({ error: "invalid request" })
     try {
-      const member = await repository.addMember(principal.userId, scope, groupId, parsed.data.phone ? { phone: parsed.data.phone } : { contactId: parsed.data.contactId as string })
+      const member = await repository.addMember(
+        principal.userId,
+        scope,
+        groupId,
+        parsed.data.phone
+          ? { phone: parsed.data.phone }
+          : { contactId: parsed.data.contactId as string },
+      )
       return reply.code(201).send(member)
     } catch {
       return reply.code(403).send({ error: "forbidden" })
@@ -80,8 +95,11 @@ export function registerContactGroupsRoutes(
     if (!sameOrigin(request)) return reply.code(403).send({ error: "forbidden" })
     const principal = await authenticate(auth, request, reply)
     if (!principal) return
-    if (!(await csrfValid(auth, principal, request))) return reply.code(403).send({ error: "forbidden" })
-    const { groupId, memberId } = z.object({ groupId: z.string().uuid(), memberId: z.string().uuid() }).parse(request.params)
+    if (!(await csrfValid(auth, principal, request)))
+      return reply.code(403).send({ error: "forbidden" })
+    const { groupId, memberId } = z
+      .object({ groupId: z.string().uuid(), memberId: z.string().uuid() })
+      .parse(request.params)
     const { scope } = scopeQuerySchema.parse(request.query)
     try {
       const ok = await repository.removeMember(principal.userId, scope, groupId, memberId)
@@ -96,7 +114,8 @@ export function registerContactGroupsRoutes(
     if (!sameOrigin(request)) return reply.code(403).send({ error: "forbidden" })
     const principal = await authenticate(auth, request, reply)
     if (!principal) return
-    if (!(await csrfValid(auth, principal, request))) return reply.code(403).send({ error: "forbidden" })
+    if (!(await csrfValid(auth, principal, request)))
+      return reply.code(403).send({ error: "forbidden" })
     const { groupId } = z.object({ groupId: z.string().uuid() }).parse(request.params)
     const { scope } = scopeQuerySchema.parse(request.query)
     try {

@@ -620,11 +620,51 @@ describe("scoped WAHA session lifecycle", () => {
 
     // Then previews are first-line, media-aware, truncated, and direction/time are safe
     expect(messages).toEqual([
-      { at: "2025-09-04T15:33:20.000Z", direction: "out", preview: "first line" },
-      { at: "2025-09-04T15:33:21.000Z", direction: "in", preview: `${"B".repeat(280)}…` },
-      { at: "2025-09-04T15:33:22.000Z", direction: "unknown", preview: "[media]" },
-      { at: null, direction: "unknown", preview: "no timestamp message" },
-      { at: "2025-09-04T15:33:23.000Z", direction: "in", preview: "E".repeat(280) },
+      {
+        id: null,
+        at: "2025-09-04T15:33:20.000Z",
+        direction: "out",
+        preview: "first line",
+        hasMedia: false,
+        mimetype: null,
+        sender: null,
+      },
+      {
+        id: null,
+        at: "2025-09-04T15:33:21.000Z",
+        direction: "in",
+        preview: `${"B".repeat(280)}…`,
+        hasMedia: false,
+        mimetype: null,
+        sender: null,
+      },
+      {
+        id: null,
+        at: "2025-09-04T15:33:22.000Z",
+        direction: "unknown",
+        preview: "[media]",
+        hasMedia: true,
+        mimetype: null,
+        sender: null,
+      },
+      {
+        id: null,
+        at: null,
+        direction: "unknown",
+        preview: "no timestamp message",
+        hasMedia: false,
+        mimetype: null,
+        sender: null,
+      },
+      {
+        id: null,
+        at: "2025-09-04T15:33:23.000Z",
+        direction: "in",
+        preview: "E".repeat(280),
+        hasMedia: false,
+        mimetype: null,
+        sender: null,
+      },
     ])
     expect(messageCalls).toEqual(["personal:628123456789@c.us"])
     expect(JSON.stringify(messages)).not.toContain("second line secret")

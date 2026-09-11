@@ -1,7 +1,11 @@
-import { createEnvelopeCipher } from "../packages/config/src/encryption"
-
 import type { DatabaseHandle } from "../apps/api/src/db/client"
-import { contacts, dispatchAttempts, normalizedEvents, scheduledJobs } from "../apps/api/src/db/schema"
+import {
+  contacts,
+  dispatchAttempts,
+  normalizedEvents,
+  scheduledJobs,
+} from "../apps/api/src/db/schema"
+import { createEnvelopeCipher } from "../packages/config/src/encryption"
 
 export async function seedAnalyticsRecords(
   database: DatabaseHandle,

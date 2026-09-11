@@ -47,6 +47,7 @@ function historyItem(state: HistoryState, page: number) {
     failureCode: state === "failed" ? "waha_unavailable" : null,
     recoveryCode: null,
     providerMessageId: state === "submitted" ? "provider-123456789012345678901234" : null,
+    origin: "scheduled",
   }
 }
 
@@ -142,8 +143,9 @@ test.describe("combined schedule history table", () => {
       const row = historyRow(page, state)
       await expect(row).toBeVisible()
       const tone = state === "failed" ? "error" : "warning"
-      await expect(row.locator(".status-badge")).toHaveText(state)
-      await expect(row.locator(".status-badge")).toHaveClass(new RegExp(`status-${tone}`))
+      const stateBadge = row.locator(".status-badge", { hasText: new RegExp(`^${state}$`) })
+      await expect(stateBadge).toHaveText(state)
+      await expect(stateBadge).toHaveClass(new RegExp(`status-${tone}`))
     }
     if (process.env.SCHEDULE_HISTORY_QA === "1") {
       await page.screenshot({ path: "/tmp/opencode/qa-schedule-history/table.png", fullPage: true })
@@ -299,7 +301,7 @@ test.describe("combined schedule history table", () => {
     const pagination = page.getByRole("navigation", { name: "Schedule history pagination" })
 
     // Then the first page reports more availability with Previous disabled
-    await expect(pagination.getByText("Page 1 · more available")).toBeVisible()
+    await expect(pagination.getByText("Page 1 · 20 per page · more available")).toBeVisible()
     await expect(pagination.getByRole("button", { name: "Previous" })).toBeDisabled()
 
     // When the operator advances to the second page
@@ -310,10 +312,11 @@ test.describe("combined schedule history table", () => {
       const row = historyRow(page, state)
       await expect(row).toBeVisible()
       const tone = state === "acknowledged" ? "success" : "info"
-      await expect(row.locator(".status-badge")).toHaveText(state)
-      await expect(row.locator(".status-badge")).toHaveClass(new RegExp(`status-${tone}`))
+      const stateBadge = row.locator(".status-badge", { hasText: new RegExp(`^${state}$`) })
+      await expect(stateBadge).toHaveText(state)
+      await expect(stateBadge).toHaveClass(new RegExp(`status-${tone}`))
     }
-    await expect(pagination.getByText("Page 2", { exact: true })).toBeVisible()
+    await expect(pagination.getByText("Page 2 · 20 per page", { exact: true })).toBeVisible()
     await expect(pagination.getByRole("button", { name: "Next" })).toBeDisabled()
 
     // When the operator returns to the first page
@@ -321,6 +324,6 @@ test.describe("combined schedule history table", () => {
 
     // Then the first page renders again
     await expect(historyRow(page, "scheduled")).toBeVisible()
-    await expect(pagination.getByText("Page 1 · more available")).toBeVisible()
+    await expect(pagination.getByText("Page 1 · 20 per page · more available")).toBeVisible()
   })
 })

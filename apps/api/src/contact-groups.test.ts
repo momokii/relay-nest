@@ -18,6 +18,7 @@ describe.skipIf(!repository || !database)("contact group repository", () => {
 
     await expect(repository.list(userId, "personal")).resolves.toHaveLength(1)
     await expect(repository.list(userId, "business")).resolves.toHaveLength(0)
+    await database.sql`DELETE FROM contact_groups WHERE created_by = ${userId}`
     await database.sql`DELETE FROM users WHERE id = ${userId}`
   })
 
@@ -47,6 +48,7 @@ describe.skipIf(!repository || !database)("contact group repository", () => {
       true,
     )
     await expect(repository.listMembers(userId, "personal", group.id)).resolves.toHaveLength(1)
+    await database.sql`DELETE FROM contact_groups WHERE created_by = ${userId}`
     await database.sql`DELETE FROM users WHERE id = ${userId}`
   })
 
@@ -64,6 +66,7 @@ describe.skipIf(!repository || !database)("contact group repository", () => {
     const wrongKeyRepository = createContactGroupRepository(database.db, Buffer.alloc(32, 8))
 
     await expect(wrongKeyRepository.listMembers(userId, "personal", group.id)).rejects.toThrow()
+    await database.sql`DELETE FROM contact_groups WHERE created_by = ${userId}`
     await database.sql`DELETE FROM users WHERE id = ${userId}`
   })
 })

@@ -61,6 +61,17 @@ function createSessionService() {
     ) => repositories.sessions.updateStatus(id, scope, status, observedAt),
     statusHistory: async () => history,
     create: async (input: Omit<StoredSession, "id">) => repositories.sessions.create(input),
+    createGrant: async (input: {
+      userId: string
+      sessionId: string
+      scope: "personal" | "business"
+    }) => {
+      await repositories.sessionGrants.create({
+        userId: input.userId,
+        sessionId: input.sessionId,
+        accountScope: input.scope,
+      })
+    },
     update: (id: string, scope: "personal" | "business", input: Partial<StoredSession>) =>
       repositories.sessions.update(id, scope, input),
     remove: (id: string, scope: "personal" | "business") => repositories.sessions.remove(id, scope),

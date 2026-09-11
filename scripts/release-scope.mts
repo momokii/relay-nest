@@ -14,6 +14,7 @@ const EXCLUDED_DIRECTORIES = new Set([
   "tmp",
   ".tmp",
   ".codegraph",
+  ".omo",
   "generated",
 ])
 

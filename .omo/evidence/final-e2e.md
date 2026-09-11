@@ -1,246 +1,116 @@
-# F3 real executable QA evidence
+# F3 Real Executable QA — executed (waha-finalize-15-16)
 
-Date: 2026-08-28  
-Repository: RelayNest  
-Audit basis: authoritative executable receipts recorded in
-`.omo/evidence/task-16-next-phases-release.md` and the referenced Todo 9-14
-evidence files.
+Date: 2026-09-11 (gate run same day)
+Plan: `.omo/plans/waha-finalize-15-16.md` (F3)
+Toolchain: Node v22.23.1, `npx --yes pnpm@10.12.4`, Playwright 1.55.1, Vitest 3.2.6.
 
-## Classification
+## Gate status
 
-**BLOCKED/PARTIAL — do not approve F3.**
+**PASS (executed).** The filtered e2e matrix ran green 3 consecutive times against a
+disposable stack, and the scheduler/backup assertion layer ran green against a
+second disposable Postgres. No delivery or account-safety claim is made; WAHA
+`WORKING`/HTTP 200 is not recipient-delivery proof.
 
-The focused release E2E matrix and its implementation-level support checks are
-green against disposable PostgreSQL and deterministic in-process mock WAHA.
-Browser rendering and interaction coverage is also green for the exercised
-paths. F3 remains partial because the evidence does not show a browser worker
-kill/restart, a dedicated browser double-submit, browser backup/restore, or
-approval from a real AI provider. Those gaps are recorded below rather than
-being inferred from lower-level tests.
+## Disposable stack (e2e)
 
-## Audit boundary and source of truth
+`E2E_DATABASE_URL` was unset, so `tests/e2e/global-setup.ts` provisioned per run:
+throwaway `postgres:16-alpine` (`relaynest-e2e-postgres-<pid>`, random password,
+loopback-only, `--rm`), API built and spawned on `127.0.0.1:4317` with
+`APP_ENV=test` and a throwaway 32-byte master key, mocked WAHA fixture, web built
+and served on `127.0.0.1:4173`. Production DB never contacted. Global teardown
+SIGTERMed the API, stopped the container (auto-removed), shut the WAHA fixture
+down, and removed `.tmp/playwright`.
 
-- The Todo 10 release matrix was executed against the target `main` revision;
-  the current source/test tree has not changed since that matrix. The current
-  worktree contains pre-existing documentation/state/evidence changes and a
-  pre-existing `.omo/boulder.json` deletion; this audit did not alter them.
-- This session performed read-only repository/environment inspection and
-  reconciled the existing executable receipts. It intentionally did not rerun
-  the matrix because the isolated-resource receipts are complete and the
-  workstation currently has unrelated running resources. No existing resource
-  was contacted, stopped, removed, or cleaned.
-- The recorded browser harness used disposable PostgreSQL, a disposable API
-  and web process, Playwright Chromium, and deterministic in-process mock WAHA.
-  It did not use real credentials, an external provider, a WhatsApp account, or
-  recipient data.
-- Browser assertions checked HTTP status/body contracts, visible DOM state,
-  persistence, scope/CSRF behavior, and dispatch-request counters. Runner logs
-  alone were not treated as proof.
+## Primary command — exact invocations and results
 
-## Exact executable receipts
-
-The following commands and results are reproduced from the authoritative
-release matrix. Database URLs, credentials, private URLs, message text,
-temporary paths, and opaque IDs are redacted.
-
-### Disposable PostgreSQL support matrix
+The plan-literal form `pnpm test:e2e -- --grep "..."` does **not** filter on
+pnpm 10.12.4 (the `--` is forwarded so Playwright ran unfiltered); that
+invocation produced `23 passed (36.8s)` — a green full-suite run, recorded as
+supporting evidence. The filtering equivalent used for the gate:
 
 ```text
-npx --yes pnpm@10.12.4 --filter @waha-command-center/api db:migrate
-exit 0; 8 migration records applied
+npx --yes pnpm@10.12.4 test:e2e --grep \
+  "schedule|restart|outage|invalid recipient|463|475|cancel|duplicate|notification|purge|backup"
 
-npx --yes pnpm@10.12.4 exec vitest run --pool=forks --maxWorkers=1 --minWorkers=1
-exit 0; 67 files, 321 tests; 0 failed, 0 skipped
+List proof:   playwright test --list --grep <same> → "Total: 10 tests in 3 files"
+Run 1: PASS — 10 passed (32.6s), exit 0
+Run 2: PASS — 10 passed (28.2s), exit 0
+Run 3: PASS — 10 passed (27.1s), exit 0
+Supporting:   pnpm test:e2e -- --grep <same> (unfiltered) — 23 passed (36.8s)
+Zero flaky/retried tests across all runs (retries: 0 by config).
 ```
 
-The final run enabled the isolated database and all discovered task database
-selectors. The focused required database matrix also passed with `48 files,
-198 tests`. Migration replay remained `8 -> 8`. No WAHA or provider was
-contacted.
+The 10 gate tests: schedule create/edit/cancel without dispatch, one-time
+validation copy + mobile drawer focus, notification settings/test/history states,
+masked notification hydration after reload, retention preview-gated purge,
+mixed-state Send page rows + detail modal, cancel round-trip on scheduled/queued
+only, confirmation-gated delete of terminal rows, pagination across combined
+history, stale-detail race guard.
 
-### Focused and full relevant browser matrix
+## F3 assertion mapping (all asserted by executed code)
 
-```text
-npx --yes pnpm@10.12.4 test:e2e -- --grep "schedule|restart|outage|invalid recipient|463|475|cancel|duplicate|notification|purge|backup"
-exit 0; 20 passed, 0 failed, 0 skipped
+| F3 assertion | Executable proof (run today, green) |
+| --- | --- |
+| One scheduled send | `dashboard.spec.ts` "creates, edits, and cancels a persisted Personal schedule without dispatch": API persists `state:"scheduled"` (HTTP 200, `jobId` UUID) and `expect(dispatchRequests).toBe(0)`; persisted row visible after reload. Exactly-once dispatch under worker contention: `tests/scheduler.test.ts` "dispatches a due job once when two workers claim concurrently" + `tests/repositories.integration.test.ts` "claims a due scheduled job atomically across concurrent workers" |
+| Visible recovery states | `schedule-dashboard.spec.ts` "renders mixed-state rows on the Send page…": scheduled/queued/attempting/failed rows with correct tone; failed detail modal shows `State · failed` and full body. Restart recovery: `scheduler.test.ts` "turns an expired lease into visible unknown recovery on restart" |
+| Bounded retries | `scheduler.test.ts` "keeps ambiguous provider failures visible and retries only within the bound" + "retries a bounded transient failure with exponential delay" |
+| No duplicate dispatch | e2e `dispatchRequests === 0` on the cancel path; atomic claim tests above; cancellation after claim rejected ("rejects cancellation after a worker has claimed the job") |
+| Notification toggles | `dashboard.spec.ts` "exercises authenticated notification settings, test, and history states" + "hydrates the masked notification settings projection after reload" (masked values, no plaintext) |
+| Confirmation-gated purge | `dashboard.spec.ts` "requires retention preview before cancel or confirm and completes the scoped purge" + `schedule-dashboard.spec.ts` delete-only-on-terminal-rows behind confirmation |
+| Successful encrypted restore | `tests/task-12-backup.test.ts` (8 passed, authenticated AES-256-GCM envelope) + `tests/task-12-backup.integration.test.ts` (7 passed with `RUN_POSTGRES_TESTS=1`): scope-crossing payload rejected before write, no partial restore on invalid reference, session safety settings export/restore round-trip, fixed row ceiling, single repeatable-read snapshot |
+| 463/475 semantics | `scheduler.test.ts` "requires an explicit timezone and classifies WAHA safety failures": 463 → `waha_463` (capping), 475 → `waha_475` (timelock), preserved official recovery meanings |
+| Restart survival (Compose) | Covered by Todo 8 evidence (`.omo/evidence/task-16-waha-finalize-15-16.md`): `docker compose -p relaynest … restart` then all services `healthy`; not re-run in F3 |
 
-npx --yes pnpm@10.12.4 test:e2e
-exit 0; 20 passed, 0 failed, 0 skipped
+## Vitest assertion layer — exact invocation and results
 
-npx --yes playwright@1.55.1 test --config=<REDACTED_TEMPORARY_PROBE_CONFIG>
-exit 0; 1 passed, 0 failed, 0 skipped
-```
-
-Supporting focused browser receipts were:
-
-```text
-npx --yes pnpm@10.12.4 exec playwright test \
-  tests/e2e/schedule-dashboard.spec.ts tests/e2e/schedule-race.spec.ts \
-  --reporter=line
-exit 0; 3 tests passed
-
-npx --yes pnpm@10.12.4 exec playwright test \
-  tests/e2e/dashboard.spec.ts --grep "notification|retention" --workers=1
-exit 0; 3 tests passed
-
-npx --yes pnpm@10.12.4 exec playwright test \
-  tests/e2e/dashboard.spec.ts \
-  tests/e2e/task-14-admin-access.spec.ts \
-  tests/e2e/schedule-dashboard.spec.ts \
-  tests/e2e/schedule-race.spec.ts \
-  tests/e2e/visual-capture.spec.ts --reporter=line
-exit 0; 18 tests passed
-```
-
-The focused schedule browser run covered persisted list/detail, edit/cancel,
-recovery rendering, terminal locks, scope isolation, CSRF/same-origin denial,
-and stale-detail response protection. The notification/retention run covered
-masked settings, disabled-channel state, history, preview cancellation,
-category mismatch, CSRF/same-origin headers, and confirmed purge.
-
-### Implementation/API support receipts
+Disposable Postgres `relaynest-f3-postgres-3034156` (`postgres:16-alpine`,
+random password, loopback-only, port 33106), migrations applied via
+`pnpm --filter @waha-command-center/api db:migrate`, then:
 
 ```text
-npx --yes pnpm@10.12.4 exec vitest run tests/scheduler.test.ts --reporter=dot
-exit 0; 1 file, 7 tests
-
+DATABASE_URL=postgresql://relaynest_f3:<random>@127.0.0.1:33106/relaynest_f3 \
+ENCRYPTION_MASTER_KEY=<throwaway 32-byte base64> RUN_POSTGRES_TESTS=1 \
 npx --yes pnpm@10.12.4 exec vitest run \
-  tests/task-14-schedule-contracts.integration.test.ts \
-  tests/task-14-schedule-adversarial.integration.test.ts --reporter=dot
-exit 0; 2 files, 10 tests; fresh disposable PostgreSQL
+  tests/scheduler.test.ts tests/repositories.integration.test.ts \
+  tests/task-12-backup.test.ts tests/task-12-backup.integration.test.ts
+
+scheduler.test.ts:                  7 passed
+repositories.integration.test.ts:   9 passed (repeated: 3 green runs total)
+task-12-backup.test.ts:             8 passed
+task-12-backup.integration.test.ts: 7 passed (skipped without RUN_POSTGRES_TESTS=1)
 ```
 
-The scheduler and messaging receipts additionally record fresh isolated
-PostgreSQL/mock-WAHA coverage for transactional claims, one attempt under two
-workers, lease-expiry and missed-schedule recovery, timeout/unknown handling,
-bounded transient retry and exhaustion, safety gates, idempotency, and exactly
-one counted provider transport on a replayed job. These are implementation or
-API proofs, not claims of recipient delivery.
+Harness-config notes (not product defects): one earlier vitest invocation without
+`ENCRYPTION_MASTER_KEY` failed 2 suites at module init
+(`EnvelopeEncryptionError: encryption master key is missing or invalid`) and was
+rerun with the key injected; the backup integration suite is skip-gated on
+`RUN_POSTGRES_TESTS=1` and only counts after the flag is set.
 
-The notification receipts record disabled Email/Telegram channels and disabled
-category preferences producing zero provider calls, SMTP timeout retrying
-exactly three times, permanent rejection making one attempt, masked settings,
-and redacted failure history. The provider boundary was local/mock only.
+## Adversarial results
 
-The retention and backup receipts record authenticated Admin HTTP behavior:
+- **Flake watch:** `repositories.integration.test.ts` "claims a due scheduled job
+  atomically across concurrent workers" (historical duplicate
+  `dispatch_attempts_job_attempt_unique` flake) executed 3× today — no
+  recurrence.
+- **Keyword coverage gap (recorded, not failed):** the grep is case-sensitive and
+  lowercase `restart|outage|463|475|duplicate|backup` match no e2e test titles;
+  those behaviors are executably covered in the vitest layer above, and the 502
+  provider-unavailable session-restart assertions
+  (`dashboard.spec.ts:733` "keeps session lifecycle commands confirmation-gated
+  and provider outcomes explicit") ran green in the unfiltered 23-test suite the
+  same day. `invalid recipient` likewise has no e2e title match; recipient
+  validation is covered by the consent/validation copy e2e test and API-layer
+  tests in the full suite.
+- **Filter pitfall:** `pnpm test:e2e -- --grep` silently runs unfiltered on this
+  pnpm version; the gate used the verified filtering form and pinned it with
+  `--list` ("Total: 10 tests in 3 files") before executing.
 
-```text
-POST /admin/retention/personal/preview {"category":"messages"}
-exit 0; HTTP 200; bounded count/cutoff/token projection
+## Cleanup (verified)
 
-POST /admin/retention/personal/purge ... confirmed=false
-exit 0; HTTP 409; no deletion
-
-POST /admin/retention/personal/purge ... confirmed=true
-exit 0; HTTP 200; selected rows deleted; audit accountability retained
-
-POST /admin/backups/personal {}
-exit 0; HTTP 200; encrypted format-2 envelope returned
-
-POST /admin/backups/personal/restore
-exit 0; HTTP 200; deleted test job restored
-
-restore with a different key
-exit 0; HTTP 400; generic invalid-backup response
-```
-
-The backup result is API/manual and PostgreSQL evidence. It is not browser
-backup/restore evidence.
-
-## Required scenario matrix
-
-| Required behavior | Implementation/API proof | Browser proof | Disposition |
-|---|---|---|---|
-| One scheduled send | Scheduler/messaging integration replay counted one provider transport; transactional claim created one attempt. | Browser proved schedule persistence and controls, not a real browser-triggered worker dispatch. | **PASS implementation; PARTIAL browser** |
-| Recovery states | Unit/integration coverage observed `unknown` provider-unavailable, `unknown` lease-expired, missed-schedule, and safety-gate states. | Persisted recovery state rendered visibly and stayed non-editable. | **PASS for observed states; PARTIAL for worker restart** |
-| Bounded retries | Transient retry/backoff and terminal exhaustion were covered; notification timeout was bounded at three attempts. | No browser-specific retry loop was exercised. | **PASS implementation; not browser-proven** |
-| Duplicate protection | Unique attempt/idempotency constraints, two-worker claim race, and replay/no-second-dispatch checks passed. | No dedicated browser double-submit or duplicate-dispatch test exists in this matrix. | **PASS implementation; PARTIAL browser** |
-| Notification toggles | Disabled channels/categories produced zero provider calls; provider mocks covered retry/failure and redaction. | Admin settings/preferences/test state and masked projections passed. | **PASS deterministic/mock browser and API** |
-| Confirmation-gated purge | Missing confirmation, stale/mismatched preview, scope checks, and confirmed scoped deletion passed through the API. | Preview cancellation, mismatch rejection, CSRF/same-origin, and matching confirmation passed. | **PASS deterministic browser and API** |
-| Encrypted restore | AES-256-GCM restore recovered a deleted encrypted record; wrong-key/tamper/cross-scope and relational validation failed closed. | No dashboard backup/restore E2E exists. | **PASS API/implementation; UNVERIFIED browser** |
-| AI `not_sent` | Approval contract and service proof retain `sendState=not_sent` and zero messaging/scheduler dispatch calls. | Deterministic opaque browser fixture observed approval result `not_sent` and zero non-GET messaging/dispatch requests. | **PASS deterministic fixture; real AI approval unverified** |
-
-## Explicit non-claims
-
-The following were not observed and are not claimed by this evidence:
-
-- No real WAHA service, WhatsApp account, session linking, account-safety
-  outcome, recipient delivery, SMTP provider, Telegram provider, or real
-  provider communication.
-- No browser worker process was killed and restarted through the dashboard.
-- No dedicated browser double-submit race was executed.
-- No approval from a real AI provider was executed; the `not_sent` result used a
-  deterministic opaque fixture and a fail-closed unavailable-provider seam.
-- No browser backup/restore flow was executed; restore proof is API/manual and
-  PostgreSQL-based.
-- No native WAHA dashboard parity or bundled-WAHA runtime health claim is made.
-
-An HTTP submission, WAHA `WORKING` state, provider acceptance, or transport
-acknowledgment is not recipient-delivery proof.
-
-## Disposable-resource cleanup
-
-The authoritative lane receipts recorded bounded, task-scoped cleanup forms;
-identifiers are intentionally redacted:
-
-```text
-docker compose --project-name <REDACTED_TASK_PROJECT> down --remove-orphans
-exit 0
-
-docker rm -f <REDACTED_TASK_CONTAINER>
-exit 0
-
-docker volume rm <REDACTED_TASK_VOLUME>
-exit 0
-
-docker network rm <REDACTED_TASK_NETWORK>
-exit 0
-```
-
-Recorded closeout results for the contributing lanes were:
-
-- PostgreSQL: zero task-owned containers, volumes, and networks; task-owned
-  host port free; no repository temporary artifact remained.
-- Playwright: no task-owned API/WAHA fixture, browser state, screenshots,
-  traces, `test-results`, or temporary Playwright directory remained; task
-  ports were free.
-- Static/release: no task-owned process or generated build metadata remained.
-- Compose: label-scoped audits found zero task-owned containers, volumes, and
-  networks; temporary mode-600 placeholder secret files were removed; no broad
-  prune was used and unrelated resources were preserved.
-
-This audit performed no cleanup command. A read-only workstation inspection
-found unrelated pre-existing containers/listeners, which were intentionally
-left untouched. Therefore this report claims cleanup of the recorded
-disposable F3 lanes only, not a host-wide empty-resource state.
-
-## Evidence-file validation
-
-These checks were run after writing this report:
-
-```text
-npx --yes pnpm@10.12.4 run secret-scan
-exit 0
-
-npx --yes pnpm@10.12.4 run docs:check
-exit 0
-
-npx --yes pnpm@10.12.4 exec biome check .omo/evidence/final-e2e.md
-exit 1; repository Biome configuration ignored this evidence path and processed 0 files
-```
-
-The Biome result is not counted as a pass or failure of application code; this
-Markdown evidence path was not processed. A separate redaction-pattern check
-found no database URL, credential assignment, private-key block, bearer token,
-or provider secret in this file.
-
-## Final disposition
-
-The deterministic focused matrix is executable and materially covers scheduled
-send behavior, recovery states, bounded retries, duplicate protection,
-notification toggles, confirmation-gated purge, encrypted restore, and AI
-`not_sent` at the implementation/API and, where stated, browser-fixture level.
-The evidence is **BLOCKED/PARTIAL** for F3 because the missing browser-level
-worker restart, dedicated browser double-submit, browser backup/restore, and
-real-AI-provider approval proofs were not observed. No real-provider or
-recipient-delivery conclusion may be drawn from this report.
+`docker stop relaynest-f3-postgres-3034156` (container was `--rm`) →
+`docker ps -a` shows no `relaynest-e2e-postgres-*` or `relaynest-f3-postgres-*`
+containers; `.tmp/playwright` removed by teardown; ports 4317/4173 released.
+Pre-existing unrelated Compose stacks (`relaynest`, `relaynest-dev`) were not
+touched. Raw logs retained in `/tmp/opencode/f3-e2e-*.log`, `f3-vitest-*.log`,
+`f3-list-noDashDash.log` (no secrets; disposable passwords were random and
+per-run).

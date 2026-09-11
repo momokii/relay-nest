@@ -56,8 +56,8 @@ stable fork-pool full suite passed `33 files, 138 tests`.
 | Todo 13 analytics projections | DONE | Todos 8-12 |
 | Analytics evidence follow-ups: per-session evidence, timeline, method-specific acknowledgments, and webhook-empty guidance | PENDING | User scope confirmation |
 | Todo 14 dashboard and human-approved AI seam | DONE | Todos 5, 7, 9-13 |
-| Todo 15 Compose deployment and operations | IMPLEMENTATION VERIFIED; protected plan checkbox OPEN | Release evidence reconciliation |
-| Todo 16 release verification | VERIFIED WITH BLOCKERS/LIMITATIONS; protected checkbox OPEN | Todos 11-15 |
+| Todo 15 Compose deployment and operations | DONE (external + digest-pinned bundled runtime verified; evidence `.omo/evidence/task-15-waha-finalize-15-16.md`) | Release evidence reconciliation |
+| Todo 16 release verification | IN PROGRESS — release sweep running as `.omo/plans/waha-finalize-15-16.md` Todos 5-9; F1-F4 open | Todo 15 done; finalize Todos 5-9 |
 | F1 plan compliance | BLOCKED | Todo 11 |
 | F2 security and quality | BLOCKED | Todo 11 |
 | F3 executable end-to-end QA | BLOCKED/PARTIAL | Todo 11 |
@@ -395,3 +395,22 @@ typecheck, and scoped Biome; docs, shell syntax, and whitespace checks passed.
 The disposable bundled development stack returned HTTP `200` for web root and
 proxied health before cleanup. Product security boundaries and protected records
 remain unchanged; no release audit, commit, or push was performed.
+
+## Session follow-up: waha-finalize Todo 4 — state freshness and secret boundary, 2026-09-10
+
+Todo 4 of `.omo/plans/waha-finalize-15-16.md` is done. The queue above now
+marks original Todo 15 DONE and Todo 16 IN-PROGRESS; `CURRENT_STATUS.md`
+records the same transition with receipts. `DECISIONS_LOG.md` already carries
+the pinned WAHA digest decision ("Todo 15: digest-pinned bundled WAHA secret
+bridge", 2026-08-28, `sha256:d52ad4f3...`) matching `Dockerfile.waha`, so no
+new decision entry was required.
+
+Secret-boundary verification passed: `npx --yes pnpm@10.12.4 secret-scan` exits
+0; all tracked files were content-scanned against the actual `.secrets/*` and
+local `.env` key material with zero matches; `.secrets/` is gitignored and has
+zero tracked files. Every tracked `waha_api_key`/`ENCRYPTION_MASTER_KEY`
+occurrence is a name/reference or placeholder, never a value. Failure QA and
+the scanner's documented detection contract are recorded in
+`.omo/evidence/task-15-waha-finalize-15-16.md`. The finalize plan, evidence,
+and these state updates remain uncommitted; no commit or push was authorized
+or performed.

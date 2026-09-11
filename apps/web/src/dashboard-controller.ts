@@ -290,7 +290,7 @@ export function useDashboardController(): DashboardController {
     return () => {
       isCurrent = false
     }
-  }, [api, notificationsApi, retentionApi, role, scope, activePrincipal])
+  }, [api, notificationsApi, retentionApi, role, scope, activePrincipal, analyticsWindow])
 
   const send = async (input: SendInput): Promise<ApiResult<SendResult>> => {
     setSendAction({ kind: "submitting" })

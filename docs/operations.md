@@ -73,11 +73,13 @@ Only `web` publishes a host port, `${WEB_BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-80
 sets `API_PORT`; the container API port is fixed at `3000` and is not a host
 setting.
 
-The loopback bind is the safe default. Set `WEB_BIND_ADDRESS` to an explicit
-trusted LAN or VPN address only when that boundary is intentional. A public
-deployment requires a reverse proxy terminating HTTPS/TLS, strict firewall
-rules, secure cookies and headers, and login rate limiting. Never place WAHA
-directly on the public interface.
+The web dashboard binds to loopback by default (`127.0.0.1`); keep that default
+for local use or a reverse-proxy front end. Set `WEB_BIND_ADDRESS` to an
+explicit trusted LAN or VPN address only when that boundary is intentional.
+A public deployment requires a reverse proxy terminating HTTPS/TLS (a
+hardened reverse-proxy TLS front end), strict firewall rules, secure cookies
+and headers, and login rate limiting. Never place WAHA directly on the public
+interface.
 
 ## Secrets and precedence
 

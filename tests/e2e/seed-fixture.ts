@@ -7,7 +7,7 @@ import { seedScheduleStates } from "./seed-schedules"
 const scopes = ["personal", "business"] as const
 export const seedMetadataPath = ".tmp/playwright/seed.json"
 const e2eRecipientPhone = "+15551234567"
-const e2eRecipientChatId = "e2e-schedule-recipient@c.us"
+const e2eRecipientChatId = "15551234567@c.us"
 
 const sessionMetadataSchema = z.object({
   id: z.string().uuid(),

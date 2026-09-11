@@ -1,3 +1,4 @@
+import { resolveEncryptionMasterKey } from "@waha-command-center/config"
 import { and, asc, eq, inArray } from "drizzle-orm"
 
 import type { PersistenceDatabase } from "./client"
@@ -37,8 +38,9 @@ type AuditInput = {
 }
 
 export function createRepositories(db: PersistenceDatabase, masterKey?: Buffer) {
+  const resolvedMasterKey = masterKey ?? resolveEncryptionMasterKey(process.env)
   const scheduling = createSchedulingRepositories(db)
-  const contactGroups = createContactGroupRepository(db, masterKey)
+  const contactGroups = createContactGroupRepository(db, resolvedMasterKey)
   return {
     ...createIdentityRepositories(db),
     ...createDispatchAttemptRepositories(db),
@@ -49,7 +51,7 @@ export function createRepositories(db: PersistenceDatabase, masterKey?: Buffer) 
     ...createNotificationRepositories(db),
     ...createRetentionRepositories(db),
     contactGroups,
-    campaigns: createCampaignRepository(db, masterKey),
+    campaigns: createCampaignRepository(db, resolvedMasterKey),
     normalizedEvents: {
       create: (input: typeof normalizedEvents.$inferInsert) =>
         withPersistenceErrors(

@@ -27,10 +27,13 @@ schedules, campaigns, broadcasts, full inbox parity, autonomous AI sending,
 scraping, spam, stealth, anti-detection, and ban evasion. AI suggestions always
 require human approval.
 
-WAHA uses an unofficial reverse-engineered WhatsApp client. Restriction or ban
-risk is inherent and must be treated as an operational blocker, not an edge case.
-Consent, pacing, budgets, quiet hours, duplicate/burst protection,
-cooldowns, timelock, capping, and approval gates reduce risk but cannot guarantee account safety or recipient delivery.
+WAHA uses an unofficial reverse-engineered WhatsApp client.
+Restriction or ban risk is inherent and must be treated as an operational
+blocker, not an edge case. RelayNest's mitigations are consent-first sending,
+send pacing, per-session budgets, quiet hours, duplicate/burst protection,
+newly-linked cooldowns, timelock/capping signals, and human approval of every
+dispatch. These reduce risk but cannot guarantee account safety or recipient
+delivery.
 
 ## Architecture and security
 

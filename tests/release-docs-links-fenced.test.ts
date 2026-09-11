@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises"
+import { join } from "node:path"
+
 import { describe, expect, it } from "vitest"
 
 import {
@@ -123,9 +126,12 @@ describe("release documentation fenced links", () => {
 
   it("preserves source lines after fenced code-block masking", async () => {
     // Given a disposable copy with a long ignored code block before stale guidance
+    let firstAppendedLine = 0
     const result = await withCopiedRoot(
-      (root) =>
-        appendToFile(
+      async (root) => {
+        const contents = await readFile(join(root, "README.md"), "utf8")
+        firstAppendedLine = contents.trimEnd().split("\n").length + 1
+        await appendToFile(
           root,
           "README.md",
           [
@@ -141,7 +147,8 @@ describe("release documentation fenced links", () => {
             "Release status: complete and fully verified.",
             "",
           ].join("\n"),
-        ),
+        )
+      },
       async (root) => runCommand("docs", root),
     )
 
@@ -149,7 +156,7 @@ describe("release documentation fenced links", () => {
     expect(result.exitCode).toBe(1)
     expect(result.diagnostics).toContainEqual({
       path: "README.md",
-      line: 110,
+      line: firstAppendedLine + 9,
       rule: "documentation-freshness",
       remediation: expect.any(String),
     })

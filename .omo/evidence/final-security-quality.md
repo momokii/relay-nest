@@ -1,183 +1,168 @@
-# F2 Security and Quality Audit
+# F2 Security and Quality Audit — waha-finalize-15-16
 
-Date: 2026-08-28  
-Repository: RelayNest  
-Branch: `main`  
-Audit mode: read-only inspection and safe command execution
+Date: 2026-09-11
+Plan: `.omo/plans/waha-finalize-15-16.md`, final verification wave item F2
+(line 137). Replaces the Todo-9 placeholder in this file (the superseded
+2026-08-28 BLOCKED verdict remains in git history, `1d648bd` and ancestors).
 
 ## Verdict
 
-**BLOCKED.** The repository-local security controls and most quality gates pass,
-but full lint is non-zero, the exact bundled WAHA image is unavailable, and
-external/team security tooling was unavailable. This is not a claim of full
-release security, real-provider security, bundled runtime health, or recipient
-delivery.
+**PASS.** All four automated gates exit 0 with 0 high/critical vulnerabilities
+and 0 secret matches. Manual inspection of auth/scope, encryption/key
+handling, error redaction, dependency lockfile, and Docker user/port found no
+cross-scope leak, secret exposure, or boundary violation. One stale-state
+discrepancy in `.claude/state/TASK_QUEUE.md` is recorded below (documentation
+drift, not a code defect).
 
-## Scope and worktree
+## Automated gates (executed 2026-09-11, this session)
 
-The audit covered the current worktree and current uncommitted diff. The diff
-contains documentation/evidence/state corrections and the pre-existing deletion
-of `.omo/boulder.json`; no source, test, plan, or ledger file was edited by this
-audit. The deletion was not restored.
+Toolchain: Node v22.23.1, `npx --yes pnpm@10.12.4` (per README; `pnpm` is not
+on PATH).
 
-Current changed paths observed (values and sensitive paths redacted where
-applicable):
+| Gate | Command | Exit | Output tail |
+| --- | --- | --- | --- |
+| Lint | `npx --yes pnpm@10.12.4 lint` | 0 | `Checked 324 files in 405ms. No fixes applied.` |
+| Typecheck | `npx --yes pnpm@10.12.4 typecheck` | 0 | `tsc -b --pretty false` clean |
+| Audit | `npx --yes pnpm@10.12.4 audit --audit-level=high` | 0 | `4 vulnerabilities found / Severity: 4 moderate` |
+| Secret scan | `npx --yes pnpm@10.12.4 secret-scan` | 0 | silent pass (`release-checks.mts secrets`) |
 
-```text
-.claude/state/CURRENT_STATUS.md
-.claude/state/TASK_QUEUE.md
-.omo/boulder.json (deleted; pre-existing)
-.omo/evidence/task-10-waha-command-center.md
-.omo/evidence/task-12-waha-command-center.md
-.omo/evidence/task-6-waha-command-center.md
-.omo/evidence/task-8-waha-command-center.md
-.omo/evidence/task-9-waha-command-center.md
-README.md
-docs/waha-capability-matrix.md
-.omo/evidence/final-scope-docs.md (untracked; pre-existing)
-.omo/evidence/task-16-next-phases-release.md (untracked before this report)
-```
+Audit detail (re-run at `--audit-level=moderate` for the record): the 4
+moderate advisories are `fastify` (x2, `apps__api>fastify`), `vitest` (`.`,
+root devDependency), and `@vitest/mocker` (`.>vitest>@vitest/mocker`). 0 high,
+0 critical. The gate's failure mode is proven non-vacuous: Todo 9 recorded an
+initial exit 1 with 8 high `fast-uri` findings before the lockfile bump to
+patched `fast-uri@3.1.7`/`4.1.4`.
 
-`git diff --check` exited `0` with no output. No commit or push was performed.
+## Manual inspection findings
 
-## Required quality gates
+### Auth and scope enforcement (server-side, deny-by-default)
 
-Commands were run with `npx --yes pnpm@10.12.4` as required.
+- `apps/api/src/auth/authorization.ts:28` — `authorizeSessionAction` is a pure
+  deny-by-default decision: `null` principal → denied; `accountScope !==
+  sessionScope` → `scope_denied`; inactive session → `session_disabled`;
+  missing per-user grant row → `grant_denied`; `command` actions additionally
+  require `admin`/`operator` in the acting scope's roles. Explicit reason
+  codes, no default-allow path.
+- `apps/api/src/auth/service.ts` — session tokens stored only as hashes
+  (`hashToken`); `authenticate` checks revocation, `expiresAt`, and
+  `users.active`; CSRF verification compares hashed tokens with
+  `timingSafeEqual`; login is Postgres-rate-limited (`postgres-rate-limit.ts`)
+  with `auth.login_rate_limited` audit events; bootstrap is allowed only while
+  the users table is empty, under `pg_advisory_xact_lock` (single-tenant,
+  Admin-created users only; no public registration path).
+- `apps/api/src/auth/service.ts:203`/`admin.ts:145` — `disableUser` and
+  `resetPassword` revoke all of the target's live sessions;
+  `AdminService.canManage` checks the per-scope `admin` role;
+  `canDisable` requires admin coverage of every scope the target holds.
+- `apps/api/src/auth/password.ts` — scrypt (64-byte key, 16-byte random salt,
+  prefixed format, `timingSafeEqual` verify).
+- Cookies (`apps/api/src/auth/http.ts:252-255`): session cookie
+  `HttpOnly; SameSite=Strict; Max-Age=28800` plus `Secure` when
+  `APP_ENV=production`; CSRF cookie is deliberately readable (client must echo
+  it in `x-csrf-token`), also `SameSite=Strict` + prod `Secure`.
+- CORS is `origin: false` (`app.ts:197`) and mutating session routes gate on
+  `sameOrigin` + CSRF (`session-http-support.ts:92-94,130-137`).
+- Route-level auth: `waha/connection-http.ts:26-34` requires any-scope admin
+  before returning connection metadata (id/name/baseUrl only — no key
+  material); all other HTTP surfaces go through `authenticate()` +
+  `authorize()`/`SessionRouteAuth`.
 
-| Command | Result | Exact observed result |
-|---|---|---|
-| `npx --yes pnpm@10.12.4 lint` | **BLOCKED** | Exit `1`; Biome checked 414 files and reported `Found 6 errors`. Diagnostics included the known analytics fixture import-order/format diagnostics in `tests/task-13-analytics-db-fixture.ts` and workstation traversal/format diagnostics under system paths. No fixes were applied. |
-| `npx --yes pnpm@10.12.4 typecheck` | **PASS** | Exit `0`; `tsc -b --pretty false`. |
-| `npx --yes pnpm@10.12.4 audit --audit-level=high` | **PASS** | Exit `0`; `No known vulnerabilities found`. |
-| `npx --yes pnpm@10.12.4 secret-scan` | **PASS** | Exit `0`; repository-local secret check completed with no finding. |
+### Encryption and key handling
 
-Additional repository-local checks:
+- `packages/config/src/encryption.ts` — AES-256-GCM envelopes: 12-byte random
+  nonce, 32-byte key, AAD binds the `accountScope` metadata (`personal` vs
+  `business`), so a ciphertext moved across scopes or tampered fails
+  authentication; envelope schema pins `version: 1` and the algorithm string
+  and validates nonce (12 B) / authTag (16 B) lengths on decrypt.
+- Key sourcing (`packages/config/src/index.ts:88-107`): exactly one of
+  `ENCRYPTION_MASTER_KEY` or `ENCRYPTION_MASTER_KEY_FILE` (mutual-exclusion
+  enforced by the Zod schema), 32-byte base64 enforced, file-read failure
+  raises an opaque `EnvironmentConfigError` (no path/contents leak). Compose
+  mounts keys as Docker secrets via `file: ${ENCRYPTION_MASTER_KEY_FILE:?}`
+  and `${WAHA_API_KEY_FILE:?}` (`docker-compose.yml:92-98`,
+  `docker-compose.bundled-waha.yml:29-33`).
+- WAHA API keys and SMTP/Telegram credentials are stored only as encrypted
+  envelopes (`app-session-service.ts:47-56`,
+  `notifications/settings.ts:125`); decryption happens server-side immediately
+  before the outbound `X-Api-Key` header (`waha/adapter.ts:165`).
+- `createBlindIndex` is HMAC-SHA256 over the master key for contact lookup.
+- Webhook payloads are stored encrypted with the same scope-bound envelope;
+  the redaction fallback stores only an HMAC digest plus sentinel
+  nonce/authTag (`waha/webhook.ts:163-166`) — content-free by construction.
 
-```text
-npx --yes pnpm@10.12.4 verify:requirements
-npx --yes pnpm@10.12.4 verify:scope
-npx --yes pnpm@10.12.4 docs:check
-  all exited 0
+### Error redaction
 
-npx --yes pnpm@10.12.4 exec biome check scripts package.json biome.json tests/release-*.test.ts tests/release-checks-test-support.ts
-  exit 0; checked 33 files; no fixes
+- Global handler (`app.ts:198-217`): every unmapped error becomes
+  `500 {"error":"internal error"}`; Zod → `400 invalid request`; backup →
+  `400 invalid backup`; purge/retention → fixed `409` codes. No stack traces,
+  SQL, or internals reach clients.
+- WAHA transport errors: `rejectionDetail` (`waha/adapter.ts:92-117`) returns
+  only two fixed, human-written strings (QR-scan state, duplicate session
+  name) or `undefined`; provider response bodies, keys, and URLs are never
+  echoed. `sendService` maps `WahaHttpError` to `502 WAHA unavailable` with at
+  most that curated `detail` (`session-http-support.ts:56-63`). Statuses are
+  classified to coarse codes (463→timelock, 475→capping,
+  `scheduler/waha.ts:4-19`).
+- Provider-facing responses are fixed JSON shapes (`webhook-http.ts:123-128`).
+- Notification settings return masked secrets (`••••••••` + last 4,
+  `notifications/settings.ts:194-196`); submitting a masked value keeps the
+  stored secret (`resolveMasked`). WAHA environment introspection passes
+  through `sanitizeWahaEnvironment` before display.
+- Outbound SSRF posture: `waha/url-policy.ts:53-89` rejects non-HTTP(S)
+  schemes, embedded credentials/query/fragment, and private/loopback targets
+  (IPv4 ranges incl. CGNAT and benchmarking, `::1`, ULA, link-local, and
+  IPv4-mapped IPv6) unless the host is the bundled `waha`/`waha.internal` or
+  loopback was explicitly allowed (test-only per `app.ts:66-79`).
+- Fastify runs with `logger: true` (`app.ts:93`); default serializers log
+  method/url/remote address only — no request bodies or headers, so passwords
+  and cookies do not enter logs through the default path.
 
-git diff --check
-  exit 0; no output
-```
+### Dependency lockfile
 
-The historical Todo 10 release matrix additionally records a complete isolated
-PostgreSQL run of `67 files, 321 tests` with `0 failed, 0 skipped`, focused and
-full relevant Playwright at `20/20`, and a bounded release suite at `101/101`.
-Those results used disposable PostgreSQL and deterministic/mock WAHA; they are
-not real-provider or recipient-delivery evidence.
+- `pnpm-lock.yaml` present, `lockfileVersion: '9.0'`;
+  `npx --yes pnpm@10.12.4 install --frozen-lockfile --ignore-scripts` exits 0
+  (lockfile consistent with all workspace manifests; no drift).
+- Root override pins `esbuild@0.25.12` (`package.json` `pnpm.overrides`).
+- `pnpm audit --audit-level=high` exit 0 (4 moderate, 0 high/critical).
 
-## Security inspection
+### Docker user and port posture
 
-### Authentication and authorization — inspected, no new exploit proven
+- `Dockerfile.api` / `Dockerfile.web`: digest-pinned
+  `node:22.23.1-alpine@sha256:16e22a55…` build + runtime stages, both end with
+  `USER node` (api exposes 3000, web exposes 4173 — container-internal only).
+- `Dockerfile.waha`: `FROM devlikeapro/waha:latest-2026.8.1@sha256:d52ad4f3…`
+  (digest-pinned, no unpinned `latest`).
+- `docker-compose.yml:65-66` — the only host publication is
+  `"${WEB_BIND_ADDRESS:-127.0.0.1}:${WEB_PORT:-8080}:4173"` (loopback
+  default). Neither `api` (3000) nor bundled `waha` (3000) is published; both
+  stay on the internal Compose network. No `network_mode: host`, no privileged
+  flags in the compose files.
+- Secrets ride `/run/secrets/*` Docker-secret files; resolved Compose config
+  receipts from Todo 9 show zero plaintext key values in
+  `docker compose config` output for both modes.
 
-- Authentication hashes session tokens at rest, checks revocation, active-user
-  state, and expiry; login failures use a PostgreSQL-backed bounded rate limit.
-- Authorization is server-side and combines role, explicit session grant, target
-  session scope, requested account scope, active-session state, and action type.
-  Viewer command actions are denied.
-- Boundary schemas validate scope, UUIDs, lifecycle actions, credentials, and
-  request bodies. Mutating session/schedule paths require same-origin and CSRF
-  checks.
-- No browser-visible WAHA API key or unrestricted WAHA endpoint launcher was
-  observed in the inspected paths.
+## Adversarial: stale-state check
 
-### Encryption and key handling — inspected, no new exploit proven
+- `.claude/state/TASK_QUEUE.md:62` still reads `F2 security and quality |
+  BLOCKED | Todo 11`. That row reflects the **2026-08-28 waha-command-center**
+  F-gate closeout (also echoed in the historical `CURRENT_STATUS.md`
+  "Session closeout … 2026-08-28" section), whose cited blockers — six
+  full-lint diagnostics, unavailable pinned WAHA image — are resolved in the
+  finalize-plan record (lint now exits 0 over 324 files; WAHA image is
+  digest-pinned per Todo 1). This file is the current finalize-plan F2 verdict
+  and supersedes that BLOCKED wording; the orchestrator should update the
+  `TASK_QUEUE.md` F2 row when consolidating F1-F4.
+- `CURRENT_STATUS.md`'s current top section ("final evidence bundle …
+  placeholders (gates PENDING)") is accurate as of the placeholder state but
+  is superseded by this executed F2 result for the security/quality axis.
 
-- Application encryption uses AES-256-GCM with a 32-byte master key, validated
-  nonce/authentication-tag sizes, and authenticated account-scope metadata.
-- Backup format version, scope, key metadata, and inner authenticated metadata
-  must match; wrong, missing, malformed, or tampered keys fail closed.
-- Compose key input is file-based; simultaneous direct/file key sources fail
-  closed. Key material is not reproduced in this report.
+## Residual observations (non-blocking)
 
-### Error redaction and data handling — inspected, no new exploit proven
-
-- WAHA adapter errors expose classifications/statuses and bounded paths rather
-  than provider response bodies or API keys; service routes return generic WAHA
-  unavailability/unsupported-capability errors.
-- Backup and restore errors are generic authentication/format failures and do
-  not return decrypted payloads.
-- Repository-local `secret-scan` passed. No secrets, passwords, tokens, message
-  text, private URLs, raw logs, or database URLs are included here.
-
-### Dependencies and lockfile — pass with residual review boundary
-
-- `pnpm-lock.yaml` is present with pinned importer versions and an `esbuild`
-  override at `0.25.12`.
-- High-severity pnpm audit exited `0` with no known vulnerabilities.
-- `gitleaks`, `semgrep`, and `osv-scanner` were **UNAVAILABLE**; no external
-  scanner result is claimed.
-
-### Compose users, ports, and secrets — configuration pass; runtime blocked
-
-With non-secret placeholder paths supplied only for configuration interpolation:
-
-```text
-ENCRYPTION_MASTER_KEY_FILE=/run/secrets/example-key
-POSTGRES_PASSWORD_FILE=/run/secrets/example-password
-docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.external-waha.yml config --quiet
-  external_config_exit=0
-docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.bundled-waha.yml --profile waha config --quiet
-  bundled_config_exit=0
-```
-
-Inspection found PostgreSQL and application secret-file references, non-root
-application image conventions documented by the existing evidence, API and
-bundled WAHA internal `3000` exposure, and web-only host publication. The first
-unsubstituted configuration attempt failed honestly with:
-`required variable ENCRYPTION_MASTER_KEY_FILE is missing a value`.
-
-The exact bundled blocker was reproduced with:
-
-```text
-docker manifest inspect devlikeapro/waha:2026.8.1
-  exit 1; no such manifest: docker.io/devlikeapro/waha:2026.8.1
-```
-
-The bundled Compose service is deliberately fail-closed and exits before a WAHA
-process starts. No bundled startup, health, UID, linking, account-safety, or
-delivery result is claimed. The supported runtime secret boundary also remains
-unverified; no undocumented WAHA `_FILE` convention is assumed.
-
-## Findings and blockers
-
-| ID | Severity | Finding | Evidence | Required action |
-|---|---|---|---|---|
-| F2-01 | **BLOCKER** | Full lint is not green. | Required lint exited `1`; six diagnostics were reported, including the analytics fixture and workstation traversal diagnostics. | Resolve or explicitly scope the diagnostics, then rerun the exact full lint command. Do not report full lint as passed meanwhile. |
-| F2-02 | **BLOCKER** | Bundled WAHA cannot be runtime-verified. | `docker manifest inspect devlikeapro/waha:2026.8.1` exited `1` with no manifest. | Make the exact image available and verify the supported secret boundary, startup, health, non-root UID, and failure behavior. Do not substitute another image/tag. |
-| F2-03 | **LIMITATION** | External security scanners and Team Mode security research were unavailable. | `gitleaks`, `markdown-link-check`, `lychee`, `semgrep`, and `osv-scanner` were unavailable; the configured security-review Team Mode was unavailable. | Install/enable the approved tools and rerun them; retain `UNAVAILABLE` until then. |
-| F2-04 | **LIMITATION** | Real provider and several browser/runtime paths remain unverified. | Existing release evidence used mock WAHA and disposable PostgreSQL; browser worker restart, browser double-submit, browser backup/restore, real AI approval, native WAHA dashboard parity, real linking, and recipient delivery were not proven. | Execute isolated, approved runtime/E2E coverage before a release PASS. |
-
-No exploitable authentication, scope-isolation, encryption, key-handling, error-
-redaction, dependency, or Compose exposure defect was proven by this read-only
-inspection. This statement is bounded by the unavailable scanners and runtime
-coverage above, and is not a security certification.
-
-## Historical evidence redaction correction
-
-The current diff includes a correction pass for historical evidence artifacts.
-Previously retained disposable database credentials, database URL material, and
-an HMAC/API-key example were replaced with redacted placeholders or omitted
-values in the Todo 6, 8, 9, 10, and 12 evidence files. The correction preserves
-commands, statuses, counts, and exit results without reproducing sensitive
-values. The repository-local secret scan passed after the correction.
-
-## Remediation and next actions
-
-1. Keep the verdict **BLOCKED**; do not mark F2, Todo 16, or F1-F4 complete.
-2. Resolve the six full-lint diagnostics and rerun full lint without a fixer
-   silently changing unrelated files.
-3. Obtain and verify the exact `devlikeapro/waha:2026.8.1` image plus a
-   supported runtime secret boundary; otherwise retain the bundled blocker.
-4. Run the unavailable external scanners and an enabled, independent security
-   review, recording unavailable tools honestly if they remain unavailable.
-5. Run isolated approved runtime/E2E checks for the unverified browser, real
-   provider, linking, recovery, and delivery boundaries.
-6. Preserve redaction, the pre-existing `.omo/boulder.json` deletion, and the
-   existing protected plan/ledger without silent restoration or rewriting.
+- scrypt uses Node's default cost parameters (N=16384, r=8, p=1); adequate
+  for the threat model, upgradeable later without format breakage because of
+  the `scrypt` prefix scheme.
+- Fastify's logger has no explicit `redact` config; safe today because default
+  serializers exclude bodies/headers, but any future custom serializer must
+  keep secrets out.
+- The 4 moderate advisories (`fastify`, `vitest`, `@vitest/mocker`) are below
+  the gate threshold; no action required for this release.

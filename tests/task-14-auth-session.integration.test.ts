@@ -143,13 +143,25 @@ describe.skipIf(!app || !repositories || !unavailableApp)(
       expect(created?.body).not.toContain("waha.internal")
       const linkedId = created?.json<{ id: string }>().id
       const adminId = boot?.json<{ user: { id: string } }>().user.id
-      const selfGrant = await app?.inject({
-        method: "POST",
-        url: "/admin/grants",
-        headers: { cookie: auth.cookie, "x-csrf-token": auth.csrf },
-        payload: { userId: adminId, sessionId: linkedId, accountScope: "personal" },
+      // Linking auto-grants the creating Admin; assert it through the access list.
+      const accessList = await app?.inject({
+        method: "GET",
+        url: "/admin/users",
+        headers: { cookie: auth.cookie },
       })
-      expect(selfGrant?.statusCode).toBe(204)
+      expect(accessList?.statusCode).toBe(200)
+      type AdminAccessRow = {
+        id: string
+        grants: readonly { sessionId: string; sessionName: string; accountScope: string }[]
+      }
+      const adminAccess = accessList
+        ?.json<{ users: AdminAccessRow[] }>()
+        ?.users.find((entry) => entry.id === adminId)
+      expect(adminAccess?.grants).toContainEqual({
+        sessionId: linkedId,
+        sessionName: "Linked Personal",
+        accountScope: "personal",
+      })
       const list = await app?.inject({
         method: "GET",
         url: "/scoped/sessions?scope=personal",

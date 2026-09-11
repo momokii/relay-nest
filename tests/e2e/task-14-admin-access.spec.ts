@@ -40,10 +40,10 @@ test("Admin creates, scopes, and disables a temporary Operator", async ({
   await page.goto("/")
   await page.getByRole("button", { name: "Users" }).click()
 
-  // When the Admin creates an Operator in Personal scope through the Admin form
-  const createForm = page.locator("form").filter({
-    has: page.getByRole("button", { name: "Create user" }),
-  })
+  // When the Admin creates an Operator in Personal scope through the Admin modal
+  await page.getByRole("button", { name: "Create user" }).click()
+  const createDialog = page.getByRole("dialog", { name: "Create a user" })
+  const createForm = createDialog.locator("form")
   const createResponse = page.waitForResponse(
     (response) =>
       new URL(response.url()).pathname === "/admin/users" && response.request().method() === "POST",
@@ -67,16 +67,22 @@ test("Admin creates, scopes, and disables a temporary Operator", async ({
   expect(operator.email).toBe(credentials.email)
 
   // When the Admin grants exactly the seeded Personal session
-  const grantForm = page.locator("form").filter({
-    has: page.getByRole("button", { name: "Grant session access" }),
+  const operatorActions = page.getByRole("button", {
+    name: `Actions for ${credentials.displayName}`,
   })
+  await operatorActions.scrollIntoViewIfNeeded()
+  await operatorActions.click()
+  await page.getByRole("menuitem", { name: "Grant session" }).click()
+  const grantDialog = page.getByRole("dialog", {
+    name: `Grant a session · ${credentials.displayName}`,
+  })
+  const grantForm = grantDialog.locator("form")
   const grantResponse = page.waitForResponse(
     (response) =>
       new URL(response.url()).pathname === "/admin/grants" &&
       response.request().method() === "POST",
   )
-  await grantForm.getByLabel("User ID").fill(operator.id)
-  await grantForm.getByLabel("Session ID").fill(seed.personal.id)
+  await grantDialog.getByLabel("Session").selectOption(seed.personal.id, { timeout: 10_000 })
   await grantForm.getByRole("button", { name: "Grant session access" }).click()
   const granted = await grantResponse
   expect(granted.status()).toBe(204)
@@ -164,16 +170,18 @@ test("Admin creates, scopes, and disables a temporary Operator", async ({
     expect(await businessAccess.json()).toEqual({ error: "forbidden" })
 
     // When the Admin disables the Operator
-    const disableForm = page.locator("form").filter({
-      has: page.getByRole("button", { name: "Disable user" }),
+    await operatorActions.scrollIntoViewIfNeeded()
+    await operatorActions.click()
+    await page.getByRole("menuitem", { name: "Disable" }).click()
+    const disableDialog = page.getByRole("dialog", {
+      name: `Disable ${credentials.displayName}?`,
     })
     const disableResponse = page.waitForResponse(
       (response) =>
         new URL(response.url()).pathname === `/admin/users/${operator.id}/disable` &&
         response.request().method() === "POST",
     )
-    await disableForm.getByLabel("User ID").fill(operator.id)
-    await disableForm.getByRole("button", { name: "Disable user" }).click()
+    await disableDialog.getByRole("button", { name: "Disable user" }).click()
     const disabled = await disableResponse
     expect(disabled.status()).toBe(204)
     expect(disabled.request().headers()["x-csrf-token"]).toBeTruthy()

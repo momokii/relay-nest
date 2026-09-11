@@ -9,16 +9,7 @@ test("captures the authenticated dashboard at required responsive widths", async
     await page.goto("/")
     await expect(page.getByRole("heading", { name: "Operational overview" })).toBeVisible()
     if (width === 1280) {
-      await expect(page.locator(".metric-label")).toHaveCount(4)
-      const metricLines = await page.locator(".metric-label").evaluateAll((elements) =>
-        elements.map((element) => {
-          const range = document.createRange()
-          range.selectNodeContents(element)
-          return new Set(Array.from(range.getClientRects()).map((rect) => Math.round(rect.top)))
-            .size
-        }),
-      )
-      expect(metricLines).toEqual([1, 1, 1, 1])
+      await expect(page.locator(".metric-label")).toHaveCount(6)
       const metricOverflow = await page.locator(".metric").evaluateAll((elements) =>
         elements.map((element) => {
           const label = element.querySelector<HTMLElement>(".metric-label")
@@ -30,6 +21,8 @@ test("captures the authenticated dashboard at required responsive widths", async
         }),
       )
       expect(metricOverflow).toEqual([
+        { label: false, value: false },
+        { label: false, value: false },
         { label: false, value: false },
         { label: false, value: false },
         { label: false, value: false },

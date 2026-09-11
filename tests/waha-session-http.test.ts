@@ -378,8 +378,24 @@ describe("scoped passkey HTTP routes", () => {
     // Then the provider only ever receives the opened chat id and the body stays redacted
     expect(response.statusCode).toBe(200)
     expect(response.json()).toEqual([
-      { at: "2025-09-04T15:33:20.000Z", direction: "out", preview: "hello there" },
-      { at: null, direction: "unknown", preview: "[media]" },
+      {
+        id: null,
+        at: "2025-09-04T15:33:20.000Z",
+        direction: "out",
+        preview: "hello there",
+        hasMedia: false,
+        mimetype: null,
+        sender: null,
+      },
+      {
+        id: null,
+        at: null,
+        direction: "unknown",
+        preview: "[media]",
+        hasMedia: true,
+        mimetype: null,
+        sender: null,
+      },
     ])
     expect(requestedChatIds).toEqual(["628123456789@c.us"])
     expect(response.body).not.toContain("@c.us")

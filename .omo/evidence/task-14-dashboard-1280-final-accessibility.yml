@@ -19,6 +19,7 @@
   - button "Contacts Recipients"
   - button "Send Individual text"
   - button "Schedule One-time jobs"
+  - button "Campaigns Under development" [disabled]
   - button "Analytics Scoped evidence"
   - button "Notifications Failure paths"
   - button "Retention Admin controls"
@@ -29,27 +30,61 @@
   - paragraph: Command center · personal
   - heading "Operational overview" [level=1]
   - paragraph: A scoped view of what the system knows, what it cannot verify, and what needs a human.
-  - text: e2e-73728bd8-a1b8-42b0-bc61-805f35e04f01@example.invalid
+  - text: e2e-2832a82c-75e0-4687-a112-28a7d338555c@example.invalid
   - strong: admin access
   - region "Personal overview":
     - paragraph: Scoped operating picture
     - heading "Personal overview" [level=2]
     - paragraph: Only evidence inside the selected account scope appears here.
+    - text: "Window:"
+    - button "24h"
+    - button "7d"
+    - button "30d"
+    - button "Reset"
     - text: Message volume
-    - strong: No data yet
+    - button "More information"
+    - strong: "0"
     - text: Evidence-backed only Acknowledgments
-    - strong: Unknown
+    - button "More information"
+    - strong: "0"
     - text: Not recipient delivery Failure rate
+    - button "More information"
     - strong: Unknown
     - text: Window-scoped Session uptime
-    - strong: Available
-    - text: Status history required
+    - button "More information"
+    - strong: 0 min
+    - text: Status history required Direct sends
+    - button "More information"
+    - strong: "0"
+    - text: 5 scheduled Scheduled lifecycle
+    - button "More information"
+    - strong: "5"
+    - text: submitted 1 · failed 1 · cancelled 1
   - region "Session posture":
     - paragraph: Transport
     - heading "Session posture" [level=2]
-    - text: 1 visible
-    - strong: e2e-personal-session-6a31a11b-151d-4bb2-8ee5-85854814923e
-    - text: personal scope Session · WORKING Health · unknown Ready · unknown
+    - text: 3 visible
+    - strong: e2e-personal-session-e3536ab0-53dd-485c-ba9b-c2243cba5d2e
+    - text: personal scope · d30463c4… Session · WORKING
+    - button "More information"
+    - text: Health · unknown
+    - button "More information"
+    - text: Ready · unknown
+    - button "More information"
+    - strong: E2E linked b294a9b6-3d50-4448-8c5f-9e62aa9066f8
+    - text: personal scope · 23a84f41… Session · STARTING
+    - button "More information"
+    - text: Health · unknown
+    - button "More information"
+    - text: Ready · unknown
+    - button "More information"
+    - strong: Held Personal 5b337436-f7c2-4612-b2ab-3272d6e4cb0d
+    - text: personal scope · 7aa7f6b9… Session · STARTING
+    - button "More information"
+    - text: Health · unknown
+    - button "More information"
+    - text: Ready · unknown
+    - button "More information"
   - region "AI review posture":
     - paragraph: Human checkpoint
     - heading "AI review posture" [level=2]

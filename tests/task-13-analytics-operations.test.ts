@@ -71,6 +71,8 @@ describe("analytics operational projections", () => {
           state: "failed",
           attempts: 3,
           failureCode: "timelock_active",
+          scheduledFor: new Date("2026-01-01T05:00:00.000Z"),
+          createdAt: new Date("2026-01-01T04:00:00.000Z"),
           updatedAt: new Date("2026-01-01T05:00:00.000Z"),
         },
         {
@@ -79,6 +81,8 @@ describe("analytics operational projections", () => {
           state: "unknown",
           attempts: 1,
           failureCode: "capping_exhausted",
+          scheduledFor: new Date("2026-01-01T06:00:00.000Z"),
+          createdAt: new Date("2026-01-01T05:00:00.000Z"),
           updatedAt: new Date("2026-01-01T06:00:00.000Z"),
         },
       ],
@@ -203,14 +207,19 @@ describe("analytics operational projections", () => {
     ] as const
     const result = projectAnalytics({
       ...fixture,
-      jobs: states.map((state, index) => ({
-        sessionId,
-        accountScope: "personal" as const,
-        state,
-        attempts: index === 7 ? 0 : index + 1,
-        failureCode: null,
-        updatedAt: new Date(`2026-01-01T${String(index + 10).padStart(2, "0")}:00:00.000Z`),
-      })),
+      jobs: states.map((state, index) => {
+        const updatedAt = new Date(`2026-01-01T${String(index + 10).padStart(2, "0")}:00:00.000Z`)
+        return {
+          sessionId,
+          accountScope: "personal" as const,
+          state,
+          attempts: index === 7 ? 0 : index + 1,
+          failureCode: null,
+          scheduledFor: updatedAt,
+          createdAt: new Date(updatedAt.getTime() - 3_600_000),
+          updatedAt,
+        }
+      }),
     })
 
     // When the projection is built

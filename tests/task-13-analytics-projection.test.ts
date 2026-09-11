@@ -50,6 +50,8 @@ describe("analytics message projections", () => {
           state: "failed",
           attempts: 4,
           failureCode: null,
+          scheduledFor: new Date("2025-12-31T23:00:00.000Z"),
+          createdAt: new Date("2025-12-31T22:00:00.000Z"),
           updatedAt: new Date("2025-12-31T23:59:59.000Z"),
         },
         {
@@ -58,6 +60,8 @@ describe("analytics message projections", () => {
           state: "submitted",
           attempts: 2,
           failureCode: null,
+          scheduledFor: new Date("2026-01-01T02:00:00.000Z"),
+          createdAt: new Date("2026-01-01T01:00:00.000Z"),
           updatedAt: new Date("2026-01-01T02:00:00.000Z"),
         },
       ],

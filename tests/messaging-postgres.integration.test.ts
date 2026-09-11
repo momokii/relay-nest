@@ -233,6 +233,7 @@ function serviceOptions(
         providerChatId: "628123456789@c.us",
         consentGranted: true,
         optedOut: false,
+        sessionId,
       }),
       save: async (contact: never) => contact,
     },

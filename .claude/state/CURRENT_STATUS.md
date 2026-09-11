@@ -1,5 +1,80 @@
 # Current Status
 
+## Session update: waha-finalize Todos 5-9 — Todo 15 and Todo 16 DONE
+
+- Plan `.omo/plans/waha-finalize-15-16.md` Todos 5-9 are verified with evidence
+  in `.omo/evidence/task-16-waha-finalize-15-16.md` (Todos 5-8) and its Todo 9
+  section. **Original Todo 15 (Compose deployment and operations) is DONE** and
+  **original Todo 16 (release verification) is DONE**: the full release sweep —
+  `pnpm lint` (exit 0, 324 files), `pnpm typecheck` (exit 0), `pnpm test`
+  (101 files / 559 tests), Settings/Users feature + Playwright regression,
+  `pnpm secret-scan`/`verify:scope`/`docs:check` (all exit 0 with canary-probed
+  scanners), the filtered e2e gate (10/10, three consecutive green runs) plus
+  full e2e (23/23), Compose restart with all services healthy, and
+  `pnpm audit --audit-level=high` (exit 0) — is green.
+- Audit gate fix (Todo 9): the first audit run failed with 8 high `fast-uri`
+  findings (4 GHSA advisories, via `fastify>@fastify/ajv-compiler` in
+  `apps/api`). Fixed at the lockfile root with
+  `npx --yes pnpm@10.12.4 update fast-uri --recursive` (patched 3.1.7 / 4.1.4,
+  within declared ranges; `pnpm-lock.yaml` is the only product-tree change;
+  typecheck re-verified exit 0). Final audit: 4 moderate, 0 high/critical.
+- Final evidence bundle (Todo 9): `.omo/evidence/final-plan-compliance.md`,
+  `final-security-quality.md`, `final-e2e.md`, and `final-scope-docs.md` now
+  hold waha-finalize-15-16 F1-F4 **placeholders** (gates PENDING), each
+  collating the task-15/task-16 evidence and fresh `docker compose config`
+  receipts (both modes exit 0; only web publishes, loopback, target 4173; zero
+  secret values in resolved output). The superseded 2026-08-28 BLOCKED F1-F4
+  audits remain in git history (`1d648bd`).
+- Remaining open: F1-F4 final gates (the placeholders are inputs, not verdicts)
+  and protected plan/ledger checkbox reconciliation for Todos 15-16. The
+  finalize plan marks Todos 1-8 checked and Todo 9 unchecked in the protected
+  plan file, which this session did not edit; Todo 9's work is complete and
+  evidenced pending that protected-record update and any commit authorization
+  (plan flags Todo 9 as `Commit: Y`, but no commit was authorized).
+- Worktree truth: the finalize-plan work (lockfile fix, state/evidence files,
+  e2e spec updates from Todo 8, docs refresh from Todo 3, Todo 5 lint/test
+  fixes) remains uncommitted and reviewable; nothing pushed.
+
+Last updated: 2026-09-11
+
+## Session update: waha-finalize Todos 1-4 — Todo 15 done, Todo 16 in-progress
+
+- Plan `.omo/plans/waha-finalize-15-16.md` Todos 1-2 are verified with evidence
+  in `.omo/evidence/task-15-waha-finalize-15-16.md`: the bundled WAHA wrapper is
+  digest-pinned to `latest-2026.8.1@sha256:d52ad4f3...` and both Compose modes
+  resolve with file-based secrets, only-web host publication, and no secret
+  values in resolved config. Todo 3 refreshed the operations/README ban-risk
+  guidance (worktree change to `docs/operations.md` plus committed docs).
+  Todo 4 made these state files current and re-verified the secret boundary.
+- **Original Todo 15 (Compose deployment and operations) is DONE**: external
+  mode is runtime-verified (disposable stack, healthy services, internal-only
+  API/WAHA, web-only loopback publication) and bundled mode is runtime-verified
+  through the digest-pinned image plus the repository-owned secret-file bridge
+  (2026-08-28 bundled-runtime session; finalize-plan Todos 1-2 verification).
+  Remaining plan-checkbox reconciliation for Todo 15 is superseded by the
+  approved-scope `.omo/plans/waha-finalize-15-16.md` execution record.
+- **Original Todo 16 (release verification) is IN-PROGRESS**: the release sweep
+  (lint/typecheck/test/e2e/audit/secret-scan plus Settings/Users regression and
+  final evidence) runs as finalize-plan Todos 5-9; F1-F4 final gates remain
+  open and are not claimed.
+- Todo 4 secret verification: `npx --yes pnpm@10.12.4 secret-scan` exits 0; a
+  content-based scan of all tracked files against the actual `.secrets/*` and
+  local `.env` key material found zero matches; `git ls-files .secrets/` is
+  empty (`.gitignore:5`); every tracked `waha_api_key`/`ENCRYPTION_MASTER_KEY`
+  occurrence is a name/reference or `.example`/commented placeholder, never a
+  value. Failure QA: injecting a contract-matching secret assignment into a
+  tracked source file flipped `secret-scan` to exit 1; the injected line was
+  reverted byte-identical. Scanner boundary recorded in evidence: the checker
+  detects uppercase env-style assignments, provider tokens, private keys,
+  JWTs, and credential URLs; lowercase in-code field names are outside its
+  contract (documented, not silently widened).
+- Worktree truth: these state updates, the finalize plan, and the Todo 1-4
+  evidence are uncommitted (no commit was authorized); `docs/operations.md`
+  carries the Todo 3 docs refresh; the pre-existing `.omo/boulder.json`
+  deletion remains untouched. No commit or push was performed.
+
+Last updated: 2026-09-10
+
 ## Session update: combined schedule history Task 5 (e2e, docs, verification)
 
 - Rewrote `tests/e2e/schedule-dashboard.spec.ts` as four route-mocked browser

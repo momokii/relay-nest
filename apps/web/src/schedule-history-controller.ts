@@ -120,6 +120,7 @@ export function useDashboardScheduleHistoryController(
     return () => clearTimeout(timer)
   }, [q])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: deps are change triggers, not values; resets to the first page when any filter changes
   useEffect(() => {
     setPage(1)
   }, [debouncedQ, stateFilter, from, to, pageSize, scope])

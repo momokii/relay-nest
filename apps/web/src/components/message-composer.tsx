@@ -108,7 +108,9 @@ function previewNode(node: ChildNode, key: number): React.ReactNode {
 }
 
 function renderPreviewNodes(text: string): readonly React.ReactNode[] {
-  const document = new DOMParser().parseFromString(renderPreview(text), "text/html")
+  const html = renderPreview(text)
+  if (typeof DOMParser === "undefined") return [html]
+  const document = new DOMParser().parseFromString(html, "text/html")
   return Array.from(document.body.childNodes).map((node, index) => previewNode(node, index))
 }
 

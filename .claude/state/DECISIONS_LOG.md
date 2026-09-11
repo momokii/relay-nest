@@ -141,6 +141,15 @@ internal and unpublished, and require reverse-proxy TLS/firewall hardening for
 public deployment. Authentication, secure cookies, CSRF protection, login rate
 limits, server-side keys, and explicit exposure warnings are mandatory.
 
+**Amendment (2026-09-10):** The binding guidance above is superseded: the
+dashboard binds to loopback by default (`127.0.0.1` via
+`WEB_BIND_ADDRESS`/`WEB_PORT` in Compose), and `WEB_BIND_ADDRESS` is set to an
+explicit trusted LAN/VPN address only when that boundary is intentional. The
+rest of this decision — internal unpublished WAHA, reverse-proxy TLS/firewall
+hardening for public deployment, and the mandatory auth/cookie/CSRF/rate-limit
+controls — remains in force. See `docs/operations.md` (File and port rules) and
+`docs/decisions/0001-product-boundary.md` (Network boundary).
+
 ## Decision Entry Template
 
 Copy this template for each significant decision and fill every field:

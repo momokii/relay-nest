@@ -12,39 +12,170 @@
   - paragraph: Durable jobs · personal
   - heading "One-time scheduling" [level=1]
   - paragraph: Record one future dispatch with an explicit timezone and no recurrence.
-  - text: e2e-73728bd8-a1b8-42b0-bc61-805f35e04f01@example.invalid
+  - text: e2e-2832a82c-75e0-4687-a112-28a7d338555c@example.invalid
   - strong: admin access
+  - region "Schedule history":
+    - paragraph: personal scope
+    - heading "Schedule history" [level=2]
+    - paragraph: Scheduled texts only, including pending and completed lifecycle records. Rows show a preview; open a row for the full record and actions.
+    - text: Search (3s debounce)
+    - textbox "Search schedule history"
+    - text: State
+    - combobox "Filter by state":
+      - option "All states" [selected]
+      - option "scheduled"
+      - option "queued"
+      - option "attempting"
+      - option "submitted"
+      - option "acknowledged"
+      - option "failed"
+      - option "unknown"
+      - option "cancelled"
+    - text: From
+    - textbox "Filter from date"
+    - text: To
+    - textbox "Filter to date"
+    - text: Rows
+    - combobox "Rows per page":
+      - option "10"
+      - option "20" [selected]
+      - option "50"
+    - text: "Total: 5 messages · showing 5 on this page"
+    - table "personal schedule history":
+      - rowgroup:
+        - row "Recipient Message When Method State More information Attempts Provider ID More information Reference More information Actions":
+          - columnheader "Recipient"
+          - columnheader "Message"
+          - columnheader "When"
+          - columnheader "Method"
+          - columnheader "State More information":
+            - text: State
+            - button "More information"
+          - columnheader "Attempts"
+          - columnheader "Provider ID More information":
+            - text: Provider ID
+            - button "More information"
+          - columnheader "Reference More information":
+            - text: Reference
+            - button "More information"
+          - columnheader "Actions"
+      - rowgroup:
+        - row "E2E schedule recipient · +15551234567 A deterministic acceptance message 01/01/2099, 12:00 · Asia/Jakarta Scheduled scheduled 0 — 45bd7f95-3c2c-4989-82… View details for job 45bd7f95-3c2c-4989-823a-cd651898bba3":
+          - cell "E2E schedule recipient · +15551234567"
+          - cell "A deterministic acceptance message"
+          - cell "01/01/2099, 12:00 · Asia/Jakarta"
+          - cell "Scheduled"
+          - cell "scheduled"
+          - cell "0"
+          - cell "—":
+            - code: —
+          - cell "45bd7f95-3c2c-4989-82…":
+            - code: 45bd7f95-3c2c-4989-82…
+          - cell "View details for job 45bd7f95-3c2c-4989-823a-cd651898bba3":
+            - button "View details for job 45bd7f95-3c2c-4989-823a-cd651898bba3": Details
+        - row "Unavailable Unavailable 31/12/2099, 00:00 · UTC Scheduled unknown 0 — 2762fe1f-7ed0-461b-9c… View details for job 2762fe1f-7ed0-461b-9c77-bc11c173f06f":
+          - cell "Unavailable"
+          - cell "Unavailable"
+          - cell "31/12/2099, 00:00 · UTC"
+          - cell "Scheduled"
+          - cell "unknown"
+          - cell "0"
+          - cell "—":
+            - code: —
+          - cell "2762fe1f-7ed0-461b-9c…":
+            - code: 2762fe1f-7ed0-461b-9c…
+          - cell "View details for job 2762fe1f-7ed0-461b-9c77-bc11c173f06f":
+            - button "View details for job 2762fe1f-7ed0-461b-9c77-bc11c173f06f": Details
+        - row "Unavailable Unavailable 30/12/2099, 01:00 · UTC Scheduled failed 2 — a845497c-5a76-4b86-8c… View details for job a845497c-5a76-4b86-8c25-a343aaa3bc20":
+          - cell "Unavailable"
+          - cell "Unavailable"
+          - cell "30/12/2099, 01:00 · UTC"
+          - cell "Scheduled"
+          - cell "failed"
+          - cell "2"
+          - cell "—":
+            - code: —
+          - cell "a845497c-5a76-4b86-8c…":
+            - code: a845497c-5a76-4b86-8c…
+          - cell "View details for job a845497c-5a76-4b86-8c25-a343aaa3bc20":
+            - button "View details for job a845497c-5a76-4b86-8c25-a343aaa3bc20": Details
+        - row "Unavailable Unavailable 30/12/2099, 00:00 · UTC Scheduled submitted 0 — b24f7d66-a024-4734-91… View details for job b24f7d66-a024-4734-91c0-0387510acaec":
+          - cell "Unavailable"
+          - cell "Unavailable"
+          - cell "30/12/2099, 00:00 · UTC"
+          - cell "Scheduled"
+          - cell "submitted"
+          - cell "0"
+          - cell "—":
+            - code: —
+          - cell "b24f7d66-a024-4734-91…":
+            - code: b24f7d66-a024-4734-91…
+          - cell "View details for job b24f7d66-a024-4734-91c0-0387510acaec":
+            - button "View details for job b24f7d66-a024-4734-91c0-0387510acaec": Details
+        - row "Unavailable Unavailable 29/12/2099, 00:00 · UTC Scheduled scheduled 0 — 7d7082f6-e16d-48ff-af… View details for job 7d7082f6-e16d-48ff-afa1-90f54e652cfa":
+          - cell "Unavailable"
+          - cell "Unavailable"
+          - cell "29/12/2099, 00:00 · UTC"
+          - cell "Scheduled"
+          - cell "scheduled"
+          - cell "0"
+          - cell "—":
+            - code: —
+          - cell "7d7082f6-e16d-48ff-af…":
+            - code: 7d7082f6-e16d-48ff-af…
+          - cell "View details for job 7d7082f6-e16d-48ff-afa1-90f54e652cfa":
+            - button "View details for job 7d7082f6-e16d-48ff-afa1-90f54e652cfa": Details
+    - navigation "Schedule history pagination":
+      - text: Page 1 · 20 per page
+      - button "Previous" [disabled]
+      - button "Next" [disabled]
   - region "Schedule one text":
     - paragraph: Durable one-time job
     - heading "Schedule one text" [level=2]
     - paragraph: This surface is intentionally text-only, consent-first, and scoped to one authorized session.
-    - text: Authorized session
-    - combobox "Authorized session":
-      - option "Select a session"
-      - option "e2e-personal-session-6a31a11b-151d-4bb2-8ee5-85854814923e" [selected]
-    - text: One recipient
-    - textbox "One recipient Enter one E.164 number or choose an available individual contact below."
-    - text: Enter one E.164 number or choose an available individual contact below.
-    - region "WhatsApp chat directory":
-      - text: Choose from directory
-      - textbox "Choose from directory"
-      - strong: Directory unavailable
-      - text: WAHA or this capability is unavailable.
+    - region "Recipient selector":
+      - paragraph: Recipient selector
+      - heading "Choose a contact" [level=3]
+      - paragraph: Select one individual contact or enter a phone number to resolve.
+      - paragraph: Use a valid consent basis. The Server consent record is authoritative at send time.
+      - text: Authorized session
+      - combobox "Authorized session":
+        - option "Select a session"
+        - option "e2e-personal-session-e3536ab0-53dd-485c-ba9b-c2243cba5d2e" [selected]
+        - option "E2E linked b294a9b6-3d50-4448-8c5f-9e62aa9066f8"
+        - option "Held Personal 5b337436-f7c2-4612-b2ab-3272d6e4cb0d"
+      - text: One recipient
+      - textbox "One recipient Enter one E.164 number or choose an available individual contact below."
+      - text: Enter one E.164 number or choose an available individual contact below.
+      - region "Contact list from WhatsApp chat directory":
+        - paragraph: Selecting a contact only fills the recipient; sending still requires your final submit.
+        - text: Search contact list
+        - textbox "Search contact list"
+        - strong: Directory unavailable
+        - text: WAHA or this capability is unavailable.
+      - button "Resolve target"
+    - toolbar "Message formatting":
+      - button "Bold": B
+      - button "Italic": I
+      - button "Strikethrough": S
+      - button "Monospace": M
+      - button "Bullet list": •
+      - button "Numbered list": "1."
     - text: Text message
-    - textbox "Text message 0 / 4096 characters · no media or broadcast targets"
-    - text: 0 / 4096 characters · no media or broadcast targets One-time dispatch time
+    - textbox "Text message"
+    - text: 0 / 4096 characters · no media or broadcast targets
+    - region "Message preview": Preview
+    - text: One-time dispatch time
     - textbox "One-time dispatch time"
     - text: Timezone
     - combobox "Timezone Schedules are one-time only; recurrence is not available.":
-      - option "UTC" [selected]
-      - option "Asia/Jakarta"
+      - option "UTC"
+      - option "Asia/Jakarta" [selected]
       - option "Asia/Singapore"
       - option "Europe/London"
       - option "America/New_York"
       - option "America/Los_Angeles"
     - text: Schedules are one-time only; recurrence is not available.
-    - checkbox "I have a valid consent basis for this individual recipient."
-    - text: I have a valid consent basis for this individual recipient.
     - strong: Safety checkpoint
     - text: Transport acceptance is not proof of recipient delivery. Pacing, quiet hours, consent, and WAHA state are checked server-side.
     - button "Create one-time schedule"
@@ -56,17 +187,3 @@
     - text: Unavailable
     - strong: AI suggestions unavailable
     - text: No scoped suggestion is available for this dashboard. Nothing is shown or approved locally.
-  - region "Schedules":
-    - paragraph: Durable jobs
-    - heading "Schedules" [level=2]
-    - paragraph: List, inspect, edit, or cancel one-time jobs in this scope.
-    - text: Schedule session
-    - combobox "Schedule session":
-      - option "e2e-personal-session-6a31a11b-151d-4bb2-8ee5-85854814923e" [selected]
-    - text: Schedule
-    - combobox "Schedule":
-      - option "submitted · 12/30/2099, 7:00:00 AM" [selected]
-      - option "unknown · 12/31/2099, 7:00:00 AM"
-    - text: State · submitted
-    - strong: Schedule is locked
-    - text: This schedule is no longer editable or cancellable.
