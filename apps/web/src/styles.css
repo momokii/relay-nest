@@ -815,6 +815,23 @@ select {
   overflow-wrap: anywhere;
   white-space: normal;
 }
+.history-message-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.message-toggle {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-info);
+  font-size: var(--type-caption);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
 .button {
   min-height: var(--control-height);
   padding: var(--space-3) var(--space-4);

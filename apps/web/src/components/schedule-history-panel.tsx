@@ -264,9 +264,26 @@ export function ScheduleHistoryPanel({
                     }}
                   >
                     <td title={item.recipientPhone ?? undefined}>{formatRecipient(item)}</td>
-                    <td>
+                    <td title={item.snippet80 ?? undefined}>
                       {item.snippet80 ? (
-                        <WhatsAppPreview message={item.snippet80} />
+                        <>
+                          <span className="history-message-clamp">
+                            <WhatsAppPreview message={item.snippet80} />
+                          </span>
+                          {item.messageTruncated === true ? (
+                            <button
+                              type="button"
+                              className="message-toggle"
+                              aria-label={`Show full message for job ${item.id}`}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                onOpenJob(item.id)
+                              }}
+                            >
+                              Show more
+                            </button>
+                          ) : null}
+                        </>
                       ) : (
                         "Unavailable"
                       )}

@@ -187,4 +187,26 @@ describe("ScheduleHistoryPanel", () => {
     expect(markup).toContain("Next")
     expect(markup).not.toContain('aria-label="business schedule history"')
   })
+
+  it("shows an explicit more affordance only for truncated messages", () => {
+    // Given one complete and one truncated message row
+    const props = panelProps("")
+    const complete = { ...detailFor("scheduled"), id: "job-1", messageTruncated: false }
+    const truncated = { ...detailFor("submitted"), id: "job-2", messageTruncated: true }
+    const markup = renderToStaticMarkup(
+      createElement(ScheduleHistoryPanel, {
+        ...props,
+        history: {
+          kind: "ready",
+          data: { items: [complete, truncated], page: 1, pageSize: 20, hasMore: false },
+        },
+      }),
+    )
+
+    // When the panel renders
+    // Then only the truncated row offers to show the full message
+    expect(markup).toContain('aria-label="Show full message for job job-2"')
+    expect(markup).not.toContain('aria-label="Show full message for job job-1"')
+    expect(markup).toContain("Show more")
+  })
 })

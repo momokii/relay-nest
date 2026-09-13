@@ -85,13 +85,16 @@ export function projectSentHistoryRow(
     row.job.messageAuthTag,
     row.job.accountScope,
   )
+  const firstLine = message?.split("\n", 1)[0]?.trim() ?? null
   return {
     id: row.job.id,
     sessionId: row.job.sessionId,
     scope: row.job.accountScope,
     recipientPhone,
     recipientName: recipientName ?? null,
-    snippet80: message?.split("\n", 1)[0]?.trim().slice(0, 80) ?? null,
+    snippet80: firstLine?.slice(0, 80) ?? null,
+    messageTruncated:
+      firstLine !== null && (firstLine.length > 80 || (message?.includes("\n") ?? false)),
     scheduledFor: row.job.scheduledFor,
     timezone: row.job.timezone,
     createdAt: row.job.createdAt,

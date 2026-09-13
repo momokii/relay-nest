@@ -100,6 +100,7 @@ describe("sent-history projection", () => {
       recipientPhone: "628123456789",
       recipientName: null,
       snippet80: `first line ${"x".repeat(80)}`.slice(0, 80),
+      messageTruncated: true,
       attempts: 1,
       scheduledFor: new Date("2026-09-01T10:00:00.000Z"),
       timezone: "UTC",
@@ -134,6 +135,19 @@ describe("sent-history projection", () => {
     expect(result.updatedAt).toEqual(new Date("2026-09-01T09:00:00.000Z"))
   })
 
+  it("marks a short single-line message as complete in the list projection", () => {
+    // Given a message that fits the snippet entirely
+    const result = projectSentHistoryRow(
+      row(Buffer.alloc(32, 7), "submitted", { message: "hello" }),
+      cipher,
+    )
+
+    // When projected for the list
+    // Then no truncation is reported
+    expect(result.snippet80).toBe("hello")
+    expect(result.messageTruncated).toBe(false)
+  })
+
   it("detail projection returns every list field plus the full decrypted message", () => {
     const result = projectSentHistoryDetail(
       row(Buffer.alloc(32, 7), "submitted", {
@@ -144,6 +158,7 @@ describe("sent-history projection", () => {
 
     expect(result.message).toBe("first line\nsecond line must appear in full")
     expect(result.snippet80).toBe("first line")
+    expect(result.messageTruncated).toBe(true)
     expect(result.recipientPhone).toBe("628123456789")
     expect(result.timezone).toBe("UTC")
     expect(result.state).toBe("submitted")
@@ -170,6 +185,7 @@ describe("sent-history projection", () => {
 
     expect(result.recipientPhone).toBeNull()
     expect(result.snippet80).toBeNull()
+    expect(result.messageTruncated).toBe(false)
     expect(result.state).toBe("failed")
   })
 

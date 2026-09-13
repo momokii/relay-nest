@@ -55,6 +55,7 @@ const sentHistoryItemSchema = z.object({
   recipientPhone: z.string().nullable(),
   recipientName: z.string().nullable().optional(),
   snippet80: z.string().nullable(),
+  messageTruncated: z.boolean().optional(),
   scheduledFor: z.string(),
   timezone: z.string(),
   createdAt: z.string(),
