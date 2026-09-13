@@ -128,6 +128,11 @@ deployment publishes only the dashboard on `WEB_BIND_ADDRESS` and `WEB_PORT`
 the private Compose network. Keep the default for local or reverse-proxy use;
 set `WEB_BIND_ADDRESS` to an explicit trusted LAN/VPN address only when needed.
 
+Every supported deployment — production bundled, production external, and the
+disposable development stack — runs as Docker Compose services; there is no
+bare-metal production path. The `start` and `dev` npm scripts exist only as
+container entrypoints and test-harness helpers, not as deployment methods.
+
 ### Step 0 — secrets (both modes)
 
 Create the secret files once. Bundled deployments need all three; external
