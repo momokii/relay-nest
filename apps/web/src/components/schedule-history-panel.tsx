@@ -12,6 +12,7 @@ import type { ActionState, ResourceState } from "../dashboard-state"
 import { ScheduleDetailModal } from "./schedule-detail-modal"
 import { InfoHint, Panel, StateNotice, StatusBadge } from "./ui"
 import { formatScheduleDate, scheduleStateTone } from "./view-support"
+import { WhatsAppPreview } from "./whatsapp-preview"
 
 export type ScheduleHistoryPanelProps = Readonly<{
   scope: AccountScope
@@ -263,7 +264,13 @@ export function ScheduleHistoryPanel({
                     }}
                   >
                     <td title={item.recipientPhone ?? undefined}>{formatRecipient(item)}</td>
-                    <td>{item.snippet80 ?? "Unavailable"}</td>
+                    <td>
+                      {item.snippet80 ? (
+                        <WhatsAppPreview message={item.snippet80} />
+                      ) : (
+                        "Unavailable"
+                      )}
+                    </td>
                     <td>
                       {formatScheduleDate(item.scheduledFor || item.createdAt, item.timezone)}
                       <small> · {item.timezone}</small>
