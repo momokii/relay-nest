@@ -135,8 +135,10 @@ container entrypoints and test-harness helpers, not as deployment methods.
 
 ### Step 0 — secrets (both modes)
 
-Create the secret files once. Bundled deployments need all three; external
-deployments need the first two plus `WAHA_BASE_URL`.
+Create the secret files once. Every mode needs `postgres_password`,
+`encryption_master_key`, and `waha_webhook_secret` present (Compose mounts
+them even when webhooks stay unused); bundled deployments additionally need
+`waha_api_key`, and external deployments additionally need `WAHA_BASE_URL`.
 
 ```bash
 umask 077
@@ -145,6 +147,7 @@ chmod 700 .secrets
 openssl rand -hex 24 > .secrets/postgres_password
 openssl rand -base64 32 > .secrets/encryption_master_key
 openssl rand -hex 24 > .secrets/waha_api_key
+openssl rand -hex 24 > .secrets/waha_webhook_secret
 chmod 600 .secrets/*
 export ENCRYPTION_MASTER_KEY_FILE="$PWD/.secrets/encryption_master_key"
 export WAHA_API_KEY_FILE="$PWD/.secrets/waha_api_key"
@@ -189,7 +192,11 @@ npx --yes pnpm@10.12.4 deploy:external
 
 The external WAHA service is not created by this repository. Its connection name
 and API key are configured by an Admin in RelayNest and stored encrypted; do not
-put provider keys in `.env`, Compose YAML, browser storage, or logs.
+put provider keys in `.env`, Compose YAML, browser storage, or logs. If that
+external WAHA should push event webhooks back, set `WAHA_WEBHOOK_BASE_URL` to an
+API address reachable from the WAHA host (the default `http://api:3000` only
+resolves inside Compose); webhook ingestion details are in
+`docs/operations.md`.
 
 ### First run after either setup
 
@@ -265,7 +272,8 @@ Locked out entirely -> see "If an admin password is forgotten" above;
 
 ## Fast development
 
-Use the pinned Node/pnpm toolchain and lockfile. Copy `.env.example`, then for
+Use the pinned Node/pnpm toolchain and lockfile (Node `>=22.23.1 <23`,
+pnpm `10.12.4`). Copy `.env.example`, then for
 the quickest local app test provision disposable development secrets once:
 
 ```bash
@@ -294,6 +302,10 @@ docker compose -p relaynest-dev \
   -f docker-compose.yml -f docker-compose.override.yml \
   -f docker-compose.bundled-waha.yml --profile waha down --remove-orphans
 ```
+
+Running the API and web directly with `pnpm dev` (no Compose) is for code
+iteration only and needs your own PostgreSQL via `DATABASE_URL` as documented
+in `.env.example`; it is not a deployment method.
 
 For each feature, add a focused regression test and run only the fast verifier:
 
