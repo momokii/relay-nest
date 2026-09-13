@@ -166,8 +166,12 @@ npx --yes pnpm@10.12.4 deploy:bundled
 
 Open `http://localhost:8080` (or the configured `WEB_BIND_ADDRESS` and
 `WEB_PORT`), choose
-**Create the first Admin**, and complete bootstrap. The WAHA API key generated
-above is for the bundled service; it is not a WhatsApp account credential. Link
+**Create the first Admin**, and complete bootstrap with an email, a password
+(minimum 12 characters), and a display name. That first account becomes Admin
+in both Personal and Business scopes and is signed in immediately; afterwards
+bootstrap refuses and every further account must be created by an Admin. The
+WAHA API key generated above is for the bundled service; it is not a WhatsApp
+account credential. Link
 a session only after reviewing the consent, pacing, quiet-hour, and account-risk
 controls.
 
@@ -190,13 +194,31 @@ put provider keys in `.env`, Compose YAML, browser storage, or logs.
 ### First run after either setup
 
 1. Open the dashboard and choose **Create the first Admin** (bootstrap works
-   only while no users exist; afterwards it refuses).
+   only while no users exist; afterwards it refuses). Immediately create a
+   second Admin as a break-glass account — see password recovery below.
 2. As Admin, go to Sessions and link a session (QR, pairing code, or passkey),
    then open Users, create an Operator, and grant them that session.
 3. As the Operator, open Contacts, resolve one consenting recipient, then Send
    one immediate text and Schedule one future text.
 4. Open Schedule history to watch the states move (`scheduled` → `attempting`
    → `submitted`/`acknowledged`), and Settings to confirm inventory.
+
+### If an admin password is forgotten
+
+There is no self-service or email reset by design — passwords only change
+through a signed-in Admin or at bootstrap time.
+
+- **Another Admin is available:** they open Users → the kebab menu →
+  Reset password (minimum 12 characters). The new password works immediately
+  and all of that user's sessions are revoked, so the user signs in again.
+- **Reset does not re-enable:** a disabled account still cannot sign in until
+  an Admin also chooses Enable for it.
+- **Nobody can sign in as Admin:** bootstrap will not reopen once any user
+  exists, and there is no supported password reset outside the dashboard.
+  This is why step 1 above creates a break-glass Admin first; without one,
+  recovery requires operator database access.
+- **Repeated failures:** sign-in rate-limits after several wrong attempts —
+  wait a moment before retrying.
 
 ### Operate the deployment
 
@@ -237,6 +259,8 @@ API 401/timeout against external WAHA -> confirm WAHA_BASE_URL is reachable from
   inside the api container and the stored connection key is current.
 Login fails after restore -> the key differs; restore needs the same
   encryption master key, per docs/operations.md.
+Locked out entirely -> see "If an admin password is forgotten" above;
+  bootstrap will not reopen once any user exists.
 ```
 
 ## Fast development
