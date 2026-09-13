@@ -12,6 +12,10 @@ import {
 import type { ResourceState } from "../dashboard-state"
 import { type ActionState, actionFromResult } from "../dashboard-state"
 
+export function bootstrapPasswordsMatch(password: string, confirmPassword: string): boolean {
+  return password.length > 0 && password === confirmPassword
+}
+
 export function AuthBoundary({
   state,
 }: Readonly<{ state: ResourceState<Principal> }>): React.JSX.Element {
@@ -20,7 +24,12 @@ export function AuthBoundary({
   const [action, setAction] = useState<ActionState<AuthPrincipal>>({ kind: "idle" })
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [displayName, setDisplayName] = useState("")
+  const passwordsMismatch =
+    mode === "bootstrap" &&
+    confirmPassword.length > 0 &&
+    !bootstrapPasswordsMatch(password, confirmPassword)
   const message =
     state.kind === "denied" || state.kind === "error"
       ? state.message
@@ -44,6 +53,7 @@ export function AuthBoundary({
       )
     }
     if (mode === "bootstrap") {
+      if (passwordsMismatch) return
       const input: AuthBootstrapInput = { email, password, displayName }
       void api.bootstrap(input).then(finish)
     } else {
@@ -92,10 +102,22 @@ export function AuthBoundary({
               required
             />
           </label>
+          {mode === "bootstrap" ? (
+            <label>
+              <span>Confirm password</span>
+              <input
+                type="password"
+                minLength={12}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                required
+              />
+            </label>
+          ) : null}
           <button
             className="button button-primary"
             type="submit"
-            disabled={action.kind === "submitting"}
+            disabled={action.kind === "submitting" || passwordsMismatch}
           >
             {action.kind === "submitting"
               ? "Checking…"
@@ -103,6 +125,7 @@ export function AuthBoundary({
                 ? "Create Admin"
                 : "Sign in"}
           </button>
+          {passwordsMismatch ? <p role="alert">Passwords do not match.</p> : null}
           {action.kind === "denied" || action.kind === "error" || action.kind === "unavailable" ? (
             <p role="alert">{action.message}</p>
           ) : null}
@@ -110,7 +133,10 @@ export function AuthBoundary({
         <button
           className="button button-secondary"
           type="button"
-          onClick={() => setMode(mode === "login" ? "bootstrap" : "login")}
+          onClick={() => {
+            setMode(mode === "login" ? "bootstrap" : "login")
+            setConfirmPassword("")
+          }}
         >
           {mode === "login" ? "First run? Create Admin" : "Already configured? Sign in"}
         </button>
