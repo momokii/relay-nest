@@ -110,6 +110,7 @@ export function registerAuthRoutes(
     const principal = await authenticate(auth, request, reply)
     if (!principal) return
     const params = z.object({ userId: z.string().uuid() }).parse(request.params)
+    if (params.userId === principal.userId) return reply.code(403).send({ error: "forbidden" })
     if (
       !(await admin.canDisable(principal.userId, params.userId)) ||
       !(await requireCsrf(auth, request, principal.sessionToken))
@@ -124,6 +125,7 @@ export function registerAuthRoutes(
     const principal = await authenticate(auth, request, reply)
     if (!principal) return
     const params = z.object({ userId: z.string().uuid() }).parse(request.params)
+    if (params.userId === principal.userId) return reply.code(403).send({ error: "forbidden" })
     if (
       !(await admin.canDisable(principal.userId, params.userId)) ||
       !(await requireCsrf(auth, request, principal.sessionToken))

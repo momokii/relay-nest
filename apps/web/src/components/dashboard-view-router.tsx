@@ -259,6 +259,7 @@ export function renderDashboardPage(
       return (
         <UsersPage
           role={context.role}
+          currentUserId={context.principal.user.id}
           users={context.users}
           sessions={context.sessions}
           createUserAction={context.createUserAction}

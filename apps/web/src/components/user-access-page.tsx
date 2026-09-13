@@ -40,11 +40,13 @@ function RowActions({
   user,
   busy,
   isLast,
+  isSelf,
   onAction,
 }: Readonly<{
   user: AdminUserRecord
   busy: boolean
   isLast: boolean
+  isSelf: boolean
   onAction: (modal: UsersModal) => void
 }>): React.JSX.Element {
   const [open, setOpen] = useState(false)
@@ -77,7 +79,8 @@ function RowActions({
     }
     const rect = buttonRef.current?.getBoundingClientRect()
     if (!rect) return
-    const needed = user.active ? 3 * MENU_ITEM_HEIGHT_PX + 47 : 2 * MENU_ITEM_HEIGHT_PX + 32
+    const itemCount = user.active && !isSelf ? 3 : 2
+    const needed = itemCount * MENU_ITEM_HEIGHT_PX + (user.active ? 47 : 32)
     const shouldOpenUp = isLast || (window.innerHeight - rect.bottom < needed && rect.top > needed)
     const left = Math.min(
       Math.max(8, rect.right - MENU_WIDTH_PX),
@@ -111,7 +114,7 @@ function RowActions({
       >
         Reset password
       </button>
-      {user.active ? (
+      {isSelf ? null : user.active ? (
         <button
           type="button"
           role="menuitem"
@@ -183,10 +186,12 @@ function RowActions({
 function UsersTable({
   users,
   busy,
+  currentUserId,
   onAction,
 }: Readonly<{
   users: readonly AdminUserRecord[]
   busy: boolean
+  currentUserId: string
   onAction: (modal: UsersModal) => void
 }>): React.JSX.Element {
   return (
@@ -262,6 +267,7 @@ function UsersTable({
                   user={user}
                   busy={busy}
                   isLast={index === users.length - 1}
+                  isSelf={user.id === currentUserId}
                   onAction={onAction}
                 />
               </td>
@@ -275,6 +281,7 @@ function UsersTable({
 
 export function UsersPage({
   role,
+  currentUserId,
   users,
   sessions,
   createUserAction,
@@ -289,6 +296,7 @@ export function UsersPage({
   onResetPassword,
 }: Readonly<{
   role: DashboardRole
+  currentUserId: string
   users: ResourceState<readonly AdminUserRecord[]>
   sessions: ResourceState<readonly SessionView[]>
   createUserAction: ActionState<AdminUser>
@@ -441,7 +449,12 @@ export function UsersPage({
         ) : null}
         {users.kind === "ready" && filtered.length > 0 ? (
           <>
-            <UsersTable users={paged} busy={busy} onAction={(next) => setModal(next)} />
+            <UsersTable
+              users={paged}
+              busy={busy}
+              currentUserId={currentUserId}
+              onAction={(next) => setModal(next)}
+            />
             <nav className="sent-history-pagination" aria-label="Users pagination">
               <span>
                 Total: {allUsers.length} {allUsers.length === 1 ? "user" : "users"}

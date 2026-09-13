@@ -10,6 +10,7 @@ import { scheduleRowActions } from "../schedule-history-controller"
 import { ScheduleDeleteConfirm } from "./schedule-delete-confirm"
 import { LoadingRows, StateNotice, StatusBadge } from "./ui"
 import { formatScheduleDate, scheduleInstantToLocalInput, scheduleStateTone } from "./view-support"
+import { WhatsAppPreview } from "./whatsapp-preview"
 
 export function ScheduleDetailModal({
   detail,
@@ -127,7 +128,7 @@ export function ScheduleDetailModal({
               </div>
               <div>
                 <dt>Message</dt>
-                <dd>{job.message ?? "—"}</dd>
+                <dd>{job.message ? <WhatsAppPreview message={job.message} /> : "—"}</dd>
               </div>
             </dl>
             {job.failureCode || job.recoveryCode ? (

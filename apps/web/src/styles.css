@@ -811,6 +811,10 @@ select {
   font-size: var(--type-small);
   overflow-wrap: anywhere;
 }
+.whatsapp-preview {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
 .button {
   min-height: var(--control-height);
   padding: var(--space-3) var(--space-4);

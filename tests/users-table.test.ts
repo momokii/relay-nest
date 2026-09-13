@@ -56,9 +56,13 @@ const SESSIONS: ResourceState<readonly SessionView[]> = {
 
 const IDLE = { kind: "idle" as const }
 
-function pageProps(users: ResourceState<readonly AdminUserRecord[]>) {
+function pageProps(
+  users: ResourceState<readonly AdminUserRecord[]>,
+  currentUserId = "00000000-0000-4000-8000-000000000000",
+) {
   return {
     role: "admin" as const,
+    currentUserId,
     users,
     sessions: SESSIONS,
     createUserAction: IDLE,
@@ -103,6 +107,23 @@ describe("users access page", () => {
     expect(markup).toContain("Total: 2 users · showing 2 on this page")
     expect(markup).toContain('title="685d2eaf-8649-4ec7-85e9-69a12e7a5722"')
     expect(markup).not.toContain("passwordHash")
+  })
+
+  it("hides disable and enable actions on the signed-in admin's own row", () => {
+    // Given the Operator row belongs to the signed-in admin
+    const markup = renderToStaticMarkup(
+      createElement(
+        UsersPage,
+        pageProps({ kind: "ready", data: USERS }, "685d2eaf-8649-4ec7-85e9-69a12e7a5722"),
+      ),
+    )
+
+    // When the page renders
+    // Then the active own row offers no Disable, while the disabled Former row still offers Enable
+    expect(markup).not.toContain(">Disable<")
+    expect(markup).toContain(">Enable<")
+    expect(markup).toContain("Grant session")
+    expect(markup).toContain("Reset password")
   })
 
   it("explains the disable lifecycle in its confirmation modal", () => {

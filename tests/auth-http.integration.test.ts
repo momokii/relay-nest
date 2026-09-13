@@ -307,6 +307,34 @@ describe.skipIf(!app || !repositories)("authentication HTTP boundary", () => {
     expect(disable.statusCode).toBe(204)
     expect(revokedViewer.statusCode).toBe(401)
 
+    // When the Admin targets their own account for disable or enable
+    const me = await app.inject({
+      method: "GET",
+      url: "/auth/me",
+      headers: { cookie: adminSession },
+    })
+    const adminId = me.json<{ user: { id: string } }>().user.id
+    const selfDisable = await app.inject({
+      method: "POST",
+      url: `/admin/users/${adminId}/disable`,
+      headers: { cookie: adminSession, "x-csrf-token": adminCsrf },
+    })
+    const selfEnable = await app.inject({
+      method: "POST",
+      url: `/admin/users/${adminId}/enable`,
+      headers: { cookie: adminSession, "x-csrf-token": adminCsrf },
+    })
+
+    // Then self-lifecycle changes are refused and the Admin stays signed in
+    expect(selfDisable.statusCode).toBe(403)
+    expect(selfEnable.statusCode).toBe(403)
+    const stillMe = await app.inject({
+      method: "GET",
+      url: "/auth/me",
+      headers: { cookie: adminSession },
+    })
+    expect(stillMe.statusCode).toBe(200)
+
     // When the same client submits repeated bad logins
     for (let attempt = 0; attempt < 5; attempt += 1)
       await app.inject({
