@@ -349,7 +349,9 @@ in `.omo/evidence/final-*.md`.
 ## License
 
 RelayNest is licensed under the Apache License, Version 2.0. See `LICENSE`
-for the full text. Contributions are accepted under the same license.
+for the full text. Contributions are accepted under the same license; see
+`CONTRIBUTING.md` for the workflow and `SECURITY.md` for reporting
+vulnerabilities.
 
 ## Source of truth
 
