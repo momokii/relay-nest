@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import Fastify from "../apps/api/node_modules/fastify"
+import { z } from "../apps/api/node_modules/zod"
 
 import type { AuthPrincipal } from "../apps/api/src/auth/service"
 import { WahaHttpError } from "../apps/api/src/waha/errors"
@@ -251,6 +252,39 @@ describe("scoped passkey HTTP routes", () => {
         status: "STARTING",
       }),
     ])
+    await app.close()
+  })
+
+  it("rejects WAHA session names outside the provider alphabet before touching the provider", async () => {
+    // Given an authenticated Admin submitting a WAHA session name with a space
+    const calls: string[] = []
+    const providerBodies: string[] = []
+    const app = Fastify()
+    app.setErrorHandler((error, _request, reply) => {
+      if (error instanceof z.ZodError) return reply.code(400).send({ error: "invalid request" })
+      return reply.code(500).send({ error: "internal error" })
+    })
+    const auth = {
+      authenticate: async () => principal,
+      verifyCsrf: async () => true,
+    }
+    registerSessionRoutes(app, auth, serviceWithCalls(calls, providerBodies))
+
+    // When the session-link endpoint receives the invalid name
+    const response = await app.inject({
+      method: "POST",
+      url: "/scoped/sessions?scope=personal",
+      headers: { cookie: "waha_session=session-token", "x-csrf-token": "csrf-token" },
+      payload: {
+        connectionId: "33333333-3333-4333-8333-333333333333",
+        name: "Personal account",
+        wahaSessionName: "test session",
+      },
+    })
+
+    // Then the boundary rejects with 400 and the provider is never called
+    expect(response.statusCode).toBe(400)
+    expect(providerBodies).toEqual([])
     await app.close()
   })
 

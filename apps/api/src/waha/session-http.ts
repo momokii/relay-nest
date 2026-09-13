@@ -45,7 +45,14 @@ export function registerSessionRoutes(
       .object({
         connectionId: z.string().uuid(),
         name: z.string().min(1).max(120),
-        wahaSessionName: z.string().min(1).max(120),
+        wahaSessionName: z
+          .string()
+          .min(1)
+          .max(120)
+          .regex(
+            /^[A-Za-z0-9_-]+$/,
+            "WAHA session name may only contain letters, numbers, hyphens, and underscores",
+          ),
         status: z.string().optional(),
       })
       .parse(body)

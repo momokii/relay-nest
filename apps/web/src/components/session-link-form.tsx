@@ -43,7 +43,9 @@ export function SessionLinkForm({
     event.preventDefault()
     const parsed = createSessionSchema.safeParse({ connectionId, name, wahaSessionName })
     if (!parsed.success) {
-      setValidationError("Select a provider connection and enter both session names.")
+      setValidationError(
+        "Select a provider connection and enter both session names. The WAHA name allows letters, numbers, hyphens, and underscores only.",
+      )
       return
     }
     setValidationError(undefined)
@@ -97,6 +99,7 @@ export function SessionLinkForm({
           onChange={(event) => setWahaSessionName(event.target.value)}
           required
         />
+        <small>Letters, numbers, hyphens, underscores — no spaces.</small>
       </label>
       <button
         className="button button-primary"

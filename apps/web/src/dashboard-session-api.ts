@@ -80,7 +80,13 @@ const sentHistorySchema = z.object({
 export const createSessionSchema = z.object({
   connectionId: z.string().uuid(),
   name: z.string().min(1),
-  wahaSessionName: z.string().min(1),
+  wahaSessionName: z
+    .string()
+    .min(1)
+    .regex(
+      /^[A-Za-z0-9_-]+$/,
+      "WAHA session name may only contain letters, numbers, hyphens, and underscores",
+    ),
   status: z.string().optional(),
 })
 
