@@ -133,38 +133,35 @@ disposable development stack — runs as Docker Compose services; there is no
 bare-metal production path. The `start` and `dev` npm scripts exist only as
 container entrypoints and test-harness helpers, not as deployment methods.
 
-### Step 0 — secrets (both modes)
-
-Create the secret files once. Every mode needs `postgres_password`,
-`encryption_master_key`, and `waha_webhook_secret` present (Compose mounts
-them even when webhooks stay unused); bundled deployments additionally need
-`waha_api_key`, and external deployments additionally need `WAHA_BASE_URL`.
+### Step 0 — one command per mode (does secrets, checks, and deploy)
 
 ```bash
-umask 077
-mkdir -p .secrets
-chmod 700 .secrets
-openssl rand -hex 24 > .secrets/postgres_password
-openssl rand -base64 32 > .secrets/encryption_master_key
-openssl rand -hex 24 > .secrets/waha_api_key
-openssl rand -hex 24 > .secrets/waha_webhook_secret
-chmod 600 .secrets/*
-export ENCRYPTION_MASTER_KEY_FILE="$PWD/.secrets/encryption_master_key"
-export WAHA_API_KEY_FILE="$PWD/.secrets/waha_api_key"
+npx --yes pnpm@10.12.4 setup:bundled   # everything on one host (project: relaynest)
+npx --yes pnpm@10.12.4 setup:external  # uses the WAHA you already operate
+npx --yes pnpm@10.12.4 setup:dev       # disposable copy on port 8081 (project: relaynest-dev)
 ```
+
+Each command runs `scripts/setup.sh`, which checks for Docker Engine with
+Compose v2, creates any missing files under `.secrets/` with owner-only
+permissions, and never overwrites existing ones — regenerating the encryption
+key against an existing database would lock you out. It then validates the
+secrets, warns when the dashboard port is busy, exports the required
+secret-file variables, and runs the matching Compose command. Prefer the raw
+Compose commands? They are listed in `docs/operations.md`.
 
 The base Compose file requires `ENCRYPTION_MASTER_KEY_FILE` (fail-closed when
 missing); the bundled overlay additionally requires `WAHA_API_KEY_FILE`. Never
 put key material in `.env`, Compose YAML, browser storage, logs, or evidence —
-only file paths travel through environment variables. Repeat both exports in
-every new shell before running any Compose command below.
+only file paths travel through environment variables. The script exports both
+variables for you; when running raw Compose commands, repeat both exports in
+every new shell.
 
 ### Setup A — one-click bundled deployment
 
 This mode runs PostgreSQL, RelayNest, and the digest-pinned WAHA image locally:
 
 ```bash
-npx --yes pnpm@10.12.4 deploy:bundled
+npx --yes pnpm@10.12.4 setup:bundled
 ```
 
 Open `http://localhost:8080` (or the configured `WEB_BIND_ADDRESS` and
@@ -185,9 +182,8 @@ encryption secret files as above, set an operator-approved WAHA URL reachable
 from the API container, and start the external overlay:
 
 ```bash
-export ENCRYPTION_MASTER_KEY_FILE="$PWD/.secrets/encryption_master_key"
 export WAHA_BASE_URL="https://waha.internal.example"
-npx --yes pnpm@10.12.4 deploy:external
+npx --yes pnpm@10.12.4 setup:external
 ```
 
 The external WAHA service is not created by this repository. Its connection name
@@ -239,11 +235,11 @@ docker compose -p relaynest logs -f api web
 # Stop the RelayNest project without deleting named data volumes
 npx --yes pnpm@10.12.4 deploy:down
 
-# Start a bundled deployment again using the same secret exports
-npx --yes pnpm@10.12.4 deploy:bundled
+# Start a bundled deployment again (secrets are kept, checks re-run)
+npx --yes pnpm@10.12.4 setup:bundled
 
 # Or start an external-WAHA deployment again with WAHA_BASE_URL exported
-npx --yes pnpm@10.12.4 deploy:external
+npx --yes pnpm@10.12.4 setup:external
 ```
 
 Named volumes preserve PostgreSQL data and bundled WAHA session state. Back up
@@ -274,25 +270,16 @@ Locked out entirely -> see "If an admin password is forgotten" above;
 
 Use the pinned Node/pnpm toolchain and lockfile (Node `>=22.23.1 <23`,
 pnpm `10.12.4`). Copy `.env.example`, then for
-the quickest local app test provision disposable development secrets once:
+the quickest local app test is the checked setup script, which provisions
+disposable development secrets when missing and defaults to port 8081:
 
 ```bash
-umask 077
-mkdir -p .secrets
-chmod 700 .secrets
-printf 'local-postgres-password\n' > .secrets/postgres_password
-openssl rand -base64 32 > .secrets/encryption_master_key
-printf 'local-waha-api-key\n' > .secrets/waha_api_key
-chmod 600 .secrets/*
-export ENCRYPTION_MASTER_KEY_FILE=./.secrets/encryption_master_key
-export WAHA_API_KEY_FILE=./.secrets/waha_api_key
-export WEB_PORT=8081
-npx --yes pnpm@10.12.4 dev:bundled
+npx --yes pnpm@10.12.4 setup:dev
 ```
 
 The dev stack uses project name `relaynest-dev`, so it gets its own volumes
-and never touches production data; `WEB_PORT=8081` keeps it off the default
-`8080` when both stacks run side by side.
+and never touches production data; the default `8081` keeps it off the prod
+default `8080` when both stacks run side by side.
 
 Open `http://localhost:8081` (or the port configured by `WEB_PORT`). Stop only this
 disposable stack with:
