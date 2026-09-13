@@ -35,3 +35,4 @@ tmp/
 # Local agent continuation state
 .omo/drafts/
 .omo/run-continuation/
+.omo/boulder.json
