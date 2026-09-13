@@ -95,13 +95,18 @@ export function createWahaSessionOperations(request: WahaRequest) {
       request(
         `/api/${encodeURIComponent(name)}/auth/qr?format=${format}`,
         wahaQrImageResponseSchema,
-        signal,
+        // QR materializes only after the provider boots the session; a cold
+        // boot exceeds the 5s default, so this op carries its own budget.
+        { signal, timeoutMs: 30_000 },
       ),
     requestPairingCode: (name: string, phoneNumber: string, signal?: AbortSignal) =>
       request(`/api/${encodeURIComponent(name)}/auth/request-code`, emptyResponseSchema, {
         method: "POST",
         body: JSON.stringify({ phoneNumber }),
+        // Pairing codes need a WhatsApp round trip that routinely exceeds the
+        // 5s default, so this op carries its own budget.
         signal,
+        timeoutMs: 30_000,
       }),
     passkeyChallenge: (name: string, signal?: AbortSignal): Promise<WahaPasskeyChallenge> =>
       request(
