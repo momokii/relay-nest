@@ -406,3 +406,13 @@ isolated Compose project with the existing file-backed secret boundary.
 `release` is the explicit aggregate validation path for release/final-gate work.
 This speeds feature iteration without weakening authorization, scope, CSRF,
 encryption, redaction, internal-WAHA, or no-delivery-claim requirements.
+
+## Campaign extension: extra-MVP group-reaction campaign (supersedes 2026-08-16 exclusion)
+
+**Date:** 2026-09-18
+**Context:** The 2026-08-16 "Locked WAHA Command Center product decisions" listed campaigns among MVP exclusions. The approved plan `.omo/plans/group-reaction-campaign.md` (todos G1-G7 + F1-F4 now checked complete) added contact-group CRUD, WAHA group creation, and reaction-triggered 1:1 follow-up campaigns as an extra-MVP surface. Final gate F4 flagged the resulting CONTEXT/README staleness as a documentation reconciliation gap.
+**Decision:** Campaigns remain outside the MVP definition, but the product now ships an extra-MVP campaign surface: authenticated, scope-filtered, grant-checked APIs at `/scoped/contact-groups` and `/scoped/campaigns` with deduped reaction triggering (`campaign:{id}:reaction:{participant}:{messageId}`), while the dashboard `Campaigns` nav and `CampaignPage` remain disabled, `aria-disabled`, and flagged UNSTABLE until the feature is ready. Broadcasts, media beyond group text, cross-scope leakage, and WAHA credential exposure remain forbidden.
+**Rationale:** Allows human-configured 1:1 reaction follow-ups behind the same safety, scope, and audit gates as immediate/scheduled sends, without reopening MVP broadcast or autonomous-send scope.
+**Alternatives Rejected:** Keeping campaigns fully unimplemented (would ignore approved plan and block group-reaction value); enabling the Campaigns UI before stability review.
+**Security Implications:** All campaign routes require authentication, enforce Personal/Business scope isolation, reject viewers without the campaign grant, and pass safety/consent/audit checks identically to other sends.
+**Impact:** `CONTEXT.md` now defines Contact group, Campaign, and Reaction follow-up; `README.md` implemented scope mentions the extra-MVP surface; campaign behavior remains disabled in the UI.

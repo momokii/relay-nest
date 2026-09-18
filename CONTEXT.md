@@ -55,7 +55,19 @@ validated manually entered phone number.
 ### Text message
 
 The MVP communication unit: text addressed to one individual Contact target.
-Media, groups, broadcasts, and campaigns are outside the MVP.
+Media and broadcasts remain outside the MVP; contact groups and reaction-triggered campaigns are extra-MVP surfaces added by the approved `group-reaction-campaign` plan (UI disabled, flagged UNSTABLE; API authenticated, scoped, and grant-checked).
+
+### Contact group
+
+A named collection of contacts managed under one account scope. Used as the audience for a reaction-triggered campaign; creation may provision the corresponding WAHA group.
+
+### Campaign
+
+An extra-MVP, human-configured 1:1 follow-up triggered by a WhatsApp reaction. Defined by one contact group, one trigger emoji, and one follow-up text; the dashboard Campaigns entry remains disabled and UNSTABLE until the feature is ready.
+
+### Reaction follow-up
+
+The deduped 1:1 text sent when a participant reacts to a group message with the campaign's trigger emoji. Subject to consent, safety gates, scope/grant checks, and audit; deduped by `campaign:{id}:reaction:{participant}:{messageId}`.
 
 ## Scheduling and delivery
 

@@ -48,9 +48,8 @@ delete-by-state controls), contact resolution, webhook ingestion, delivery
 evidence, SMTP/Telegram notifications, scoped retention with preview- and
 confirmation-gated purge, authenticated AES-256-GCM backup/restore, WAHA
 configuration audit events, and the Users/Settings lifecycle (reversible
-disable with enable, portaled row menus, full-width admin panels). The
-verification records for the release sweep live in `.omo/evidence/`
-(`task-15-*`, `task-16-*`, and the `final-*.md` gate records).
+disable with enable, portaled row menus, full-width admin panels), plus the
+extra-MVP contact-group and reaction-triggered campaign surface (`/scoped/contact-groups`, `/scoped/campaigns`, deduped 1:1 follow-up; dashboard Campaigns entry disabled and flagged UNSTABLE — see `group-reaction-campaign` plan). The verification records for the release sweep live in `.omo/evidence/` (`task-15-*`, `task-16-*`, and the `final-*.md` gate records).
 
 Todo 12 is implemented and synchronized in semantic commits: scoped retention metadata,
 preview- and confirmation-gated purge, immutable content-free purge
@@ -61,9 +60,8 @@ and WAHA configuration audit events. Its focused verification and concurrency
 regression fix are recorded in `.omo/evidence/task-12-waha-command-center.md`.
 
 The MVP excludes multi-tenant SaaS, public registration, media, recurring
-schedules, campaigns, broadcasts, full inbox parity, autonomous AI sending,
-scraping, spam, stealth, anti-detection, and ban evasion. AI suggestions always
-require human approval.
+schedules, broadcasts, full inbox parity, autonomous AI sending, scraping, spam,
+stealth, anti-detection, and ban evasion. Contact groups and reaction-triggered campaigns are extra-MVP: their APIs are live and scoped/granted, but the Campaigns UI remains disabled and UNSTABLE until the feature is ready. AI suggestions always require human approval.
 
 WAHA uses an unofficial reverse-engineered WhatsApp client.
 Restriction or ban risk is inherent and must be treated as an operational

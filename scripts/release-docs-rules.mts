@@ -69,8 +69,8 @@ export const REQUIRED_DOCUMENTS: readonly RequiredDocument[] = [
     markers: [
       "## Scope",
       "## Todos",
-      "- [ ] 15. Complete Docker Compose deployment modes and operational documentation",
-      "- [ ] 16. Run recursive security, requirement, and release-readiness verification",
+      "- [x] 15. Complete Docker Compose deployment modes and operational documentation",
+      "- [x] 16. Run recursive security, requirement, and release-readiness verification",
     ],
   },
   {
