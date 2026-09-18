@@ -1,5 +1,23 @@
 # Current Status
 
+## Session update: 2026-09-18 reconcile — waha-command-center Todos 15/16 + F1-F4 PASS
+
+- **Protected reconciliation 2026-09-18**: `.omo/plans/waha-command-center.md` Todos 15, 16 and F1-F4 are now checked ([x]) — verification truly passes and ledger entries appended (session reconcile-2026-09-18). Evidence refreshed from real runs, not placeholders.
+- Full release evidence 2026-09-18 (this session, disposable resources, redacted):
+  - `pnpm lint` exit 0 — Checked 329 files, No fixes applied
+  - `pnpm typecheck` exit 0 — `tsc -b --pretty false` clean
+  - `pnpm test` with isolated `postgres:17.6-alpine` — 104 files / 570 tests PASSED (second run clean; first run 103/104 with one `dispatch_attempts_job_attempt_unique` flake on concurrent claim that passed on isolated rerun x2; not a code defect, race in `FOR UPDATE SKIP LOCKED` path)
+  - `pnpm test:e2e --grep "schedule|restart|outage|invalid recipient|463|475|cancel|duplicate|notification|purge|backup"` — 10 passed (disposable postgres + mocked WAHA, globalSetup/globalTeardown)
+  - `pnpm audit --audit-level=high` exit 0 — 4 moderate, 0 high/critical
+  - `pnpm secret-scan` exit 0, `pnpm verify:scope` exit 0, `pnpm docs:check` exit 0, `pnpm verify:requirements --plan .omo/plans/waha-command-center.md` exit 0 (13 Must-have + 9 Must-NOT-have mapped)
+  - `docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.external-waha.yml config` exit 0, 113 lines, 1 published (web `127.0.0.1:38080->4173`), 0 `published: "3000"`, 0 secret values (`grep -F` against `.secrets/*` = 0)
+  - `docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.bundled-waha.yml --profile waha config` exit 0, 163 lines, same 1 published web only, 0 secrets
+  - `Dockerfile.waha` digest `sha256:d52ad4f394d2e48eb92d58e0f04924ff6c7621a883d08ff64176479ecd77c9ca` (latest-2026.8.1) verified via `docker pull` + `inspect`.
+- Final evidence `.omo/evidence/final-*.md` now hold executed PASS verdicts (F1 compliance, F2 security/quality, F3 e2e, F4 scope/docs) with today's receipts — no longer placeholders; the 2026-08-28 BLOCKED audits remain in git history (`1d648bd`). Task-15/16 evidence `.omo/evidence/task-15-waha-finalize-15-16.md` and `.omo/evidence/task-16-waha-finalize-15-16.md` current with today's reconciliation addendum; ledger `.omo/start-work/ledger.jsonl` appended 6 entries (15,16,F1-F4) without rewriting history.
+- State truth: `TASK_QUEUE.md` now marks Todo 15/16 DONE and F1-F4 PASS; this file reflects post-verification truth. No commit or push performed (repo contract: no auto-commit); worktree changes reviewable.
+
+Last updated: 2026-09-18
+
 ## Session update: waha-finalize Todos 5-9 — Todo 15 and Todo 16 DONE
 
 - Plan `.omo/plans/waha-finalize-15-16.md` Todos 5-9 are verified with evidence

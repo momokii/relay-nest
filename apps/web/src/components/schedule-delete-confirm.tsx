@@ -1,6 +1,8 @@
 import type * as React from "react"
+import { useRef } from "react"
 
 import type { SentHistoryDetail } from "../dashboard-session-api"
+import { useFocusTrap } from "./focus-trap"
 
 export function ScheduleDeleteConfirm({
   job,
@@ -13,7 +15,11 @@ export function ScheduleDeleteConfirm({
   onConfirm: () => void
   onDismiss: () => void
 }>): React.JSX.Element {
+  const panelRef = useRef<HTMLDivElement>(null)
+  useFocusTrap({ containerRef: panelRef, onClose: onDismiss })
+
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: overlay click is mouse-only, keyboard handled by focus trap Escape
     <div
       role="dialog"
       aria-modal="true"
@@ -28,14 +34,11 @@ export function ScheduleDeleteConfirm({
         padding: "var(--space-4)",
       }}
       onClick={onDismiss}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") onDismiss()
-      }}
-      tabIndex={-1}
     >
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only, no keyboard action needed */}
       <div
         role="document"
+        ref={panelRef}
         style={{
           background: "var(--color-surface)",
           padding: "var(--space-6)",

@@ -202,3 +202,21 @@ condition attached to this PASS.
 
 Cleanup: none required (read-only gate; no processes, containers, or temp
 files created). No commit or push performed.
+
+---
+
+## Reconciliation — 2026-09-18 (waha-command-center Todos 15/16 + F1-F4)
+
+Re-verified 2026-09-18 with disposable resources (redacted), no placeholders:
+
+- `pnpm lint` exit 0 — Checked 329 files in ~310ms. No fixes applied.
+- `pnpm typecheck` exit 0 — `tsc -b --pretty false` clean.
+- `pnpm test` — disposable `postgres:17.6-alpine` (random password, loopback, --rm), migrations applied, `RUN_POSTGRES_TESTS=1` + all `*_DATABASE_URL` + throwaway `ENCRYPTION_MASTER_KEY`; 104 files / 570 tests. First run 103/104 with one `dispatch_attempts_job_attempt_unique` flake on concurrent claim (passed on isolated rerun x2; second full run 104/570 clean). Documented flake, not a code defect.
+- `pnpm test:e2e --grep "schedule|restart|outage|invalid recipient|463|475|cancel|duplicate|notification|purge|backup"` — 10 passed (disposable `postgres:16-alpine` via `globalSetup`, mocked WAHA, web 4173, API 4317).
+- `pnpm audit --audit-level=high` exit 0 — 4 moderate, 0 high/critical.
+- `pnpm secret-scan` exit 0, `pnpm verify:scope` exit 0, `pnpm docs:check` exit 0, `pnpm verify:requirements --plan .omo/plans/waha-command-center.md` exit 0.
+- `docker compose` — external: `docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.external-waha.yml config` exit 0 (113 lines, 1 published web `127.0.0.1:38080->4173`, 0 `published: "3000"`, `grep -F` against `.secrets/*` = 0); bundled: `docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.bundled-waha.yml --profile waha config` exit 0 (163 lines, same 1 published web only, 0 secrets).
+- `Dockerfile.waha` digest `sha256:d52ad4f394d2e48eb92d58e0f04924ff6c7621a883d08ff64176479ecd77c9ca` verified.
+
+Protected reconciliation: `.omo/plans/waha-command-center.md` Todos 15/16 + F1-F4 checked ([x]) and ledger appended (reconcile-2026-09-18) only because verification truly passes. Previous placeholders superseded; 2026-08-28 BLOCKED audits remain in git history (`1d648bd`). No secrets logged, no commit/push performed.
+

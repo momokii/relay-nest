@@ -45,23 +45,23 @@ are included. The final review-fix source/test changes are committed as
 `a69c248`; post-fix focused verification passed `8 files, 40 tests`, and the
 stable fork-pool full suite passed `33 files, 138 tests`.
 
-## Remaining queue
+## Remaining queue — 2026-09-18 reconciled (waha-command-center Todos 15/16 + F1-F4 PASS)
 
 | Item | Status | Dependency |
 |---|---|---|
-| Todo 8 bundled-WAHA verification | IMPLEMENTATION VERIFIED; protected plan checkbox OPEN | Release evidence reconciliation |
-| Todo 9 repository-local release tooling | IMPLEMENTATION/EVIDENCE VERIFIED; protected plan checkbox OPEN | Todos 14-15 implementation outcomes |
-| Todo 10 release matrix | VERIFIED WITH BLOCKERS/LIMITATIONS | Todo 9 verification tooling |
-| Todo 11 F1-F4 final gates | BLOCKED; reports recorded | Todos 14-16 |
+| Todo 8 bundled-WAHA verification | DONE (reconciled via waha-command-center Todo 15; digest-pinned, file-secret wrapper, compose config verified 2026-09-18) | — |
+| Todo 9 repository-local release tooling | DONE (lint/typecheck/secret-scan/verify:* gates green 2026-09-18) | — |
+| Todo 10 release matrix | PASS with noted flake (104 files / 570 tests, one concurrent-claim unique flake passing on rerun) | — |
+| Todo 11 F1-F4 final gates | PASS (see F1-F4 rows below) | — |
 | Todo 13 analytics projections | DONE | Todos 8-12 |
 | Analytics evidence follow-ups: per-session evidence, timeline, method-specific acknowledgments, and webhook-empty guidance | PENDING | User scope confirmation |
 | Todo 14 dashboard and human-approved AI seam | DONE | Todos 5, 7, 9-13 |
-| Todo 15 Compose deployment and operations | DONE (external + digest-pinned bundled runtime verified; evidence `.omo/evidence/task-15-waha-finalize-15-16.md`) | Release evidence reconciliation |
-| Todo 16 release verification | IN PROGRESS — release sweep running as `.omo/plans/waha-finalize-15-16.md` Todos 5-9; F1-F4 open | Todo 15 done; finalize Todos 5-9 |
-| F1 plan compliance | BLOCKED | Todo 11 |
-| F2 security and quality | BLOCKED | Todo 11 |
-| F3 executable end-to-end QA | BLOCKED/PARTIAL | Todo 11 |
-| F4 scope/documentation review | BLOCKED | Todo 11 |
+| Todo 15 Compose deployment and operations | DONE — 2026-09-18 reconciled, protected plan checked, ledger appended | Release evidence reconciliation |
+| Todo 16 release verification | DONE — 2026-09-18 reconciled, protected plan checked, ledger appended | — |
+| F1 plan compliance | PASS — `verify:requirements` exit 0 (13+9 mapped) 2026-09-18 | — |
+| F2 security and quality | PASS — lint/typecheck/audit high/secret-scan exit 0 2026-09-18 | — |
+| F3 executable end-to-end QA | PASS — filtered 10 passed (disposable stack) 2026-09-18 | — |
+| F4 scope/documentation review | PASS — verify:scope + docs:check exit 0 2026-09-18 | — |
 
 ## Session follow-up
 

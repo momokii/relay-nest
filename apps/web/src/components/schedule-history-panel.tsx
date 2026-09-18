@@ -1,4 +1,4 @@
-import type * as React from "react"
+import * as React from "react"
 
 import type { AccountScope } from "../dashboard-model"
 import type { ScheduleEditInput, ScheduleRemoval, ScheduleView } from "../dashboard-schedule-api"
@@ -45,6 +45,7 @@ export type ScheduleHistoryPanelProps = Readonly<{
   ) => Promise<void>
   onCancel: (scope: AccountScope, sessionId: string, jobId: string) => Promise<void>
   onDelete: (scope: AccountScope, sessionId: string, jobId: string) => Promise<void>
+  initialExpandedIds?: readonly string[]
 }>
 
 function truncatedCode(value: string | null): string {
@@ -86,9 +87,21 @@ export function ScheduleHistoryPanel({
   onEdit,
   onCancel,
   onDelete,
+  initialExpandedIds,
 }: ScheduleHistoryPanelProps): React.JSX.Element {
   const items = history.kind === "ready" ? history.data.items : []
   const hasMore = history.kind === "ready" ? history.data.hasMore : false
+  const [expanded, setExpanded] = React.useState<Set<string>>(
+    () => new Set(initialExpandedIds ?? []),
+  )
+  const toggleExpanded = React.useCallback((id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
   return (
     <Panel
       eyebrow={`${scope} scope`}
@@ -255,73 +268,82 @@ export function ScheduleHistoryPanel({
                 </tr>
               </thead>
               <tbody>
-                {items.map((item) => (
-                  <tr
-                    key={item.id}
-                    onClick={() => onOpenJob(item.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") onOpenJob(item.id)
-                    }}
-                  >
-                    <td title={item.recipientPhone ?? undefined}>{formatRecipient(item)}</td>
-                    <td title={item.snippet80 ?? undefined}>
-                      {item.snippet80 ? (
-                        <>
-                          <span className="history-message-clamp">
-                            <WhatsAppPreview message={item.snippet80} />
-                          </span>
-                          {item.messageTruncated === true ? (
-                            <button
-                              type="button"
-                              className="message-toggle"
-                              aria-label={`Show full message for job ${item.id}`}
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                onOpenJob(item.id)
-                              }}
-                            >
-                              Show more
-                            </button>
-                          ) : null}
-                        </>
-                      ) : (
-                        "Unavailable"
-                      )}
-                    </td>
-                    <td>
-                      {formatScheduleDate(item.scheduledFor || item.createdAt, item.timezone)}
-                      <small> · {item.timezone}</small>
-                    </td>
-                    <td>
-                      <StatusBadge
-                        label={item.origin === "immediate" ? "Direct" : "Scheduled"}
-                        tone={item.origin === "immediate" ? "info" : "warning"}
-                      />
-                    </td>
-                    <td>
-                      <StatusBadge label={item.state} tone={scheduleStateTone(item.state)} />
-                    </td>
-                    <td>{item.attempts}</td>
-                    <td>
-                      <code title={item.providerMessageId ?? undefined}>
-                        {truncatedCode(item.providerMessageId)}
-                      </code>
-                    </td>
-                    <td>
-                      <code title={item.id}>{truncatedCode(item.id)}</code>
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="button button-secondary"
-                        aria-label={`View details for job ${item.id}`}
-                        onClick={() => onOpenJob(item.id)}
-                      >
-                        Details
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {items.map((item) => {
+                  const isExpanded = expanded.has(item.id)
+                  const isTruncated = item.messageTruncated === true
+                  return (
+                    <tr
+                      key={item.id}
+                      onClick={() => onOpenJob(item.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") onOpenJob(item.id)
+                      }}
+                    >
+                      <td title={item.recipientPhone ?? undefined}>{formatRecipient(item)}</td>
+                      <td title={item.snippet80 ?? undefined}>
+                        {item.snippet80 ? (
+                          <>
+                            <span className={isExpanded ? undefined : "history-message-clamp"}>
+                              <WhatsAppPreview message={item.snippet80} />
+                            </span>
+                            {isTruncated ? (
+                              <button
+                                type="button"
+                                className="message-toggle"
+                                aria-label={
+                                  isExpanded
+                                    ? `Collapse message for job ${item.id}`
+                                    : `Show full message for job ${item.id}`
+                                }
+                                aria-expanded={isExpanded}
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  toggleExpanded(item.id)
+                                }}
+                              >
+                                {isExpanded ? "Show less" : "Show more"}
+                              </button>
+                            ) : null}
+                          </>
+                        ) : (
+                          "Unavailable"
+                        )}
+                      </td>
+                      <td>
+                        {formatScheduleDate(item.scheduledFor || item.createdAt, item.timezone)}
+                        <small> · {item.timezone}</small>
+                      </td>
+                      <td>
+                        <StatusBadge
+                          label={item.origin === "immediate" ? "Direct" : "Scheduled"}
+                          tone={item.origin === "immediate" ? "info" : "warning"}
+                        />
+                      </td>
+                      <td>
+                        <StatusBadge label={item.state} tone={scheduleStateTone(item.state)} />
+                      </td>
+                      <td>{item.attempts}</td>
+                      <td>
+                        <code title={item.providerMessageId ?? undefined}>
+                          {truncatedCode(item.providerMessageId)}
+                        </code>
+                      </td>
+                      <td>
+                        <code title={item.id}>{truncatedCode(item.id)}</code>
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="button button-secondary"
+                          aria-label={`View details for job ${item.id}`}
+                          onClick={() => onOpenJob(item.id)}
+                        >
+                          Details
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

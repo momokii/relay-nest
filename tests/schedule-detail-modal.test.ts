@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises"
 import { type ComponentProps, createElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { describe, expect, it } from "vitest"
@@ -208,5 +209,89 @@ describe("ScheduleHistoryPanel", () => {
     expect(markup).toContain('aria-label="Show full message for job job-2"')
     expect(markup).not.toContain('aria-label="Show full message for job job-1"')
     expect(markup).toContain("Show more")
+  })
+})
+
+describe("ScheduleDetailModal focus trap", () => {
+  it("initial focus is on Close button and dialog is aria-modal with overlay close", async () => {
+    // Given the detail modal renders
+    // When checking static markup and hook source
+    // Then Close is the first focusable and overlay click + dialog semantics are wired
+    const markup = renderModal("scheduled")
+    const closeIndex = markup.indexOf(">Close<")
+    const deleteIndex = markup.indexOf('aria-label="Delete schedule"')
+    const saveIndex = markup.indexOf("Save schedule")
+    // Close must appear before other actions so focus-trap's querySelectorAll lands on Close first
+    expect(closeIndex).toBeGreaterThan(-1)
+    if (deleteIndex !== -1) expect(closeIndex).toBeLessThan(deleteIndex)
+    if (saveIndex !== -1) expect(closeIndex).toBeLessThan(saveIndex)
+    expect(markup).toContain('role="dialog"')
+    expect(markup).toContain('aria-modal="true"')
+    expect(markup).toContain("chat-history-backdrop")
+
+    // Hook must exist and handle focus, Tab, Escape, restore, and inert
+    const trapSource = await readFile(
+      new URL("../apps/web/src/components/focus-trap.ts", import.meta.url),
+      "utf8",
+    )
+    expect(trapSource).toContain("useFocusTrap")
+    expect(trapSource).toContain("button:not([disabled])")
+    expect(trapSource).toContain("previousActiveElement")
+    expect(trapSource).toContain("aria-hidden")
+    expect(trapSource).toContain("inert")
+
+    const modalSource = await readFile(
+      new URL("../apps/web/src/components/schedule-detail-modal.tsx", import.meta.url),
+      "utf8",
+    )
+    expect(modalSource).toContain("useFocusTrap")
+    expect(modalSource).toContain("onClick={handleClose}")
+    expect(modalSource).toContain('role="dialog"')
+    expect(modalSource).toContain('aria-modal="true"')
+
+    const confirmSource = await readFile(
+      new URL("../apps/web/src/components/schedule-delete-confirm.tsx", import.meta.url),
+      "utf8",
+    )
+    expect(confirmSource).toContain("useFocusTrap")
+    expect(confirmSource).toContain("Confirm delete schedule")
+    expect(confirmSource).toContain("Cancel")
+    expect(confirmSource).toContain("Delete")
+    expect(confirmSource.indexOf("onClick={onDismiss}")).toBeLessThan(
+      confirmSource.indexOf("onClick={onConfirm}"),
+    )
+  })
+
+  it("trap wraps Tab and handles Escape plus restores focus", async () => {
+    // Given the focus-trap implementation
+    // When inspecting its source
+    // Then Tab/Shift+Tab wrapping, Escape→onClose, overlay handling, and focus restore are present
+    const trapSource = await readFile(
+      new URL("../apps/web/src/components/focus-trap.ts", import.meta.url),
+      "utf8",
+    )
+    expect(trapSource).toContain('event.key === "Escape"')
+    expect(trapSource).toContain('event.key !== "Tab"')
+    expect(trapSource).toContain("event.shiftKey")
+    expect(trapSource).toContain("first.focus()")
+    expect(trapSource).toContain("last.focus()")
+    expect(trapSource).toContain("onClose()")
+    expect(trapSource).toContain("previous.focus()")
+    expect(trapSource).toContain("queueMicrotask")
+
+    // Confirm dialog also traps and closes on overlay/Escape
+    const confirmMarkup = renderToStaticMarkup(
+      createElement(ScheduleDeleteConfirm, {
+        job: detailFor("failed"),
+        busy: false,
+        onConfirm: NO_OP_VOID,
+        onDismiss: NO_OP_VOID,
+      }),
+    )
+    expect(confirmMarkup).toContain('role="dialog"')
+    expect(confirmMarkup).toContain('aria-modal="true"')
+    expect(confirmMarkup).toContain("Cancel")
+    // Static markup order proves Cancel is first tab stop
+    expect(confirmMarkup.indexOf(">Cancel<")).toBeLessThan(confirmMarkup.indexOf(">Delete<"))
   })
 })

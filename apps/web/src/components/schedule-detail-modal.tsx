@@ -1,5 +1,5 @@
 import type * as React from "react"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 
 import type { AccountScope } from "../dashboard-model"
@@ -7,6 +7,7 @@ import type { ScheduleEditInput, ScheduleRemoval, ScheduleView } from "../dashbo
 import type { SentHistoryDetail } from "../dashboard-session-api"
 import type { ActionState, ResourceState } from "../dashboard-state"
 import { scheduleRowActions } from "../schedule-history-controller"
+import { useFocusTrap } from "./focus-trap"
 import { ScheduleDeleteConfirm } from "./schedule-delete-confirm"
 import { LoadingRows, StateNotice, StatusBadge } from "./ui"
 import { formatScheduleDate, scheduleInstantToLocalInput, scheduleStateTone } from "./view-support"
@@ -36,7 +37,6 @@ export function ScheduleDetailModal({
   onDelete: (scope: AccountScope, sessionId: string, jobId: string) => Promise<void>
   onClose: () => void
 }>): React.JSX.Element {
-  const closeButtonRef = useRef<HTMLButtonElement>(null)
   const [confirming, setConfirming] = useState(false)
   const job = detail.kind === "ready" ? detail.data : undefined
   const [scheduledFor, setScheduledFor] = useState(() =>
@@ -46,10 +46,14 @@ export function ScheduleDetailModal({
   const actions = job ? scheduleRowActions(job.state) : { canCancel: false, canDelete: false }
   const deleted = deleteAction.kind === "ready"
   const scheduleBusy = editAction.kind === "submitting" || cancelAction.kind === "submitting"
+  const dialogRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    closeButtonRef.current?.focus()
-  }, [])
+  const handleClose = useCallback(() => {
+    if (confirming) setConfirming(false)
+    else onClose()
+  }, [confirming, onClose])
+
+  useFocusTrap({ containerRef: dialogRef, onClose: handleClose })
 
   useEffect(() => {
     setScheduledFor(job ? scheduleInstantToLocalInput(job.scheduledFor, job.timezone) : "")
@@ -57,32 +61,22 @@ export function ScheduleDetailModal({
     setConfirming(false)
   }, [job])
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== "Escape") return
-      if (confirming) setConfirming(false)
-      else onClose()
-    }
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-  }, [confirming, onClose])
-
   const overlay = (
-    <div className="chat-history-backdrop">
+    // biome-ignore lint/a11y/noStaticElementInteractions: backdrop overlay handles click-to-close, keyboard handled by focus trap
+    // biome-ignore lint/a11y/useKeyWithClickEvents: overlay click is mouse-only, keyboard handled by focus trap Escape
+    <div className="chat-history-backdrop" onClick={handleClose}>
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only, no keyboard action needed */}
       <div
         className="chat-history-panel schedule-detail-modal"
         role="dialog"
         aria-modal="true"
         aria-label="Schedule detail"
+        ref={dialogRef}
+        onClick={(event) => event.stopPropagation()}
       >
         <div className="chat-history-header">
           <strong>Schedule detail</strong>
-          <button
-            className="button button-secondary"
-            ref={closeButtonRef}
-            type="button"
-            onClick={onClose}
-          >
+          <button className="button button-secondary" type="button" onClick={onClose}>
             Close
           </button>
         </div>

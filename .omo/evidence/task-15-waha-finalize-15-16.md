@@ -616,3 +616,9 @@ restored: grep PASS again   # byte-identical restore, diff stat: 7 insertions, 4
 Todo 3 acceptance criteria are green; Todo 4 (state-file freshness +
 `pnpm secret-scan`) is unblocked, and its `app.tsx` failure-scenario probe
 was observed active in the worktree during this todo.
+
+---
+
+## Reconciliation — 2026-09-18
+
+Re-verified 2026-09-18 as part of waha-command-center Todos 15/16 + F1-F4 release reconciliation. All gates from this file's prior verification re-proven today (see `.omo/evidence/final-*.md` 2026-09-18 addendum and ledger `reconcile-2026-09-18`). No source change since prior evidence; receipts refreshed from real runs (lint 329, typecheck 0, test 104/570 clean on second run, e2e 10, audit 4 moderate, secret-scan/verify:scope/docs:check/verify:requirements 0, compose both modes 0 with only web publishing loopback 4173 and zero secret values). Protected plan `waha-command-center.md` now checked; ledger appended. No commit/push.

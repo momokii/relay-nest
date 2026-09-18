@@ -222,7 +222,7 @@ this plan and must be copied into the durable project decision document by Todo 
   QA scenarios (name the exact tool + invocation): happy: `pnpm test:e2e -- dashboard`; failure: attempt Personal action from Business-only Operator and inspect no sensitive data appears. Evidence `.omo/evidence/task-14-waha-command-center.md`.
   Commit: N | no commit until explicitly requested
 
-- [ ] 15. Complete Docker Compose deployment modes and operational documentation
+- [x] 15. Complete Docker Compose deployment modes and operational documentation
   What to do / Must NOT do: Finish one Compose setup with dashboard-only external-WAHA mode and bundled-WAHA profile, Postgres persistence, secret injection, health checks, migrations, non-root containers, pinned images, `0.0.0.0` warning, internal WAHA networking, LAN/VPN firewall guidance, and reverse-proxy TLS public-deployment guidance. Document WAHA ban risk and mitigations prominently in README/setup docs. Must not use `latest` in production or publish WAHA master ports.
   Parallelization: Wave 4 | Blocked by: 1, 3, 6, 7 | Blocks: 16
   References (executor has NO interview context - be exhaustive): `.claude/ENVIRONMENT_GUIDE.md`; `.claude/SECURITY_STANDARDS.md`; https://waha.devlike.pro/docs/how-to/install/; https://waha.devlike.pro/docs/how-to/security/; https://waha.devlike.pro/docs/overview/introduction/
@@ -230,7 +230,7 @@ this plan and must be copied into the durable project decision document by Todo 
   QA scenarios (name the exact tool + invocation): happy: start a disposable Postgres/dashboard stack and run health checks; failure: missing secret or unavailable external WAHA fails with actionable redacted error. Evidence `.omo/evidence/task-15-waha-command-center.md`.
   Commit: N | no commit until explicitly requested
 
-- [ ] 16. Run recursive security, requirement, and release-readiness verification
+- [x] 16. Run recursive security, requirement, and release-readiness verification
   What to do / Must NOT do: Review every brief requirement against implementation, run full checks, dependency audit, secret scan, authorization matrix, scheduler failure matrix, Compose modes, backup restore, and documentation freshness; fix defects found in scope. Must not declare complete with known failures or silently expand scope.
   Parallelization: Wave 5 | Blocked by: 11, 12, 13, 14, 15 | Blocks: F1-F4
   References (executor has NO interview context - be exhaustive): `## Scope` and `## Locked product decisions` in this plan; entire `.claude/` hierarchy; `docs/threat-model.md`; `docs/waha-capability-matrix.md`
@@ -240,10 +240,10 @@ this plan and must be copied into the durable project decision document by Todo 
 
 ## Final verification wave
 > Runs in parallel after ALL todos. ALL must APPROVE. Surface results and wait for the user's explicit okay before declaring complete.
-- [ ] F1. Plan compliance audit — run `pnpm verify:requirements --plan .omo/plans/waha-command-center.md`; assert every Must-have has an implementation/test reference, every Must-NOT-have has a negative assertion, and exit non-zero for any unmapped item. Save `.omo/evidence/final-plan-compliance.md`.
-- [ ] F2. Code quality and security review — run `pnpm lint && pnpm typecheck && pnpm audit --audit-level=high && pnpm secret-scan`; inspect auth/scope, encryption/key handling, error redaction, dependency lockfile, and Docker user/port settings. Any high vulnerability, secret match, type/lint failure, or cross-scope leak fails the gate. Save `.omo/evidence/final-security-quality.md`.
-- [ ] F3. Real executable QA — run `pnpm test:e2e -- --grep "schedule|restart|outage|invalid recipient|463|475|cancel|duplicate|notification|purge|backup"` against disposable Postgres and mocked WAHA; assert one scheduled send, visible recovery states, bounded retries, no duplicate dispatch, notification toggles, confirmation-gated purge, and successful encrypted restore. Save `.omo/evidence/final-e2e.md`.
-- [ ] F4. Scope fidelity and documentation review — run `pnpm verify:scope && pnpm docs:check`; assert no MVP UI/API path for media, recurring jobs, campaigns, broadcasts, autonomous sending, public registration, or public WAHA API exposure, and confirm README/setup/security/operations plus all `.claude/` state files match actual behavior. Save `.omo/evidence/final-scope-docs.md`.
+- [x] F1. Plan compliance audit — run `pnpm verify:requirements --plan .omo/plans/waha-command-center.md`; assert every Must-have has an implementation/test reference, every Must-NOT-have has a negative assertion, and exit non-zero for any unmapped item. Save `.omo/evidence/final-plan-compliance.md`.
+- [x] F2. Code quality and security review — run `pnpm lint && pnpm typecheck && pnpm audit --audit-level=high && pnpm secret-scan`; inspect auth/scope, encryption/key handling, error redaction, dependency lockfile, and Docker user/port settings. Any high vulnerability, secret match, type/lint failure, or cross-scope leak fails the gate. Save `.omo/evidence/final-security-quality.md`.
+- [x] F3. Real executable QA — run `pnpm test:e2e -- --grep "schedule|restart|outage|invalid recipient|463|475|cancel|duplicate|notification|purge|backup"` against disposable Postgres and mocked WAHA; assert one scheduled send, visible recovery states, bounded retries, no duplicate dispatch, notification toggles, confirmation-gated purge, and successful encrypted restore. Save `.omo/evidence/final-e2e.md`.
+- [x] F4. Scope fidelity and documentation review — run `pnpm verify:scope && pnpm docs:check`; assert no MVP UI/API path for media, recurring jobs, campaigns, broadcasts, autonomous sending, public registration, or public WAHA API exposure, and confirm README/setup/security/operations plus all `.claude/` state files match actual behavior. Save `.omo/evidence/final-scope-docs.md`.
 
 ## Commit strategy
 
