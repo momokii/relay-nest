@@ -220,3 +220,16 @@ Re-verified 2026-09-18 with disposable resources (redacted), no placeholders:
 
 Protected reconciliation: `.omo/plans/waha-command-center.md` Todos 15/16 + F1-F4 checked ([x]) and ledger appended (reconcile-2026-09-18) only because verification truly passes. Previous placeholders superseded; 2026-08-28 BLOCKED audits remain in git history (`1d648bd`). No secrets logged, no commit/push performed.
 
+---
+
+## Reconciliation — 2026-09-18 (part 2: campaign docs reconciled)
+
+Re-verified 2026-09-18 after doc fix `80df22d` (no interview needed):
+
+- `CONTEXT.md` now defines Contact group, Campaign, Reaction follow-up and amends Text message boundary to extra-MVP (disabled UNSTABLE) — resolves finding #1.
+- `.claude/state/DECISIONS_LOG.md` now carries "Campaign extension: extra-MVP group-reaction campaign (supersedes 2026-08-16 exclusion)" — resolves finding #2.
+- `README.md` implemented scope now lists extra-MVP contact-group/campaign surface (`/scoped/contact-groups`, `/scoped/campaigns`, UNSTABLE) — resolves finding #3.
+- `scripts/release-docs-rules.mts` markers updated to `- [x] 15/16` after reconciliation.
+- Fresh gates: `pnpm verify:scope` exit 0, `pnpm docs:check` exit 0, `pnpm verify:requirements --plan .omo/plans/waha-command-center.md` exit 0, `pnpm typecheck` exit 0, `biome check` 0.
+- Verdict: **PASS (unconditional)** — no remaining documentation-reconciliation gaps. The 2026-09-11 "PASS with recorded discrepancies" is superseded by this addendum.
+

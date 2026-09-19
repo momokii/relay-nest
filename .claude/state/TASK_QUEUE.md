@@ -54,7 +54,8 @@ stable fork-pool full suite passed `33 files, 138 tests`.
 | Todo 10 release matrix | PASS with noted flake (104 files / 570 tests, one concurrent-claim unique flake passing on rerun) | — |
 | Todo 11 F1-F4 final gates | PASS (see F1-F4 rows below) | — |
 | Todo 13 analytics projections | DONE | Todos 8-12 |
-| Analytics evidence follow-ups: per-session evidence, timeline, method-specific acknowledgments, and webhook-empty guidance | PENDING | User scope confirmation |
+| Analytics evidence follow-ups: per-session evidence, timeline, method-specific acknowledgments, and webhook-empty guidance | PENDING | User scope confirmation — interview required, skipped per autonomous-only instruction |
+| Documentation reconciliation (CONTEXT/README/DECISIONS_LOG + release markers) | DONE 2026-09-18 part 2 — 3 gaps resolved, `final-scope-docs.md` now unconditional PASS | — |
 | Todo 14 dashboard and human-approved AI seam | DONE | Todos 5, 7, 9-13 |
 | Todo 15 Compose deployment and operations | DONE — 2026-09-18 reconciled, protected plan checked, ledger appended | Release evidence reconciliation |
 | Todo 16 release verification | DONE — 2026-09-18 reconciled, protected plan checked, ledger appended | — |

@@ -15,6 +15,7 @@
   - `Dockerfile.waha` digest `sha256:d52ad4f394d2e48eb92d58e0f04924ff6c7621a883d08ff64176479ecd77c9ca` (latest-2026.8.1) verified via `docker pull` + `inspect`.
 - Final evidence `.omo/evidence/final-*.md` now hold executed PASS verdicts (F1 compliance, F2 security/quality, F3 e2e, F4 scope/docs) with today's receipts — no longer placeholders; the 2026-08-28 BLOCKED audits remain in git history (`1d648bd`). Task-15/16 evidence `.omo/evidence/task-15-waha-finalize-15-16.md` and `.omo/evidence/task-16-waha-finalize-15-16.md` current with today's reconciliation addendum; ledger `.omo/start-work/ledger.jsonl` appended 6 entries (15,16,F1-F4) without rewriting history.
 - State truth: `TASK_QUEUE.md` now marks Todo 15/16 DONE and F1-F4 PASS; this file reflects post-verification truth. No commit or push performed (repo contract: no auto-commit); worktree changes reviewable.
+- **Doc reconciliation 2026-09-18 (part 2, no interview):** `CONTEXT.md`/`README.md`/`DECISIONS_LOG.md` updated for campaign terms (extra-MVP, disabled UNSTABLE) and release markers; `scripts/release-docs-rules.mts` now expects checked Todos 15/16; `final-scope-docs.md` addendum promotes F4 to unconditional PASS.
 
 Last updated: 2026-09-18
 
