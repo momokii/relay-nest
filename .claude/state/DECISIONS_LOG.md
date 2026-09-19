@@ -150,6 +150,15 @@ hardening for public deployment, and the mandatory auth/cookie/CSRF/rate-limit
 controls — remains in force. See `docs/operations.md` (File and port rules) and
 `docs/decisions/0001-product-boundary.md` (Network boundary).
 
+### Decision: Versioning — single-source SemVer with Keep a Changelog and OCI labels (v1.0.0)
+
+**Date:** 2026-09-20
+**Context:** `1.0.0` reached with a published `CHANGELOG.md`, a `/version` and `/health` contract, and Docker OCI labels. Without a single documented bump workflow, future changes risk diverging version sources, inconsistent tag naming, and untracked changelog history.
+**Rationale:** Single source of truth is root `package.json#version`; every other surface (`/version`, `/health`, Docker `org.opencontainers.image.version`, docs badge) derives from it via build args `VERSION`/`GIT_SHA`/`BUILD_DATE` already wired in `Dockerfile.api`/`Dockerfile.web` and `docker-compose.yml`. SemVer 2.0.0 (`MAJOR.MINOR.PATCH`) and Keep a Changelog 1.1.0 (`Unreleased → [X.Y.Z]` with comparison links) are the two normative references. Conventional Commits (`fix→PATCH`, `feat→MINOR`, `!`/`BREAKING CHANGE→MAJOR`) decide the bump. This keeps one mental model, one commit per release (`package.json` + `CHANGELOG.md`), and one annotated tag `vX.Y.Z` with a GitHub Release whose notes are the changelog block verbatim.
+**Alternatives Rejected:** `VERSION` file in repo root (duplicates `package.json` and invites drift); per-package `apps/api/package.json` versioning (workspace is one product, not a library family; rejected by task constraint); `npm publish` workflow (no registry consumer; task explicitly forbids inventing it); tag without `v` prefix or auto-generated GitHub notes not tied to the changelog (breaks the badge link and audit trail).
+**Security Implications:** Version and commit are content-free metadata exposed on unauthenticated `/version`/`/health` and OCI labels; no secrets or user data flow through them. Build-time `GIT_SHA`/`BUILD_DATE` are derived from the commit, not operator input. Branch/tag protection (`main` requires PR + status checks, `v*` tag create restricted) is recommended in the policy to prevent tag reuse or forced history rewrites. Supply-chain: Docker images already pin base `node:22.23.1-alpine` by digest; version labels are additive only.
+**Impact:** `docs/versioning.md` becomes the normative bump/runbook (Docker labels, API contract, tag/release, branch/tag protection, hotfix flow, bump examples 1.0.1/1.1.0/2.0.0, checklist). `README.md` Source of truth and Release checks reference it; `CONTRIBUTING.md` requires Conventional Commits and `CHANGELOG.md` Unreleased entries; agent orientation notes the policy. Future 1.0.1/1.1.0/2.0.0 releases follow the same steps without re-deciding versioning.
+
 ## Decision Entry Template
 
 Copy this template for each significant decision and fill every field:

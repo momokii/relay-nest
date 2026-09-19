@@ -1,5 +1,9 @@
 # RelayNest
 
+[![version](https://img.shields.io/github/v/release/momokii/relay-nest?label=version)](https://github.com/momokii/relay-nest/releases) [![version](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/momokii/relay-nest/releases)
+
+Version: 1.0.0 — see [CHANGELOG.md](CHANGELOG.md)
+
 RelayNest is an in-progress, self-hosted WhatsApp command center built around
 WAHA. It serves one tenant, multiple authenticated users, and multiple linked
 sessions with hard-separated Personal and Business account scopes.
@@ -323,6 +327,8 @@ npx --yes pnpm@10.12.4 audit --audit-level=high
 npx --yes pnpm@10.12.4 run docs:check
 ```
 
+Versioning and releases are governed by [`docs/versioning.md`](docs/versioning.md) (SemVer 2.0.0, single source `package.json`, [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) in [`CHANGELOG.md`](CHANGELOG.md), Conventional Commits → PATCH/MINOR/MAJOR, Docker OCI labels, `/version` contract, and tag/release steps).
+
 Todo 10 evidence includes the isolated release matrix and exact redacted
 commands/results; Todo 12 evidence includes migration replay, repository and HTTP integration,
 scope isolation, stale-preview and wrong-key rejection, tamper/cross-scope
@@ -342,6 +348,8 @@ vulnerabilities.
 
 - `CONTEXT.md` — domain language.
 - `.claude/README.md` and `.claude/state/` — agent orientation and live state.
+- `docs/versioning.md` — versioning policy, SemVer/Keep a Changelog, tag & release workflow (single source `package.json`).
+- `CHANGELOG.md` — human-readable release history (Keep a Changelog), linked from the `1.0.0` badge above.
 - `docs/decisions/0001-product-boundary.md` — product boundary.
 - `docs/threat-model.md` — security controls and residual risks.
 - `docs/waha-capability-matrix.md` — WAHA contract.

@@ -46,7 +46,8 @@ npx --yes pnpm@10.12.4 feature \
 
 - Keep commits atomic with semantic Conventional Commit subjects, for example
   `fix(auth): preserve unavailable WAHA errors` or
-  `feat(users): enable disabled accounts`.
+  `feat(users): enable disabled accounts`. The type drives the next SemVer bump — `fix:` → PATCH, `feat:` → MINOR, `!` or `BREAKING CHANGE:` → MAJOR — see [`docs/versioning.md`](docs/versioning.md).
+- Every user-visible change must add an entry under `## [Unreleased]` in [`CHANGELOG.md`](CHANGELOG.md) (Keep a Changelog: `Added`/`Changed`/`Fixed`/`Security`). PRs with no user-visible effect must state `No changelog` in the description for reviewer sign-off.
 - Inspect `git status` and the staged diff before committing; stage only
   intended files and never commit secrets, generated runtime artifacts, or
   `.secrets/`.

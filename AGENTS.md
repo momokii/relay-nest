@@ -52,6 +52,10 @@ the relevant state file only when work spans sessions, changes a durable
 decision, or leaves a blocker. Clean disposable services, ports, temporary
 files, and build/debug artifacts.
 
+## Versioning
+
+Single source is root `package.json` (`1.0.0`); policy and bump workflow live in `docs/versioning.md` (SemVer 2.0.0, Keep a Changelog, Conventional Commits → PATCH/MINOR/MAJOR, OCI labels, `/version` contract, tag/release, branch/tag protection, hotfix). `CHANGELOG.md` is the human-readable history. Do not add a `VERSION` file or per-package versions; do not invent an `npm publish` flow.
+
 ## Testing and evidence
 
 Every behavior change needs regression coverage. The default feature loop is:

@@ -22,6 +22,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
+      args:
+        VERSION: ${VERSION:-1.0.0}
+        GIT_SHA: ${GIT_SHA:-dev}
+        BUILD_DATE: ${BUILD_DATE:-}
     restart: unless-stopped
     environment:
       APP_ENV: ${APP_ENV:-production}
@@ -55,6 +59,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.web
+      args:
+        VERSION: ${VERSION:-1.0.0}
+        GIT_SHA: ${GIT_SHA:-dev}
+        BUILD_DATE: ${BUILD_DATE:-}
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -74,6 +82,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.waha
+      args:
+        VERSION: ${VERSION:-1.0.0}
+        GIT_SHA: ${GIT_SHA:-dev}
+        BUILD_DATE: ${BUILD_DATE:-}
     image: relaynest-waha:latest-2026.8.1
     profiles: ["waha"]
     restart: unless-stopped

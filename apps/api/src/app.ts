@@ -40,6 +40,7 @@ import {
 } from "./retention/service"
 import { registerScheduledRoutes } from "./scheduled-http"
 import { registerSentHistoryRoutes } from "./sent-history"
+import { getVersionInfo, registerVersionRoutes } from "./version"
 import { registerConnectionRoutes } from "./waha/connection-http"
 import { registerSessionRoutes } from "./waha/session-http"
 import type { createScopedSessionService } from "./waha/sessions"
@@ -215,7 +216,8 @@ export function createApiApp(
       return reply.code(409).send({ error: "preview_stale" })
     return reply.code(500).send({ error: "internal error" })
   })
-  app.get("/health", async () => ({ status: "ok" }))
+  app.get("/health", async () => ({ status: "ok", version: getVersionInfo().version }))
+  registerVersionRoutes(app)
   const sessionService =
     options.sessionService ?? createConfiguredSessionService(repositories, audit, loopbackOptions)
   registerAuthRoutes(app, auth, admin, {

@@ -40,6 +40,10 @@ take precedence over stale progress text. `CONTEXT.md` defines domain terms.
 `.omo/start-work/ledger.jsonl` is the protected execution ledger. Do not rewrite
 either to make progress appear complete; report discrepancies instead.
 
+## Versioning
+
+Single source is root `package.json` `1.0.0`; see `docs/versioning.md` for the SemVer / Keep a Changelog / Conventional Commits bump workflow, Docker OCI labels, `/version` contract, and tag/release steps. Do not create a `VERSION` file or per-package versions.
+
 ## Security baseline
 
 Keep WAHA credentials server-side and bundled WAHA internal. Enforce
