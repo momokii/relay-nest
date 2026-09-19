@@ -1,4 +1,4 @@
-FROM devlikeapro/waha:latest-2026.8.1@sha256:d52ad4f394d2e48eb92d58e0f04924ff6c7621a883d08ff64176479ecd77c9ca
+FROM devlikeapro/waha:latest-2026.8.2@sha256:527ff3d634925adb26d596883d7b3ca502c080f737af3c2af2be0c973c511533
 
 ARG VERSION=1.0.0
 ARG GIT_SHA=dev
