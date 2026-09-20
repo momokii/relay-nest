@@ -11,8 +11,7 @@ const PACKAGE_COMMANDS = [
   ["docs:check", "docs"],
 ] as const
 
-const RELEASE_COMMAND =
-  "pnpm run build && pnpm run typecheck && pnpm run test && pnpm run test:e2e && pnpm audit --audit-level=high && pnpm run verify:requirements && pnpm run secret-scan && pnpm run verify:scope && pnpm run docs:check"
+const RELEASE_COMMAND = "bash scripts/release.sh"
 
 const BUNDLED_DEV_COMMAND =
   "docker compose -p relaynest-dev -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.bundled-waha.yml --profile waha up --build --wait -d"
@@ -53,6 +52,15 @@ describe("release package commands", () => {
     expect(packageText).toContain(`"deploy:external": "${EXTERNAL_DEPLOY_COMMAND}"`)
     expect(packageText).toContain(`"deploy:down": "${DEPLOY_DOWN_COMMAND}"`)
     expect(packageText).not.toContain('"feature": "pnpm test"')
+  })
+
+  it("uses an isolated PostgreSQL release harness", () => {
+    const script = readFileSync(`${repositoryRoot}/scripts/release.sh`, "utf8")
+
+    expect(script).toContain("postgres:17.6-alpine")
+    expect(script).toContain("trap cleanup EXIT INT TERM")
+    expect(script).toContain("pnpm run db:migrate")
+    expect(script).toContain("pnpm run test -- --fileParallelism=false")
   })
 
   it.each(PACKAGE_COMMANDS)("exits successfully for %s", (_name, command) => {

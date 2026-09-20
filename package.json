@@ -24,7 +24,7 @@
     "e2e": "playwright test",
     "feature": "node --experimental-strip-types scripts/feature-check.mts",
     "lint": "biome check .",
-    "release": "pnpm run build && pnpm run typecheck && pnpm run test && pnpm run test:e2e && pnpm audit --audit-level=high && pnpm run verify:requirements && pnpm run secret-scan && pnpm run verify:scope && pnpm run docs:check",
+    "release": "bash scripts/release.sh",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "typecheck": "tsc -b --pretty false",
