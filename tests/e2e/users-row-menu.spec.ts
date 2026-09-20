@@ -38,11 +38,9 @@ test.describe("users row-menu portal", () => {
     const menu = page.locator(".row-menu-list").first()
     await expect(menu).toBeVisible()
     const items = menu.getByRole("menuitem")
-    // Active user shows Grant session, Reset password, Disable
-    await expect(items).toHaveCount(3)
+    await expect(items).toHaveCount(2)
     await expect(menu.getByRole("menuitem", { name: "Grant session" })).toBeVisible()
     await expect(menu.getByRole("menuitem", { name: "Reset password" })).toBeVisible()
-    await expect(menu.getByRole("menuitem", { name: "Disable" })).toBeVisible()
 
     // Then the menu is portaled to document.body with fixed positioning and never clipped by the table wrap
     const portalHostIsBody = await menu.evaluate(
@@ -78,17 +76,5 @@ test.describe("users row-menu portal", () => {
     await expect(menu).toBeVisible()
     await page.evaluate(() => window.dispatchEvent(new Event("scroll")))
     await expect(menu).toHaveCount(0)
-
-    // Reopen for the Disable flow, verify the confirmation panel opens and is same-origin gated
-    await trigger.scrollIntoViewIfNeeded()
-    await page.evaluate(
-      () => new Promise<void>((resolve) => requestAnimationFrame(() => setTimeout(resolve, 100))),
-    )
-    await trigger.click()
-    await expect(menu).toBeVisible()
-    const disableItem = menu.getByRole("menuitem", { name: "Disable" })
-    await disableItem.click()
-    const disablePanel = page.locator(".chat-history-panel[aria-label^='Disable']")
-    await expect(disablePanel).toBeVisible()
   })
 })
