@@ -54,7 +54,11 @@ files, and build/debug artifacts.
 
 ## Versioning
 
-Single source is root `package.json` (`1.0.0`); policy and bump workflow live in `docs/versioning.md` (SemVer 2.0.0, Keep a Changelog, Conventional Commits → PATCH/MINOR/MAJOR, OCI labels, `/version` contract, tag/release, branch/tag protection, hotfix). `CHANGELOG.md` is the human-readable history. Do not add a `VERSION` file or per-package versions; do not invent an `npm publish` flow.
+**Release trigger:** When asked to bump, tag, cut, publish, or release a version, read `docs/versioning.md` before editing. Root `package.json` is the only version source (`1.0.0`); `CHANGELOG.md` is the human-readable history. Do not add a `VERSION` file, per-package versions, or an `npm publish` flow.
+
+**Required release sequence:** (1) choose PATCH/MINOR/MAJOR using Conventional Commits and the public-contract change; (2) run the full `npx --yes pnpm@10.12.4 release` gate; (3) in one release commit, bump root `package.json`, move `CHANGELOG.md` `Unreleased` to `[X.Y.Z] - YYYY-MM-DD`, recreate empty `Unreleased`, and refresh comparison links; (4) create annotated tag `vX.Y.Z` on that commit; (5) push the commit and the single tag; (6) publish one non-draft, non-prerelease GitHub Release using the matching changelog block verbatim; (7) verify remote tag, Release URL, OCI labels, and `/version`/`/health` responses. Never move or retag a published version; correct mistakes by issuing a forward version.
+
+**Completion criterion:** Report the root version, release commit, annotated tag object and target, GitHub Release URL/status, exact verification results, and any unavailable external control. `docs/versioning.md` is authoritative for hotfixes, branch/tag protection, and command details.
 
 ## Testing and evidence
 

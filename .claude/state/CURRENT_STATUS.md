@@ -1,5 +1,23 @@
 # Current Status
 
+## Session update: v1.0.0 release + future-agent versioning handoff
+
+- `v1.0.0` is the first stable release: root `package.json` is `1.0.0`, release
+  commit `dc29475`, annotated tag object `f4ffd9453fb9b315eb426cb888ad0a9787a7f62b`
+  targets that commit, and the published non-draft/non-prerelease GitHub Release
+  is `https://github.com/momokii/relay-nest/releases/tag/v1.0.0`.
+- Runtime verification after the bundled deployment: internal API `/version`
+  returned `{"version":"1.0.0","commit":"dc29475","buildTime":"2026-09-19T17:33:43Z"}`;
+  `/health` returned `{"status":"ok","version":"1.0.0"}`; API and web OCI
+  labels report `org.opencontainers.image.version=1.0.0`.
+- Future release instructions are now explicit in `AGENTS.md` and
+  `.claude/README.md`; `docs/versioning.md` remains the complete authority.
+  A future agent must bump root `package.json` and `CHANGELOG.md` together,
+  pass `npx --yes pnpm@10.12.4 release`, create/push an annotated `vX.Y.Z` tag,
+  publish one matching GitHub Release, then verify tag/release/OCI/runtime.
+
+Last updated: 2026-09-20
+
 ## Session update: 2026-09-18 reconcile — waha-command-center Todos 15/16 + F1-F4 PASS
 
 - **Protected reconciliation 2026-09-18**: `.omo/plans/waha-command-center.md` Todos 15, 16 and F1-F4 are now checked ([x]) — verification truly passes and ledger entries appended (session reconcile-2026-09-18). Evidence refreshed from real runs, not placeholders.

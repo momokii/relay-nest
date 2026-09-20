@@ -1,12 +1,10 @@
 # Agent Orientation
 
-RelayNest is an in-progress self-hosted WAHA WhatsApp command center for one
-tenant, multiple users, multiple sessions, and hard-separated Personal and
-Business scopes. Todos 1-12 are implemented in local history. Todo 12
-retention, scoped purge, immutable content-free audit accountability, encrypted
-backup/restore, and key-rotation guidance are also implemented and focused-
-verified, including its scheduler concurrency regression fix. Its implementation
-and evidence are committed locally; final plan gates remain open.
+RelayNest is a v1.0.0 self-hosted WAHA WhatsApp command center for one tenant,
+multiple users, multiple sessions, and hard-separated Personal and Business
+scopes. Original Todos 1-16 and final gates F1-F4 are complete with evidence;
+the current release tag is `v1.0.0`. Read the live state files for post-release
+work instead of treating historical status sections as current.
 
 ## Fast feature path
 
@@ -42,7 +40,12 @@ either to make progress appear complete; report discrepancies instead.
 
 ## Versioning
 
-Single source is root `package.json` `1.0.0`; see `docs/versioning.md` for the SemVer / Keep a Changelog / Conventional Commits bump workflow, Docker OCI labels, `/version` contract, and tag/release steps. Do not create a `VERSION` file or per-package versions.
+When asked to release or bump, read `docs/versioning.md` before changing code.
+Root `package.json` is the only version source; a bump must update its version
+and `CHANGELOG.md` together, pass `pnpm release`, create an annotated `vX.Y.Z`
+tag, push that tag, publish one GitHub Release from the matching changelog block,
+and verify `/version` plus OCI labels. Do not create a `VERSION` file or
+per-package versions; do not move a published tag.
 
 ## Security baseline
 

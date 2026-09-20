@@ -67,7 +67,7 @@ LABEL org.opencontainers.image.version=$VERSION \
       org.opencontainers.image.source="https://github.com/momokii/relay-nest"
 ```
 
-- `org.opencontainers.image.version` — SemVer string from `package.json` (or `VERSION` override).
+- `org.opencontainers.image.version` — SemVer string from root `package.json` (or the `VERSION` build argument override; this is not a `VERSION` file).
 - `org.opencontainers.image.revision` — full commit SHA (`GIT_SHA` / `APP_COMMIT` fallback).
 - `org.opencontainers.image.created` — ISO-8601 UTC build timestamp (`BUILD_DATE` / `BUILD_TIME`).
 - Title/source are constant.
@@ -92,6 +92,7 @@ No npm publish. One release = one tag + one GitHub Release + one changelog rollo
 ```bash
 # 0. Be on main, clean and green
 git checkout main && git pull --ff-only origin main
+git status --short                    # must print nothing
 npx --yes pnpm@10.12.4 release   # lint, typecheck, test, e2e, audit, docs:check
 
 # 1. Bump single source + changelog (example: 1.0.0 → 1.0.1)
@@ -114,6 +115,10 @@ gh release create v1.0.1 --title "v1.0.1" --notes-file - <<'NOTES'
 ### Fixed
 - ...
 NOTES
+
+# If `gh` is unavailable, use GitHub's Releases API with an authenticated
+# credential helper token. Keep the same tag/name/body and verify the response
+# reports draft=false and prerelease=false; do not place the token in source.
 
 # 5. (Optional) Build images with explicit metadata
 VERSION=1.0.1 GIT_SHA=$(git rev-parse HEAD) BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
@@ -186,7 +191,7 @@ git checkout main && git merge --no-ff hotfix/v1.0.1
 [ ] git commit -m "chore(release): X.Y.Z" (package.json + CHANGELOG.md together)
 [ ] git tag -a vX.Y.Z -m "vX.Y.Z"
 [ ] git push origin main && git push origin vX.Y.Z
-[ ] gh release create vX.Y.Z --title vX.Y.Z --notes "<copy of ## [X.Y.Z] block>"
+[ ] GitHub Release is published (not draft/prerelease) with the matching `## [X.Y.Z]` changelog block
 [ ] docker build inspected: labels version/revision/created correct; /version and /health return expected version
 ```
 
