@@ -244,6 +244,25 @@ npx --yes pnpm@10.12.4 setup:bundled
 npx --yes pnpm@10.12.4 setup:external
 ```
 
+### One-click operations
+
+```bash
+# Stop one stack safely; named volumes and retained data stay intact.
+npx --yes pnpm@10.12.4 shutdown bundled  # or: external, dev
+
+# Verify containers plus PostgreSQL readiness, private API/web endpoints,
+# bundled WAHA (when applicable), runtime version, and OCI version labels.
+npx --yes pnpm@10.12.4 healthcheck bundled
+
+# Print a redacted trust report: secret/scope/docs gates, Compose private-port
+# guard, image version label, and the same deep deployment health check.
+npx --yes pnpm@10.12.4 trust bundled
+```
+
+`shutdown` never removes named volumes. The trust report verifies implemented
+controls and current deployment state; it cannot guarantee WhatsApp account
+safety or recipient delivery.
+
 Named volumes preserve PostgreSQL data and bundled WAHA session state. Back up
 both through the procedures in `docs/operations.md`; never use `docker system
 prune` or `down --volumes` against a retained deployment. For updates, review

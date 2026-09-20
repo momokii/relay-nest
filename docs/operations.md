@@ -40,6 +40,28 @@ The disposable development stack uses a separate project name:
 npx --yes pnpm@10.12.4 dev:bundled
 ```
 
+### One-click shutdown, health, and trust verification
+
+Use the same mode name for all operational commands: `bundled`, `external`, or
+`dev`.
+
+```bash
+# Stops containers and removes orphan containers only. It preserves named volumes.
+npx --yes pnpm@10.12.4 shutdown bundled
+
+# Checks service state, PostgreSQL, private API/web endpoints, runtime version,
+# OCI labels, and bundled WAHA health when the selected mode includes WAHA.
+npx --yes pnpm@10.12.4 healthcheck bundled
+
+# Runs the redacted secret/scope/docs checks, Compose private-port guard, and
+# the same deployed health verification for an operator-readable trust report.
+npx --yes pnpm@10.12.4 trust bundled
+```
+
+The `trust` command never prints secret values and does not claim account safety
+or recipient delivery. In external mode it reports that provider reachability is
+not probed because the provider credential remains server-side.
+
 Set `WAHA_API_KEY_FILE` to a protected file containing the approved WAHA API
 key before running the command. The bundled service builds
 `relaynest-waha:latest-2026.8.1` from `Dockerfile.waha`, whose base is the
