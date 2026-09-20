@@ -182,12 +182,31 @@ describe("release documentation freshness", () => {
   it.each([
     ["next-phase bundled prerequisite", ".omo/plans/relaynest-next-phases.md", "- [ ] 8."],
     ["next-phase release tooling", ".omo/plans/relaynest-next-phases.md", "- [ ] 9."],
-    ["protected bundled prerequisite", ".omo/plans/waha-command-center.md", "- [ ] 15."],
-    ["protected release gate", ".omo/plans/waha-command-center.md", "- [ ] 16."],
   ])("rejects a checked %s marker", async (_name, planPath, marker) => {
     // Given a disposable copy whose blocked plan checkbox was changed to checked
     const result = await withCopiedRoot(
       (root) => replaceInFile(root, planPath, marker, marker.replace("[ ]", "[x]")),
+      async (root) => runCommand("docs", root),
+    )
+
+    // Then the checker reports the missing authoritative marker
+    expect(result.exitCode).toBe(1)
+    expect(result.diagnostics).toContainEqual({
+      path: planPath,
+      line: 0,
+      rule: "documentation-marker-missing",
+      remediation: expect.any(String),
+    })
+  })
+
+  it.each([
+    ["protected bundled prerequisite", "- [x] 15."],
+    ["protected release gate", "- [x] 16."],
+  ])("rejects an unchecked completed %s marker", async (_name, marker) => {
+    // Given a disposable copy whose verified completion marker was reverted
+    const planPath = ".omo/plans/waha-command-center.md"
+    const result = await withCopiedRoot(
+      (root) => replaceInFile(root, planPath, marker, marker.replace("[x]", "[ ]")),
       async (root) => runCommand("docs", root),
     )
 
